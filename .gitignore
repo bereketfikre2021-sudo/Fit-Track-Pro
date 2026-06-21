@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+
+# Build output (never commit — CI builds dist and deploys it to GitHub Pages)
+dist/
+dev-dist/
+dist.zip
+*.tsbuildinfo
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Test / coverage
+coverage/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+Thumbs.db
+desktop.ini
+
+# Local IDE / editor (not needed in the repo)
+.cursor/
+*.swp
+*~
+
+# Local-only data (backups, scratch files)
+*.backup.json
+backups/
+.local/

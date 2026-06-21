@@ -1,0 +1,785 @@
+import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+
+import { Link } from 'react-router-dom'
+
+import { Calendar, Dumbbell, Plus } from 'lucide-react'
+
+import { Card, CardContent } from './ui/card'
+
+import { Button } from './ui/button'
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
+
+import WorkoutSessionBar from './WorkoutSessionBar'
+import RestTimer from './RestTimer'
+import HoldTimer from './HoldTimer'
+import SkipExerciseDialog from './SkipExerciseDialog'
+import SkipDayDialog from './SkipDayDialog'
+import { ExerciseWorkoutCard } from './ExerciseCard'
+import ExerciseDetailSheet from './ExerciseDetailSheet'
+import { parseRestSeconds } from '@/lib/restTimer'
+import { createHoldTimer } from '@/lib/holdTimer'
+import { getAppSettings } from '@/lib/appSettings'
+import { buildDefaultSets, migrateCompletionEntry } from '@/lib/setLogging'
+import { isCompletedEntry } from '@/lib/exerciseSkip'
+
+import { cn } from '@/lib/utils'
+
+import { getTodayWorkoutContext } from '@/lib/calendarDay'
+
+import {
+  EXERCISE_PHASE,
+  filterExercisesByPhase,
+  inferExercisePhase,
+  isSimplePhase,
+} from '@/lib/exercisePhase'
+
+import {
+
+  areAllMainExercisesCompleted,
+
+  completionKey,
+
+  finishWorkoutSession,
+
+  getMainExercisesForDay,
+
+  getTodaySessionForDay,
+
+  skipWorkoutForToday,
+
+  startWorkoutSession,
+
+  todayDateString,
+
+} from '@/lib/workoutSession'
+
+import { toast } from 'sonner'
+import { translateWeekday } from '@/lib/i18nHelpers'
+import AiRecommendButton from './AiRecommendButton'
+import { fetchExerciseRecommendation } from '@/lib/aiRecommendations'
+import { applyExerciseImport, IMPORT_MODE } from '@/lib/exerciseImport'
+import { showImportWarnings } from '@/lib/importWarnings'
+import { getAiToastKey } from '@/lib/aiErrors'
+
+
+
+const sharedRadius = 'rounded-md'
+
+function WorkoutExerciseEmptyActions({ showAiRecommend, aiLoading, onAiRecommend, t }) {
+  return (
+    <div className="flex flex-wrap gap-2 justify-center">
+      {showAiRecommend && (
+        <AiRecommendButton
+          loading={aiLoading}
+          label={t('ai.exerciseLabel')}
+          onClick={onAiRecommend}
+        />
+      )}
+      <Button variant="outline" asChild>
+        <Link to="/exercises">
+          <Plus className="h-4 w-4 mr-2" />
+          {t('workout.addExercises')}
+        </Link>
+      </Button>
+    </div>
+  )
+}
+
+function WorkoutTab({ state, updateState }) {
+  const { t } = useTranslation()
+
+  const [activeDay, setActiveDay] = useState(() => {
+
+    const workoutDays = state.profile?.workoutDays || []
+
+    const ctx = getTodayWorkoutContext(workoutDays)
+    return ctx.planDay || ctx.nextWorkoutDay || workoutDays[0] || null
+
+  })
+
+  const [phaseFilter, setPhaseFilter] = useState(EXERCISE_PHASE.MAIN)
+  const [restTimer, setRestTimer] = useState(null)
+  const [holdTimer, setHoldTimer] = useState(null)
+  const [skipTarget, setSkipTarget] = useState(null)
+  const [skipDayOpen, setSkipDayOpen] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [detailExercise, setDetailExercise] = useState(null)
+
+  const workoutSchedule = state.workoutSchedule || {}
+
+  const workoutDays = state.profile?.workoutDays || []
+
+  const customExercises = state.customExercises || []
+
+  const completedExercises = state.completedExercises || {}
+
+  const activeSession = state.activeWorkoutSession || null
+
+  const completedSessions = state.completedSessions || []
+
+  const today = todayDateString()
+  const todayCtx = getTodayWorkoutContext(workoutDays)
+  const appSettings = getAppSettings(state)
+
+  useEffect(() => {
+    if (!workoutDays.length) return
+    if (activeDay && workoutDays.includes(activeDay)) return
+    const ctx = getTodayWorkoutContext(workoutDays)
+    setActiveDay(ctx.planDay || ctx.nextWorkoutDay || workoutDays[0] || null)
+  }, [activeDay, workoutDays])
+
+  const startRestTimer = (seconds, label = t('common.rest')) => {
+    setHoldTimer(null)
+    const sec = Math.max(1, seconds)
+    setRestTimer({
+      endsAt: Date.now() + sec * 1000,
+      totalSeconds: sec,
+      label,
+    })
+  }
+
+  const startHoldTimer = (seconds, label) => {
+    setRestTimer(null)
+    setHoldTimer(createHoldTimer(seconds, label))
+  }
+
+  const extendRestTimer = (extraSeconds) => {
+    setRestTimer((prev) => {
+      if (!prev) return prev
+      const remaining = Math.max(0, Math.ceil((prev.endsAt - Date.now()) / 1000))
+      const total = remaining + extraSeconds
+      return {
+        ...prev,
+        endsAt: Date.now() + total * 1000,
+        totalSeconds: total,
+      }
+    })
+  }
+
+  const toggleExerciseCompletion = (day, scheduleExerciseId) => {
+    if (day !== todayCtx.calendarToday) {
+      toast.error(t('workout.toastOnlyToday', { day: translateWeekday(todayCtx.calendarToday) }))
+      return
+    }
+    const key = completionKey(today, day, scheduleExerciseId)
+    const newCompleted = { ...completedExercises }
+    const existing = newCompleted[key]
+
+    if (isCompletedEntry(existing)) {
+      delete newCompleted[key]
+      toast.success(t('workout.toastIncomplete'))
+    } else {
+      const scheduled = workoutSchedule[day]?.exercises?.find((e) => e.id === scheduleExerciseId)
+      const library = scheduled?.exerciseId
+        ? customExercises.find((c) => c.id === scheduled.exerciseId)
+        : null
+      const baseSets = existing?.sets?.length
+        ? existing.sets
+        : appSettings.enableSetLogging
+          ? buildDefaultSets(scheduled, library)
+          : []
+      newCompleted[key] = migrateCompletionEntry(
+        {
+          ...(existing || { notes: '', libraryExerciseId: library?.id }),
+          sets: baseSets,
+          completedAt: Date.now(),
+          date: today,
+          day,
+          exerciseId: scheduleExerciseId,
+          libraryExerciseId: library?.id || existing?.libraryExerciseId,
+        },
+        scheduled,
+        library
+      )
+      toast.success(t('workout.toastComplete'))
+      const mainExercises = getMainExercisesForDay(
+        { workoutSchedule, customExercises },
+        day
+      )
+      const allMainCompleted = areAllMainExercisesCompleted(
+        newCompleted,
+        mainExercises,
+        day,
+        today
+      )
+      const restSec = parseRestSeconds(
+        scheduled?.restTime || library?.restTime,
+        appSettings.defaultRestSeconds
+      )
+
+      // Only auto-start rest timer if this is NOT the last exercise
+      if (
+        appSettings.autoStartRestOnComplete &&
+        !isSimplePhase(inferExercisePhase(library || scheduled || {})) &&
+        !allMainCompleted
+      ) {
+        startRestTimer(restSec, scheduled?.name || library?.name)
+      }
+
+      const updates = { completedExercises: newCompleted }
+
+      if (allMainCompleted) {
+        // Always clear the rest timer when the workout is done
+        setRestTimer(null)
+
+        // Finish the session — use activeSession if it matches today,
+        // otherwise synthesise one so the day always gets marked done
+        const sessionToFinish =
+          activeSession?.day === day && activeSession?.date === today
+            ? activeSession
+            : { day, date: today, startedAt: Date.now() }
+
+        const finishUpdates = finishWorkoutSession(sessionToFinish, {
+          ...state,
+          completedExercises: newCompleted,
+        })
+        if (finishUpdates) {
+          Object.assign(updates, finishUpdates)
+          const session = finishUpdates.completedSessions[finishUpdates.completedSessions.length - 1]
+          toast.success(
+            t('workout.toastFinished', {
+              completed: session.completedCount,
+              total: session.totalCount,
+            })
+          )
+        }
+      }
+
+      updateState(updates)
+      return
+    }
+
+    updateState({ completedExercises: newCompleted })
+  }
+
+  const handleSkipExercise = (day, scheduleExerciseId, reason) => {
+    if (day !== todayCtx.calendarToday) {
+      toast.error(t('workout.toastOnlyToday', { day: translateWeekday(todayCtx.calendarToday) }))
+      return
+    }
+    const key = completionKey(today, day, scheduleExerciseId)
+    const scheduled = workoutSchedule[day]?.exercises?.find((e) => e.id === scheduleExerciseId)
+    const library = scheduled?.exerciseId
+      ? customExercises.find((c) => c.id === scheduled.exerciseId)
+      : null
+
+    updateState({
+      completedExercises: {
+        ...completedExercises,
+        [key]: {
+          date: today,
+          day,
+          exerciseId: scheduleExerciseId,
+          skipped: true,
+          skipReason: reason,
+          skippedAt: Date.now(),
+          libraryExerciseId: library?.id,
+        },
+      },
+    })
+    toast.success(t('workout.toastSkipped'))
+  }
+
+  const handleUnskipExercise = (day, scheduleExerciseId) => {
+    if (day !== todayCtx.calendarToday) {
+      toast.error(t('workout.toastOnlyToday', { day: translateWeekday(todayCtx.calendarToday) }))
+      return
+    }
+    const key = completionKey(today, day, scheduleExerciseId)
+    const newCompleted = { ...completedExercises }
+    delete newCompleted[key]
+    updateState({ completedExercises: newCompleted })
+    toast.success(t('workout.toastSkipRemoved'))
+  }
+
+  const handleSkipToday = (day, reason) => {
+    if (day !== todayCtx.calendarToday) {
+      toast.error(t('workout.toastOnlyToday', { day: translateWeekday(todayCtx.calendarToday) }))
+      return
+    }
+    if (getTodaySessionForDay(completedSessions, day, today)) {
+      toast.error(t('home.toastAlreadyDone'))
+      return
+    }
+    updateState(skipWorkoutForToday(state, day, reason, today))
+    toast.success(t('home.toastSkippedToday'))
+  }
+
+  const isExerciseCompleted = (day, scheduleExerciseId) => {
+    const entry = completedExercises[completionKey(today, day, scheduleExerciseId)]
+    return isCompletedEntry(entry)
+  }
+
+
+
+  const getCompletionEntry = (day, scheduleExerciseId) => {
+    return completedExercises[completionKey(today, day, scheduleExerciseId)]
+  }
+
+  const saveCompletionEntry = (day, scheduleExerciseId, patch) => {
+    if (day !== todayCtx.calendarToday) {
+      toast.error(t('workout.toastOnlyToday', { day: translateWeekday(todayCtx.calendarToday) }))
+      return
+    }
+    const key = completionKey(today, day, scheduleExerciseId)
+    const scheduled = workoutSchedule[day]?.exercises?.find((e) => e.id === scheduleExerciseId)
+    const library = scheduled?.exerciseId
+      ? customExercises.find((c) => c.id === scheduled.exerciseId)
+      : null
+    const existing = completedExercises[key]
+    const base = existing || {
+      notes: '',
+      sets: buildDefaultSets(scheduled, library),
+      libraryExerciseId: library?.id,
+    }
+    const migrated = migrateCompletionEntry({ ...base, ...patch }, scheduled, library)
+
+    updateState({
+      completedExercises: {
+        ...completedExercises,
+        [key]: {
+          ...migrated,
+          date: today,
+          day,
+          exerciseId: scheduleExerciseId,
+          completedAt: existing?.completedAt,
+        },
+      },
+    })
+  }
+
+
+
+  const handleStartSession = (day) => {
+
+    if (activeSession?.date === today) {
+
+      toast.error(t('workout.toastFinishFirst', { day: translateWeekday(activeSession.day) }))
+
+      return
+
+    }
+
+    updateState({ activeWorkoutSession: startWorkoutSession(day, today) })
+
+    toast.success(t('workout.toastStarted', { day: translateWeekday(day) }))
+
+  }
+
+
+
+  const handleEndSession = (day) => {
+
+    if (!activeSession || activeSession.day !== day) return
+
+
+
+    const updates = finishWorkoutSession(activeSession, state)
+
+    if (!updates) return
+
+
+
+    updateState(updates)
+
+    const session = updates.completedSessions[updates.completedSessions.length - 1]
+
+    toast.success(
+      t('workout.toastFinished', {
+        completed: session.completedCount,
+        total: session.totalCount,
+      })
+    )
+
+  }
+
+  const handleAiExerciseRecommend = async () => {
+    setAiLoading(true)
+    try {
+      const parsed = await fetchExerciseRecommendation(state)
+      const result = applyExerciseImport(state, parsed, IMPORT_MODE.APPEND)
+      updateState({
+        customExercises: result.customExercises,
+        workoutSchedule: result.workoutSchedule,
+        profile: result.profile,
+      })
+      const { exercisesAdded, scheduleEntriesAdded, warnings } = result.summary
+      const parts = []
+      if (exercisesAdded) parts.push(t('common.exercises', { count: exercisesAdded }))
+      if (scheduleEntriesAdded) {
+        parts.push(
+          t('custom.importScheduleEntries', {
+            count: scheduleEntriesAdded,
+            defaultValue: `${scheduleEntriesAdded} schedule assignment(s)`,
+          })
+        )
+      }
+      toast.success(
+        parts.length
+          ? t('custom.toastAiAdded', {
+              parts: parts.join(` ${t('common.and', { defaultValue: 'and' })} `),
+              defaultValue: `AI added ${parts.join(' and ')}`,
+            })
+          : t('custom.toastAiApplied')
+      )
+      showImportWarnings(warnings, { title: t('custom.aiNotesTitle') })
+    } catch (err) {
+      toast.error(t(getAiToastKey(err)))
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  if (workoutDays.length === 0) {
+
+    return (
+
+      <div className="p-4 md:p-6 pb-20 md:pb-6">
+
+        <Card>
+
+          <CardContent className="flex flex-col items-center justify-center py-12">
+
+            <Calendar className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+
+            <p className="text-lg font-medium mb-2">{t('workout.noDaysTitle')}</p>
+
+            <p className="text-sm text-muted-foreground mb-4 text-center">
+
+              {t('workout.noDaysDesc')}
+
+            </p>
+
+            <WorkoutExerciseEmptyActions
+              showAiRecommend
+              aiLoading={aiLoading}
+              onAiRecommend={handleAiExerciseRecommend}
+              t={t}
+            />
+
+          </CardContent>
+
+        </Card>
+
+      </div>
+
+    )
+
+  }
+
+
+
+  return (
+
+    <div className="p-4 md:p-6 pb-20 md:pb-6">
+
+      <Tabs
+        value={activeDay}
+        onValueChange={(day) => {
+          setActiveDay(day)
+          setPhaseFilter(EXERCISE_PHASE.MAIN)
+        }}
+        className="w-full"
+      >
+
+        <TabsList className="w-full grid h-auto gap-2 bg-transparent p-0 mb-6" style={{ gridTemplateColumns: `repeat(${workoutDays.length}, minmax(0, 1fr))` }}>
+
+          {workoutDays.map(day => (
+
+            <TabsTrigger
+
+              key={day}
+
+              value={day}
+
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+
+            >
+
+              {translateWeekday(day)}
+
+            </TabsTrigger>
+
+          ))}
+
+        </TabsList>
+
+
+
+        {workoutDays.map(day => {
+          const readOnly = day !== todayCtx.calendarToday
+
+          const daySchedule = workoutSchedule[day] || { note: '', exercises: [] }
+
+          const exerciseCount = daySchedule.exercises.length
+
+          const mainExercises = daySchedule.exercises.filter((ex) => {
+            const library = customExercises.find((c) => c.id === ex.exerciseId)
+            return (
+              inferExercisePhase({
+                ...library,
+                ...ex,
+              }) === EXERCISE_PHASE.MAIN
+            )
+          })
+          const mainExerciseCount = mainExercises.length
+          const completedToday = mainExercises.reduce(
+            (acc, ex) => acc + (isExerciseCompleted(day, ex.id) ? 1 : 0),
+            0
+          )
+
+          const todaySession = getTodaySessionForDay(completedSessions, day, today)
+
+
+
+          return (
+
+            <TabsContent key={day} value={day} className="space-y-4">
+
+              <WorkoutSessionBar
+
+                day={day}
+
+                activeSession={activeSession}
+
+                dayExerciseCount={mainExerciseCount}
+
+                completedExercises={completedExercises}
+
+                todaySession={todaySession}
+                completedCount={completedToday}
+                onEnd={() => handleEndSession(day)}
+
+              />
+
+              {!readOnly && mainExerciseCount > 0 && !todaySession && (
+                <div className="flex justify-end">
+                  <Button size="sm" variant="outline" onClick={() => setSkipDayOpen(true)}>
+                    {t('todayCard.skipToday')}
+                  </Button>
+                </div>
+              )}
+
+              {exerciseCount > 0 && (
+
+                <p className="text-xs text-muted-foreground px-1">
+
+                  {t('workout.todayProgress', {
+                    completed: completedToday,
+                    total: mainExerciseCount,
+                  })}
+
+                </p>
+
+              )}
+
+              {exerciseCount > 0 && (
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <Tabs value={phaseFilter} onValueChange={setPhaseFilter}>
+                    <TabsList className="h-auto">
+                      <TabsTrigger value={EXERCISE_PHASE.WARMUP}>{t('exercisePhase.warmup.short')}</TabsTrigger>
+                      <TabsTrigger value={EXERCISE_PHASE.MAIN}>{t('exercisePhase.main.short')}</TabsTrigger>
+                      <TabsTrigger value={EXERCISE_PHASE.COOLDOWN}>{t('exercisePhase.cooldown.short')}</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                  <p className="text-xs text-muted-foreground px-1">
+                    {t('workout.shown', {
+                      count: filterExercisesByPhase(daySchedule.exercises, phaseFilter).length,
+                    })}
+                  </p>
+                </div>
+              )}
+
+
+
+              {exerciseCount === 0 ? (
+
+                <Card>
+
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+
+                    <Dumbbell className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+
+                    <p className="text-lg font-medium mb-2">{t('workout.noExercisesTitle')}</p>
+
+                    <p className="text-sm text-muted-foreground mb-4 text-center">
+
+                      {customExercises.length > 0
+
+                        ? t('workout.noExercisesDay', { day: translateWeekday(day) })
+
+                        : t('workout.noExercisesGeneral')}
+
+                    </p>
+
+                    <WorkoutExerciseEmptyActions
+                      showAiRecommend
+                      aiLoading={aiLoading}
+                      onAiRecommend={handleAiExerciseRecommend}
+                      t={t}
+                    />
+
+                  </CardContent>
+
+                </Card>
+
+              ) : (
+
+                <div className="space-y-5">
+
+                  {(() => {
+                    const enriched = daySchedule.exercises.map((ex) => {
+                      const library = customExercises.find((c) => c.id === ex.exerciseId)
+                      return {
+                        ...ex,
+                        exercisePhase: inferExercisePhase({
+                          ...library,
+                          ...ex,
+                        }),
+                      }
+                    })
+
+                    const filtered = filterExercisesByPhase(enriched, phaseFilter)
+
+                    const groups = [
+                      {
+                        phase: phaseFilter,
+                        label:
+                          phaseFilter === EXERCISE_PHASE.WARMUP
+                            ? t('exercisePhase.warmup.short')
+                            : phaseFilter === EXERCISE_PHASE.COOLDOWN
+                              ? t('exercisePhase.cooldown.short')
+                              : t('exercisePhase.main.short'),
+                        exercises: filtered,
+                      },
+                    ].filter((g) => g.exercises.length > 0)
+
+                    return groups.map((group) => (
+
+                    <div key={group.phase} className="space-y-2">
+
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-1">
+
+                        {group.label}
+
+                      </h3>
+
+                      <div className="flex flex-col gap-3">
+
+                        {group.exercises.map((ex, i) => (
+
+                          <ExerciseWorkoutCard
+                            key={ex.id || i}
+                            exercise={ex}
+                            day={day}
+                            customExercises={customExercises}
+                            completedExercises={completedExercises}
+                            isCompleted={isExerciseCompleted(day, ex.id)}
+                            completionEntry={getCompletionEntry(day, ex.id)}
+                            enableSetLogging={appSettings.enableSetLogging}
+                            readOnly={readOnly}
+                            onSaveEntry={
+                              readOnly ? undefined : (patch) => saveCompletionEntry(day, ex.id, patch)
+                            }
+                            onToggleComplete={
+                              readOnly ? undefined : () => toggleExerciseCompletion(day, ex.id)
+                            }
+                            onSkip={
+                              readOnly
+                                ? undefined
+                                : () =>
+                                    setSkipTarget({
+                                      day,
+                                      scheduleExerciseId: ex.id,
+                                      name: ex.name,
+                                    })
+                            }
+                            onUnskip={
+                              readOnly ? undefined : () => handleUnskipExercise(day, ex.id)
+                            }
+                            onStartRest={
+                              readOnly ? undefined : (seconds, label) => startRestTimer(seconds, label)
+                            }
+                            onStartHold={
+                              readOnly ? undefined : (seconds, label) => startHoldTimer(seconds, label)
+                            }
+                            onViewDetail={() => {
+                              const library = customExercises.find(
+                                c => c.id === ex.exerciseId || c.id === ex.id
+                              )
+                              setDetailExercise(library || ex)
+                            }}
+                          />
+
+                        ))}
+
+                      </div>
+
+                    </div>
+
+                  ))
+                  })()}
+
+                </div>
+
+              )}
+
+
+
+            </TabsContent>
+
+          )
+
+        })}
+
+      </Tabs>
+
+      <RestTimer
+        timer={restTimer}
+        onStop={() => setRestTimer(null)}
+        onExtend={extendRestTimer}
+        playSound={appSettings.restTimerSound}
+        vibrate={appSettings.restTimerVibrate}
+      />
+
+      <HoldTimer
+        timer={holdTimer}
+        onStop={() => setHoldTimer(null)}
+        playSound={appSettings.restTimerSound}
+        vibrate={appSettings.restTimerVibrate}
+      />
+
+      <SkipExerciseDialog
+        open={!!skipTarget}
+        onOpenChange={(open) => !open && setSkipTarget(null)}
+        exerciseName={skipTarget?.name || ''}
+        onConfirm={(reason) => {
+          if (skipTarget) {
+            handleSkipExercise(skipTarget.day, skipTarget.scheduleExerciseId, reason)
+          }
+          setSkipTarget(null)
+        }}
+      />
+
+      <SkipDayDialog
+        open={skipDayOpen}
+        onOpenChange={setSkipDayOpen}
+        dayLabel={translateWeekday(todayCtx.calendarToday)}
+        onConfirm={(reason) => handleSkipToday(todayCtx.calendarToday, reason)}
+      />
+
+      <ExerciseDetailSheet
+        exercise={detailExercise}
+        open={!!detailExercise}
+        onClose={() => setDetailExercise(null)}
+      />
+
+    </div>
+
+  )
+
+}
+
+export default WorkoutTab

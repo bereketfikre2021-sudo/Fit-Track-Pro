@@ -1,0 +1,11 @@
+# Normalize text files so Windows does not show false "modified" files in git status.
+* text=auto eol=lf
+
+*.png binary
+*.webp binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
