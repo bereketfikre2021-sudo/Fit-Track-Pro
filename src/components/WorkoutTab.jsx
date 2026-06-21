@@ -17,7 +17,6 @@ import HoldTimer from './HoldTimer'
 import SkipExerciseDialog from './SkipExerciseDialog'
 import SkipDayDialog from './SkipDayDialog'
 import { ExerciseWorkoutCard } from './ExerciseCard'
-import ExerciseDetailSheet from './ExerciseDetailSheet'
 import { parseRestSeconds } from '@/lib/restTimer'
 import { createHoldTimer } from '@/lib/holdTimer'
 import { getAppSettings } from '@/lib/appSettings'
@@ -105,7 +104,6 @@ function WorkoutTab({ state, updateState }) {
   const [skipTarget, setSkipTarget] = useState(null)
   const [skipDayOpen, setSkipDayOpen] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
-  const [detailExercise, setDetailExercise] = useState(null)
 
   const workoutSchedule = state.workoutSchedule || {}
 
@@ -705,12 +703,6 @@ function WorkoutTab({ state, updateState }) {
                             onStartHold={
                               readOnly ? undefined : (seconds, label) => startHoldTimer(seconds, label)
                             }
-                            onViewDetail={() => {
-                              const library = customExercises.find(
-                                c => c.id === ex.exerciseId || c.id === ex.id
-                              )
-                              setDetailExercise(library || ex)
-                            }}
                           />
 
                         ))}
@@ -768,12 +760,6 @@ function WorkoutTab({ state, updateState }) {
         onOpenChange={setSkipDayOpen}
         dayLabel={translateWeekday(todayCtx.calendarToday)}
         onConfirm={(reason) => handleSkipToday(todayCtx.calendarToday, reason)}
-      />
-
-      <ExerciseDetailSheet
-        exercise={detailExercise}
-        open={!!detailExercise}
-        onClose={() => setDetailExercise(null)}
       />
 
     </div>

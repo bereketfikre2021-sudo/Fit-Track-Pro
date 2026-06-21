@@ -267,9 +267,45 @@ export function getWeeklyWorkoutReport(state, weekOffset = 0) {
 
 
 
-export function compareWeekOverWeek(state) {
+/**
+ * Total volume (kg) and sets completed for a given week.
+ * Volume = sum of (weightKg × reps) per logged set.
+ */
+export function getWeeklyVolume(state, weekOffset = 0) {
+  const completedExercises = state.completedExercises || {}
 
-  const current = getWeeklyWorkoutReport(state, 0)
+  const weekStart = getMondayWeekStart(new Date(), weekOffset)
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekEnd.getDate() + 7)
+
+  let totalVolumeKg = 0
+  let totalSets = 0
+  let totalReps = 0
+
+  Object.values(completedExercises).forEach((entry) => {
+    if (!entry?.date || entry.skipped || !entry.completedAt) return
+    const entryDate = parseDateString(entry.date)
+    if (entryDate < weekStart || entryDate >= weekEnd) return
+
+    const sets = entry.sets || []
+    sets.forEach((s) => {
+      const kg = parseFloat(s.weightKg)
+      const reps = parseInt(s.reps, 10)
+      if (!isNaN(kg) && kg > 0 && !isNaN(reps) && reps > 0) {
+        totalVolumeKg += kg * reps
+        totalSets += 1
+        totalReps += reps
+      } else if (!isNaN(reps) && reps > 0) {
+        totalSets += 1
+        totalReps += reps
+      }
+    })
+  })
+
+  return { totalVolumeKg: Math.round(totalVolumeKg), totalSets, totalReps }
+}
+
+export function compareWeekOverWeek(state) {  const current = getWeeklyWorkoutReport(state, 0)
 
   const previous = getWeeklyWorkoutReport(state, -1)
 

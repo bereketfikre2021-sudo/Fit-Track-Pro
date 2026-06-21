@@ -56,6 +56,7 @@ export function createDefaultAppState() {
     mealPlan: structuredClone(DEFAULT_MEAL_PLAN),
     shoppingList: structuredClone(DEFAULT_SHOPPING_LIST),
     bodyLogs: [],
+    waterLogs: {},
     completedSessions: [],
     completedExercises: {},
     activeWorkoutSession: null,
@@ -107,6 +108,10 @@ export function migrateAppState(state, defaults = createDefaultAppState()) {
         ? state.workoutSchedule
         : {},
     bodyLogs: Array.isArray(state.bodyLogs) ? state.bodyLogs : [],
+    waterLogs:
+      state.waterLogs && typeof state.waterLogs === 'object' && !Array.isArray(state.waterLogs)
+        ? state.waterLogs
+        : {},
     completedSessions: Array.isArray(state.completedSessions)
       ? state.completedSessions
       : [],

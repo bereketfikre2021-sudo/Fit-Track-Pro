@@ -45,8 +45,8 @@
   },
   "nav": {
     "workout": "Workout",
-    "report": "Report",
-    "exercises": "Exercises",
+    "report": "Progress",
+    "exercises": "Custom",
     "meals": "Meals",
     "mealPlan": "Meal Plan",
     "profile": "Profile",
@@ -139,13 +139,49 @@
       "title": "On a roll",
       "description": "3-day workout streak"
     },
+    "streak_7": {
+      "title": "One week strong",
+      "description": "7-day workout streak"
+    },
+    "streak_30": {
+      "title": "Unstoppable",
+      "description": "30-day workout streak"
+    },
     "sessions_10": {
       "title": "Regular",
       "description": "Finish 10 workout sessions"
     },
+    "sessions_50": {
+      "title": "Dedicated",
+      "description": "Finish 50 workout sessions"
+    },
+    "sessions_100": {
+      "title": "Century club",
+      "description": "Finish 100 workout sessions"
+    },
     "exercises_50": {
       "title": "Volume builder",
       "description": "Complete 50 exercises (all time)"
+    },
+    "exercises_100": {
+      "title": "Iron will",
+      "description": "Complete 100 exercises (all time)"
+    },
+    "full_week": {
+      "title": "Perfect week",
+      "description": "Complete every planned workout day in a single week"
+    },
+    "weight_logged_7": {
+      "title": "Consistent tracker",
+      "description": "Log your body weight on 7 different days"
+    },
+    "target_weight_reached": {
+      "title": "Goal achieved",
+      "description": "Reach your target weight"
+    },
+    "water_goal_7": {
+      "title": "Hydration habit",
+      "description": "Hit your daily water goal 7 times"
     },
     "unlocked": "{{unlocked}} of {{total}} unlocked"
   },
@@ -395,7 +431,9 @@
       "defaultRestHint": "Used when an exercise has no rest time set.",
       "soundEnd": "Sound when rest ends",
       "vibrateEnd": "Vibrate when rest ends",
-      "vibrateHint": "On supported phones."
+      "vibrateHint": "On supported phones.",
+      "waterGoal": "Daily water goal (cups)",
+      "waterGoalHint": "1 cup ≈ 250 ml. Shown as a tracker on the home page."
     },
     "about": {
       "title": "About",
@@ -515,9 +553,9 @@
     "itemNameRequired": "Item name is required"
   },
   "exercises": {
-    "pageTitle": "Exercises",
+    "pageTitle": "Custom",
     "pageSubtitle": "Build your exercise library and weekly schedule",
-    "tabLibrary": "Exercises",
+    "tabLibrary": "Custom",
     "tabSchedule": "Days",
     "inLibrary": "{{count}} in your library",
     "jsonTemplate": "JSON template",
@@ -615,7 +653,7 @@
     "loadingChart": "Loading weight chart…"
   },
   "report": {
-    "title": "Report",
+    "title": "Progress",
     "subtitle": "Weekly summary, muscles worked, and activity log",
     "workoutDays": "Workout Days",
     "exercisesDone": "Exercises Done",
@@ -643,7 +681,10 @@
     "sessionHistory": "Session history",
     "sessionHistoryDesc": "Finished workout sessions (duration and completion)",
     "noSessions": "No finished sessions yet. Start and end a workout on the Workout tab.",
-    "achievements": "Achievements"
+    "achievements": "Achievements",
+    "weeklyVolume": "Weekly volume",
+    "setsCompleted": "Sets this week",
+    "vsLastWeek": "vs last week"
   },
   "todayCard": {
     "today": "Today's workout",
@@ -684,8 +725,15 @@
     "addSet": "Add set",
     "removeSet": "Remove set"
   },
-  "streak": {
-    "dayStreak": "{{count}} day streak",
+  "water": {
+    "title": "Water intake",
+    "goalOf": "Goal: {{goal}} cups today",
+    "goalReached": "Daily goal reached! 💧",
+    "progress": "{{cups}} / {{goal}} cups ({{percent}}%)",
+    "addCup": "Add a cup",
+    "removeCup": "Remove a cup"
+  },
+  "streak": {    "dayStreak": "{{count}} day streak",
     "dayStreak_plural": "{{count}} days streak",
     "best": "Best: {{count}}",
     "current": "Current streak",

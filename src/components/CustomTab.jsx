@@ -15,6 +15,7 @@ import {
   Clock,
   Copy,
   Library,
+  Clipboard,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
@@ -45,7 +46,6 @@ import AddExerciseToDayDialog from './AddExerciseToDayDialog'
 import CopyDayDialog from './CopyDayDialog'
 import ScheduleExerciseList from './ScheduleExerciseList'
 import { ExerciseLibraryCard } from './ExerciseCard'
-import ExerciseDetailSheet from './ExerciseDetailSheet'
 import { filterExerciseLibrary } from '@/lib/exerciseSearch'
 import { getPersonalRecord } from '@/lib/personalRecords'
 import { copyDaySchedule, reorderDayExercises } from '@/lib/workoutSchedule'
@@ -92,7 +92,6 @@ function CustomTab({ state, updateState }) {
   const [newExercisePhase, setNewExercisePhase] = useState(EXERCISE_PHASE.MAIN)
   const [exercisePhaseFilter, setExercisePhaseFilter] = useState(EXERCISE_PHASE.MAIN)
   const [editingExercise, setEditingExercise] = useState(null)
-  const [detailExercise, setDetailExercise] = useState(null)
   const [presetBrowserOpen, setPresetBrowserOpen] = useState(false)
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [importFile, setImportFile] = useState(null)
@@ -352,7 +351,6 @@ function CustomTab({ state, updateState }) {
                   key={exercise.id}
                   exercise={exercise}
                   personalRecord={getPersonalRecord(completedExercises, exercise.id)?.label}
-                  onViewDetail={() => setDetailExercise(exercise)}
                   onEdit={() => setEditingExercise(exercise)}
                   onDelete={() => handleDeleteExercise(exercise.id)}
                   onUploadImage={async (file) => {
@@ -486,17 +484,6 @@ function CustomTab({ state, updateState }) {
         />
       )}
 
-      {/* Exercise Detail Sheet */}
-      <ExerciseDetailSheet
-        exercise={detailExercise}
-        open={!!detailExercise}
-        onClose={() => setDetailExercise(null)}
-        personalRecord={
-          detailExercise
-            ? getPersonalRecord(completedExercises, detailExercise.id)?.label
-            : null
-        }
-      />
     </div>
   )
 
@@ -616,7 +603,7 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
       exercisePhase: EXERCISE_PHASE.MAIN,
     }
   })
-  const [imageInputType, setImageInputType] = useState('url')
+  const [imageInputType, setImageInputType] = useState('file')
   const [imagePreview, setImagePreview] = useState(exercise?.imageUrl || '')
   const imageFileInputRef = useRef(null)
 
@@ -709,6 +696,40 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
   const openImagePicker = () => {
     setImageInputType('file')
     imageFileInputRef.current?.click?.()
+  }
+
+  const handlePasteImage = async () => {
+    try {
+      if (!navigator.clipboard?.read) {
+        toast.error(t('custom.toastPasteUnsupported', { defaultValue: 'Clipboard access not supported in this browser.' }))
+        return
+      }
+      const items = await navigator.clipboard.read()
+      let found = false
+      for (const item of items) {
+        const imageType = item.types.find((t) => t.startsWith('image/'))
+        if (imageType) {
+          found = true
+          const blob = await item.getType(imageType)
+          const file = new File([blob], `paste.${imageType.split('/')[1] || 'png'}`, { type: imageType })
+          if (file.size > 5 * 1024 * 1024) {
+            toast.error(t('custom.toastImageSize'))
+            return
+          }
+          const dataUrl = await compressImageFile(file, { maxWidth: 400, maxHeight: 400, quality: 0.75 })
+          setFormData((prev) => ({ ...prev, imageUrl: dataUrl }))
+          setImagePreview(dataUrl)
+          setImageInputType('file')
+          toast.success(t('custom.toastImagePasted', { defaultValue: 'Image pasted from clipboard.' }))
+          break
+        }
+      }
+      if (!found) {
+        toast.error(t('custom.toastPasteNoImage', { defaultValue: 'No image found in clipboard.' }))
+      }
+    } catch {
+      toast.error(t('custom.toastPasteFail', { defaultValue: 'Could not read clipboard. Allow clipboard access and try again.' }))
+    }
   }
 
   const handleImageUrlChange = (url) => {
@@ -1037,7 +1058,7 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
           <div className="space-y-2">
             <label className="text-sm font-medium">{t('custom.exerciseImage')}</label>
             
-            {/* Toggle between URL and File */}
+            {/* Toggle between URL, File, and Paste */}
             <div className="flex gap-2 mb-2">
               <Button
                 type="button"
@@ -1059,6 +1080,17 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
                 <Upload className="h-4 w-4 mr-2" />
                 {t('custom.uploadFile')}
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handlePasteImage}
+                className="flex-1"
+                title={t('custom.pasteClipboard', { defaultValue: 'Paste from clipboard' })}
+              >
+                <Clipboard className="h-4 w-4 mr-2" />
+                {t('custom.pasteClipboard', { defaultValue: 'Paste' })}
+              </Button>
             </div>
 
             {imageInputType === 'url' ? (
@@ -1075,6 +1107,25 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
                 onClick={openImagePicker}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') openImagePicker()
+                }}
+                onPaste={async (e) => {
+                  const item = Array.from(e.clipboardData?.items || []).find((i) =>
+                    i.type.startsWith('image/')
+                  )
+                  if (item) {
+                    e.preventDefault()
+                    const file = item.getAsFile()
+                    if (!file) return
+                    if (file.size > 5 * 1024 * 1024) { toast.error(t('custom.toastImageSize')); return }
+                    try {
+                      const dataUrl = await compressImageFile(file, { maxWidth: 400, maxHeight: 400, quality: 0.75 })
+                      setFormData((prev) => ({ ...prev, imageUrl: dataUrl }))
+                      setImagePreview(dataUrl)
+                      toast.success(t('custom.toastImagePasted', { defaultValue: 'Image pasted from clipboard.' }))
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : t('custom.toastImageFail'))
+                    }
+                  }
                 }}
                 aria-label={t('custom.uploadAria')}
               >

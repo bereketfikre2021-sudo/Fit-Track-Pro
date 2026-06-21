@@ -38,6 +38,8 @@ export const DEFAULT_APP_SETTINGS = {
   /** Optional — used when VITE_GEMINI_API_KEY is not set (stored locally on device). */
   geminiApiKey: '',
   geminiModel: '',
+  /** Daily water goal in cups (1 cup ≈ 250 ml) */
+  waterGoalCups: 8,
 }
 
 const MEAL_SLOT_IDS = [
@@ -99,6 +101,9 @@ export function normalizeAppSettings(settings) {
     mealReminderTimes,
     geminiApiKey: typeof s.geminiApiKey === 'string' ? s.geminiApiKey.trim() : '',
     geminiModel: typeof s.geminiModel === 'string' ? s.geminiModel.trim() : '',
+    waterGoalCups: Number.isFinite(Number(s.waterGoalCups)) && Number(s.waterGoalCups) >= 1
+      ? Math.min(Math.round(Number(s.waterGoalCups)), 20)
+      : 8,
   }
 }
 

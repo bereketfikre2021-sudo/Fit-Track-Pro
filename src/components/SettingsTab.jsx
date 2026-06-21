@@ -327,6 +327,24 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
               </span>
             </span>
           </label>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t('settings.workoutPrefs.waterGoal')}</label>
+            <Input
+              type="number"
+              min={1}
+              max={20}
+              step={1}
+              value={appSettings.waterGoalCups}
+              onChange={(e) =>
+                patchSettings({ waterGoalCups: parseInt(e.target.value, 10) || 8 })
+              }
+              className="max-w-[140px]"
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('settings.workoutPrefs.waterGoalHint')}
+            </p>
+          </div>
           </div>
 
           <div className="space-y-3 border-t border-border/60 pt-4">

@@ -9,7 +9,6 @@ import {
   Edit2,
   Trash2,
   SkipForward,
-  Info,
 } from 'lucide-react'
 import { Card } from './ui/card'
 import { Button } from './ui/button'
@@ -69,7 +68,14 @@ function ExerciseThumbnail({ exercise, isCompleted, className, onClick }) {
         <img
           src={exercise.imageUrl}
           alt={exercise.name}
-          className={cn('w-full h-full object-cover', sharedRadius)}
+          className={cn(
+            'w-full h-full',
+            // GIFs: contain so animation isn't cropped; static images: cover
+            exercise.imageUrl.includes('.gif') || exercise.imageUrl.startsWith('data:image/gif')
+              ? 'object-contain'
+              : 'object-cover',
+            sharedRadius
+          )}
           loading="lazy"
           onError={(e) => {
             e.target.style.display = 'none'
@@ -117,7 +123,6 @@ export function ExerciseLibraryCard({
   onEdit,
   onDelete,
   onUploadImage,
-  onViewDetail,
 }) {
   const { t } = useTranslation()
   const phase = inferExercisePhase(exercise)
@@ -131,7 +136,7 @@ export function ExerciseLibraryCard({
   return (
     <Card className={cn('p-3 hover:shadow-md transition-shadow', sharedRadius)}>
       <div className="flex gap-3">
-        <ExerciseThumbnail exercise={exercise} onClick={onUploadImage ? openPicker : onViewDetail ?? onEdit} />
+        <ExerciseThumbnail exercise={exercise} onClick={onUploadImage ? openPicker : onEdit} />
         {onUploadImage && (
           <input
             ref={fileInputRef}
@@ -148,14 +153,9 @@ export function ExerciseLibraryCard({
         )}
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="flex items-start justify-between gap-2">
-            <button
-              type="button"
-              className="min-w-0 text-left flex-1"
-              onClick={onViewDetail}
-              disabled={!onViewDetail}
-            >
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm font-semibold leading-tight hover:text-primary transition-colors">
+                <h3 className="text-sm font-semibold leading-tight">
                   {exercise.name}
                 </h3>
                 <span
@@ -175,6 +175,21 @@ export function ExerciseLibraryCard({
                   exercise.restTime &&
                   ` · ${t('exerciseCard.restSec', { sec: exercise.restTime })}`}
               </p>
+              {/* Difficulty + Equipment inline */}
+              {(exercise.difficulty || exercise.equipment) && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {exercise.difficulty && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted border border-border text-muted-foreground leading-none">
+                      {exercise.difficulty}
+                    </span>
+                  )}
+                  {exercise.equipment && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted border border-border text-muted-foreground leading-none">
+                      {exercise.equipment}
+                    </span>
+                  )}
+                </div>
+              )}
               <MuscleTags groups={exercise.muscleGroups} />
               {personalRecord && (
                 <p className="text-[10px] text-primary mt-1">
@@ -186,19 +201,8 @@ export function ExerciseLibraryCard({
                   {exercise.description}
                 </p>
               )}
-            </button>
+            </div>
             <div className="flex gap-0.5 shrink-0">
-              {onViewDetail && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-primary"
-                  onClick={onViewDetail}
-                  title="View details"
-                >
-                  <Info className="h-4 w-4" />
-                </Button>
-              )}
               {onEdit && (
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
                   <Edit2 className="h-4 w-4" />
@@ -234,7 +238,6 @@ export function ExerciseWorkoutCard({
   onRemoveFromDay,
   onStartRest,
   onStartHold,
-  onViewDetail,
 }) {
   const { t } = useTranslation()
   const fullExercise =
@@ -327,6 +330,21 @@ export function ExerciseWorkoutCard({
                   (merged.restTime || fullExercise.restTime) &&
                   ` · ${t('exerciseCard.restSec', { sec: merged.restTime || fullExercise.restTime })}`}
               </p>
+              {/* Difficulty + Equipment inline */}
+              {(fullExercise.difficulty || fullExercise.equipment) && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {fullExercise.difficulty && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted border border-border text-muted-foreground leading-none">
+                      {fullExercise.difficulty}
+                    </span>
+                  )}
+                  {fullExercise.equipment && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted border border-border text-muted-foreground leading-none">
+                      {fullExercise.equipment}
+                    </span>
+                  )}
+                </div>
+              )}
               <MuscleTags groups={fullExercise.muscleGroups} />
               {lastSession && (
                 <p className="text-[10px] text-muted-foreground mt-1">
@@ -344,17 +362,6 @@ export function ExerciseWorkoutCard({
               )}
             </div>
             <div className="flex gap-0.5 shrink-0">
-              {onViewDetail && (
-                <button
-                  type="button"
-                  onClick={onViewDetail}
-                  className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
-                  aria-label="View exercise details"
-                  title="View details"
-                >
-                  <Info className="h-4 w-4" />
-                </button>
-              )}
               {isHold && !skipped && onStartHold && !readOnly && (
                 <button
                   type="button"

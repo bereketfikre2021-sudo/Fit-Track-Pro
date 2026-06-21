@@ -8,6 +8,8 @@ import {
   Share2,
   Printer,
   Target,
+  TrendingUp,
+  BarChart2,
 } from 'lucide-react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
@@ -18,7 +20,7 @@ import { Button } from './ui/button'
 
 import { cn } from '@/lib/utils'
 
-import { compareWeekOverWeek } from '@/lib/workoutInsights'
+import { compareWeekOverWeek, getWeeklyVolume } from '@/lib/workoutInsights'
 import { getWeeklyConsistency } from '@/lib/consistencyScore'
 
 import {
@@ -68,6 +70,16 @@ function WorkoutInsightsReport({ state, className }) {
       state.profile?.workoutDays,
       state.workoutSchedule,
     ]
+  )
+
+  const volume = useMemo(
+    () => getWeeklyVolume(state, 0),
+    [state.completedExercises]
+  )
+
+  const volumePrev = useMemo(
+    () => getWeeklyVolume(state, -1),
+    [state.completedExercises]
   )
 
 
@@ -242,11 +254,59 @@ function WorkoutInsightsReport({ state, className }) {
           </div>
         )}
 
+        {/* Weekly volume */}
+        {(volume.totalSets > 0 || volume.totalVolumeKg > 0) && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg border border-border bg-muted/20 p-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium">
+                  {t('report.weeklyVolume')}
+                </p>
+              </div>
+              <p className="text-xl font-bold">
+                {volume.totalVolumeKg > 0
+                  ? `${volume.totalVolumeKg.toLocaleString()} kg`
+                  : '—'}
+              </p>
+              {volumePrev.totalVolumeKg > 0 && volume.totalVolumeKg > 0 && (
+                <p className={cn(
+                  'text-xs mt-0.5 font-medium',
+                  volume.totalVolumeKg >= volumePrev.totalVolumeKg
+                    ? 'text-emerald-600'
+                    : 'text-amber-600'
+                )}>
+                  {volume.totalVolumeKg >= volumePrev.totalVolumeKg ? '▲' : '▼'}{' '}
+                  {Math.abs(volume.totalVolumeKg - volumePrev.totalVolumeKg).toLocaleString()} kg {t('report.vsLastWeek')}
+                </p>
+              )}
+            </div>
+            <div className="rounded-lg border border-border bg-muted/20 p-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <BarChart2 className="h-3.5 w-3.5 text-primary" />
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium">
+                  {t('report.setsCompleted')}
+                </p>
+              </div>
+              <p className="text-xl font-bold">{volume.totalSets}</p>
+              {volumePrev.totalSets > 0 && volume.totalSets > 0 && (
+                <p className={cn(
+                  'text-xs mt-0.5 font-medium',
+                  volume.totalSets >= volumePrev.totalSets
+                    ? 'text-emerald-600'
+                    : 'text-amber-600'
+                )}>
+                  {volume.totalSets >= volumePrev.totalSets ? '▲' : '▼'}{' '}
+                  {Math.abs(volume.totalSets - volumePrev.totalSets)} {t('report.vsLastWeek')}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
 
-          <p className="text-sm font-medium">{t('report.daysWorked')}</p>
-
-          <div className="grid grid-cols-7 gap-1.5">
+          <p className="text-sm font-medium">{t('report.daysWorked')}</p>          <div className="grid grid-cols-7 gap-1.5">
 
             {report.daysThisWeek.map((day) => (
 

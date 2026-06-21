@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Dumbbell, Plus } from 'lucide-react'
+import { Dumbbell, Plus, Flame, Trophy } from 'lucide-react'
 import { toast } from 'sonner'
 import GymFloatingPattern from '../components/GymFloatingPattern'
 import TodayWorkoutCard from '../components/TodayWorkoutCard'
+import WaterTracker from '../components/WaterTracker'
 import AiRecommendButton from '../components/AiRecommendButton'
 import { Card, CardContent } from '../components/ui/card'
 import { Button } from '../components/ui/button'
+import { cn } from '../lib/utils'
 import { canStartWorkoutForDay } from '@/lib/calendarDay'
 import { fetchExerciseRecommendation } from '@/lib/aiRecommendations'
 import { applyExerciseImport, IMPORT_MODE } from '@/lib/exerciseImport'
@@ -21,6 +23,7 @@ import {
 } from '@/lib/workoutSession'
 import { translateWeekday } from '@/lib/i18nHelpers'
 import { getAiToastKey } from '@/lib/aiErrors'
+import { getWorkoutStreaks } from '@/lib/streaks'
 
 function HomePage({ state, updateState }) {
   const { t } = useTranslation()
@@ -28,6 +31,7 @@ function HomePage({ state, updateState }) {
   const today = todayDateString()
   const [aiLoading, setAiLoading] = useState(false)
   const showExerciseSetupPrompt = shouldShowExerciseSetupPrompt(state)
+  const streaks = getWorkoutStreaks(state.completedExercises || {})
 
   const handleStartSession = (day) => {
     const workoutDays = state.profile?.workoutDays || []
@@ -107,6 +111,40 @@ function HomePage({ state, updateState }) {
           </p>
         </div>
 
+        {/* Streak banner */}
+        {streaks.current > 0 && (
+          <div className={cn(
+            'mb-4 flex items-center justify-between gap-3 rounded-xl border px-4 py-3',
+            streaks.current >= 7
+              ? 'border-amber-500/50 bg-amber-500/10'
+              : 'border-primary/30 bg-primary/5'
+          )}>
+            <div className="flex items-center gap-3">
+              <Flame className={cn(
+                'h-6 w-6 shrink-0',
+                streaks.current >= 7 ? 'text-amber-500' : 'text-primary'
+              )} />
+              <div>
+                <p className={cn(
+                  'text-sm font-bold',
+                  streaks.current >= 7 ? 'text-amber-500' : 'text-primary'
+                )}>
+                  {t('streak.dayStreak', { count: streaks.current })}
+                </p>
+                <p className="text-xs text-muted-foreground">{t('streak.consecutive')}</p>
+              </div>
+            </div>
+            {streaks.longest > 0 && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Trophy className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                  {t('streak.best', { count: streaks.longest })}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         <TodayWorkoutCard
           workoutDays={state.profile?.workoutDays || []}
           workoutSchedule={state.workoutSchedule || {}}
@@ -117,6 +155,8 @@ function HomePage({ state, updateState }) {
           onStartSession={handleStartSession}
           onSkipToday={handleSkipToday}
         />
+
+        <WaterTracker state={state} updateState={updateState} today={today} />
 
         {showExerciseSetupPrompt && (
           <Card className="border-border/80 bg-card/90 backdrop-blur-sm">

@@ -14,7 +14,7 @@ import { BACKGROUND_HOME } from '../lib/backgrounds'
 import { saveAppState } from '../lib/storage'
 import { hydrateAppStateFromBackup } from '../lib/appState'
 import { FOCUS_AREAS } from '../lib/profileOptions'
-import { translateGoal, translateFocusArea, translateWeekday, translateWeekdayAbbrev } from '@/lib/i18nHelpers'
+import { translateGoal, translateFocusArea } from '@/lib/i18nHelpers'
 
 import {
   calculateBmi,
@@ -24,7 +24,6 @@ import {
   suggestTargetWeightKg,
 } from '../lib/profileUtils'
 
-const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const GOAL_VALUES = ['strength', 'muscle', 'fat', 'endurance']
 const GENDER_VALUES = ['male', 'female']
 
@@ -39,7 +38,6 @@ function OnboardingPage({ profile, onResume, onComplete }) {
   const [goal, setGoal] = useState('muscle')
   const [goalTouched, setGoalTouched] = useState(false)
   const [focusArea, setFocusArea] = useState('full-body')
-  const [workoutDays, setWorkoutDays] = useState([])
 
   const bmi = useMemo(
     () => calculateBmi(currentWeight, height),
@@ -73,12 +71,6 @@ function OnboardingPage({ profile, onResume, onComplete }) {
     if (goalTouched || suggestedGoal == null) return
     setGoal(suggestedGoal)
   }, [goalTouched, suggestedGoal])
-
-  const handleDayToggle = (day) => {
-    setWorkoutDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
-    )
-  }
 
   const handleImportData = (e) => {
     const file = e.target.files[0]
@@ -119,7 +111,7 @@ function OnboardingPage({ profile, onResume, onComplete }) {
       goal: suggestedGoal ?? goal,
       focusArea,
       fitnessLevel: 'beginner',
-      workoutDays,
+      workoutDays: [],
     })
     navigate('/')
   }
@@ -353,37 +345,6 @@ function OnboardingPage({ profile, onResume, onComplete }) {
                       {translateFocusArea(area.value)}
                     </button>
                   ))}
-                </div>
-              </div>
-
-              <div>
-                <span className="text-sm font-medium">
-                  {t('onboarding.trainingDays')}{' '}
-                  <span className="text-muted-foreground font-normal">
-                    {t('onboarding.trainingDaysOptional')}
-                  </span>
-                </span>
-                <div className="grid grid-cols-7 gap-1 mt-1.5">
-                  {DAYS_OF_WEEK.map((day) => {
-                    const selected = workoutDays.includes(day)
-                    return (
-                      <button
-                        key={day}
-                        type="button"
-                        aria-pressed={selected}
-                        aria-label={translateWeekday(day)}
-                        className={cn(
-                          'flex flex-col items-center rounded-md border py-2 text-[10px] font-medium transition-colors',
-                          selected
-                            ? 'border-primary bg-primary/15 text-primary'
-                            : 'border-border bg-muted/20 text-muted-foreground hover:border-primary/40'
-                        )}
-                        onClick={() => handleDayToggle(day)}
-                      >
-                        <span>{translateWeekdayAbbrev(day)}</span>
-                      </button>
-                    )
-                  })}
                 </div>
               </div>
             </div>

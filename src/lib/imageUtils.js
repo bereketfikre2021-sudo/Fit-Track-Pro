@@ -1,4 +1,6 @@
-/** Resize and compress an image file for localStorage-friendly storage. */
+/** Resize and compress an image file for localStorage-friendly storage.
+ *  GIFs are returned as-is (base64 data URL) to preserve animation.
+ */
 export function compressImageFile(
   file,
   { maxWidth = 400, maxHeight = 400, quality = 0.75 } = {}
@@ -10,6 +12,16 @@ export function compressImageFile(
     }
     if (!file.type?.startsWith('image/')) {
       reject(new Error('Unsupported file type'))
+      return
+    }
+
+    // GIFs must not be drawn onto a canvas — that collapses all frames into one.
+    // Read them as-is and return the original data URL to preserve animation.
+    if (file.type === 'image/gif') {
+      const reader = new FileReader()
+      reader.onerror = () => reject(new Error('Failed to read GIF file'))
+      reader.onload = () => resolve(/** @type {string} */ (reader.result))
+      reader.readAsDataURL(file)
       return
     }
 

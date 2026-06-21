@@ -44,8 +44,8 @@
   },
   "nav": {
     "workout": "ልምምድ",
-    "report": "ሪፖርት",
-    "exercises": "የአካል ብቃት",
+    "report": "እድገት",
+    "exercises": "ብጁ",
     "meals": "ምግብ",
     "mealPlan": "የምግብ እቅድ",
     "profile": "መገለጫ",
@@ -138,13 +138,49 @@
       "title": "በተከታታይ",
       "description": "3 ቀን ተከታታይ ልምምድ"
     },
+    "streak_7": {
+      "title": "አንድ ሳምንት ጠንካራ",
+      "description": "7 ቀን ተከታታይ ልምምድ"
+    },
+    "streak_30": {
+      "title": "ማቆሚያ የሌለው",
+      "description": "30 ቀን ተከታታይ ልምምድ"
+    },
     "sessions_10": {
       "title": "መደበኛ",
       "description": "10 የአካል ብቃት ክፍለ ጊዜዎችን አጠናቅቅ"
     },
+    "sessions_50": {
+      "title": "ቁርጠኛ",
+      "description": "50 የአካል ብቃት ክፍለ ጊዜዎችን አጠናቅቅ"
+    },
+    "sessions_100": {
+      "title": "የሳምንት ቡድን",
+      "description": "100 የአካል ብቃት ክፍለ ጊዜዎችን አጠናቅቅ"
+    },
     "exercises_50": {
       "title": "የመጠን ሰሪ",
       "description": "50 የአካል ብቃቶችን አጠናቅቅ (ሁሉም ጊዜ)"
+    },
+    "exercises_100": {
+      "title": "የብረት ፈቃድ",
+      "description": "100 የአካል ብቃቶችን አጠናቅቅ (ሁሉም ጊዜ)"
+    },
+    "full_week": {
+      "title": "ፍጹም ሳምንት",
+      "description": "በአንድ ሳምንት ውስጥ ሁሉንም የታቀዱ ቀናት አጠናቅቅ"
+    },
+    "weight_logged_7": {
+      "title": "ቀጣይ ተከታታይ",
+      "description": "ክብደትህን በ7 የተለያዩ ቀናት ምዝገብ"
+    },
+    "target_weight_reached": {
+      "title": "ግብ ተሳካ",
+      "description": "የዒላማ ክብደትህ ላይ ደርስ"
+    },
+    "water_goal_7": {
+      "title": "የውሃ ልምድ",
+      "description": "የዕለት የውሃ ግብህን 7 ጊዜ ሳካ"
     },
     "unlocked": "{{unlocked}} ከ {{total}} ተከፍቷል"
   },
@@ -394,7 +430,9 @@
       "defaultRestHint": "የአካል ብቃት እረፍት ሲኖረው ይጠቀማል።",
       "soundEnd": "እረፍት ሲያልቅ ድምጽ",
       "vibrateEnd": "እረፍት ሲያልቅ ንዘራ",
-      "vibrateHint": "በሚደገፉ ስልኮች ላይ።"
+      "vibrateHint": "በሚደገፉ ስልኮች ላይ።",
+      "waterGoal": "የዕለት የውሃ ግብ (ኩባያዎች)",
+      "waterGoalHint": "1 ኩባያ ≈ 250 ሚሊ ሊትር። በዋናው ገጽ ላይ ይታያል።"
     },
     "about": {
       "title": "ስለ",
@@ -642,7 +680,10 @@
     "sessionHistory": "የክፍለ ጊዜ ታሪክ",
     "sessionHistoryDesc": "የተጠናቀቁ የአካል ብቃት ክፍለ ጊዜዎች",
     "noSessions": "ገና ክፍለ ጊዜ የለም። ልምምድ ጀምሩ እና አጠናቅቁ።",
-    "achievements": "ስኬቶች"
+    "achievements": "ስኬቶች",
+    "weeklyVolume": "የሳምንት ጭነት",
+    "setsCompleted": "የዚህ ሳምንት ስብስቦች",
+    "vsLastWeek": "ካለፈው ሳምንት"
   },
   "todayCard": {
     "today": "የዛሬ ልምምድ",
@@ -682,6 +723,14 @@
     "remove": "አስወግድ",
     "addSet": "ሴት ጨምር",
     "removeSet": "ሴት አስወግድ"
+  },
+  "water": {
+    "title": "የውሃ መጠን",
+    "goalOf": "ግብ: ዛሬ {{goal}} ኩባያ",
+    "goalReached": "የዕለት ግብ ተሳካ! 💧",
+    "progress": "{{cups}} / {{goal}} ኩባያ ({{percent}}%)",
+    "addCup": "ኩባያ ጨምር",
+    "removeCup": "ኩባያ አስወግድ"
   },
   "streak": {
     "dayStreak": "{{count}} ቀን ተከታታይ",

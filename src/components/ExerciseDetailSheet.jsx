@@ -234,9 +234,12 @@ export default function ExerciseDetailSheet({ exercise, open, onClose, personalR
                   alt={`${exercise.name} demonstration`}
                   className={cn(
                     'w-full h-full',
-                    // GIFs and API-fetched animations: contain to show full motion
-                    // Static uploaded images: cover for a clean look
-                    mediaUrl.includes('.gif') || mediaUrl.includes('exercisedb') || mediaUrl.includes('wger')
+                    // GIFs (remote URL or base64 data URL) and API-fetched animations:
+                    // use contain to show full motion without cropping
+                    mediaUrl.includes('.gif') ||
+                    mediaUrl.startsWith('data:image/gif') ||
+                    mediaUrl.includes('exercisedb') ||
+                    mediaUrl.includes('wger')
                       ? 'object-contain'
                       : 'object-cover'
                   )}
