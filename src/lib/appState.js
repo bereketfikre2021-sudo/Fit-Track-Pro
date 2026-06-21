@@ -57,6 +57,7 @@ export function createDefaultAppState() {
     shoppingList: structuredClone(DEFAULT_SHOPPING_LIST),
     bodyLogs: [],
     waterLogs: {},
+    workoutTemplates: [],
     completedSessions: [],
     completedExercises: {},
     activeWorkoutSession: null,
@@ -112,6 +113,7 @@ export function migrateAppState(state, defaults = createDefaultAppState()) {
       state.waterLogs && typeof state.waterLogs === 'object' && !Array.isArray(state.waterLogs)
         ? state.waterLogs
         : {},
+    workoutTemplates: Array.isArray(state.workoutTemplates) ? state.workoutTemplates : [],
     completedSessions: Array.isArray(state.completedSessions)
       ? state.completedSessions
       : [],

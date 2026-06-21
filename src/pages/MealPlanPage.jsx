@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n'
 import {
@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Search,
 } from 'lucide-react'
 import { getDayMacroTotals, formatMacroSummary } from '../lib/mealPlan'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
@@ -57,6 +58,7 @@ import {
   fetchShoppingListRecommendation,
 } from '../lib/aiRecommendations'
 import { isMealPlanEmpty, isShoppingListEmpty } from '../lib/planEmpty'
+import { searchFoods } from '../lib/ethiopianFoods'
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -937,13 +939,23 @@ function MealPlanPage({ state, updateState }) {
 
 function FoodFormDialog({ food, onClose, onSave }) {
   const { t } = useTranslation()
+  const [searchQuery, setSearchQuery] = useState('')
   const [formData, setFormData] = useState(
-    food || {
-      name: '',
-      calories: '',
-      protein: '',
-    }
+    food || { name: '', calories: '', protein: '', carbs: '', fat: '' }
   )
+
+  const suggestions = useMemo(() => searchFoods(searchQuery), [searchQuery])
+
+  const applyFood = (item) => {
+    setFormData({
+      name: item.name,
+      calories: String(item.calories),
+      protein: String(item.protein),
+      carbs: String(item.carbs),
+      fat: String(item.fat),
+    })
+    setSearchQuery('')
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -962,53 +974,125 @@ function FoodFormDialog({ food, onClose, onSave }) {
           <DialogDescription>{t('meals.foodDesc')}</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t('meals.foodName')}</label>
-            <Input
-              placeholder="e.g., 4 Eggs, Bread with Peanut Butter"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              autoFocus
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-4">
+          {/* Food database search — only shown when adding, not editing */}
+          {!food && (
             <div className="space-y-2">
-              <label className="text-sm font-medium">{t('meals.calories')}</label>
+              <label className="text-sm font-medium">{t('meals.foodSearch')}</label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder={t('meals.foodSearchPlaceholder')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                  autoFocus
+                />
+              </div>
+              {suggestions.length > 0 && (
+                <div className="rounded-lg border border-border bg-background shadow-md overflow-hidden">
+                  {suggestions.map((item) => (
+                    <button
+                      key={item.name}
+                      type="button"
+                      className="w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left text-sm hover:bg-muted/60 transition-colors border-b border-border/50 last:border-0"
+                      onClick={() => applyFood(item)}
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{item.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{item.serving}</p>
+                      </div>
+                      <div className="flex gap-2 shrink-0 text-[11px] text-muted-foreground">
+                        <span className="text-foreground font-semibold">{item.calories} kcal</span>
+                        {item.protein > 0 && <span>{item.protein}g P</span>}
+                        {item.carbs > 0 && <span>{item.carbs}g C</span>}
+                        {item.fat > 0 && <span>{item.fat}g F</span>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {searchQuery.trim().length > 0 && suggestions.length === 0 && (
+                <p className="text-xs text-muted-foreground px-1">
+                  {t('meals.foodSearchNoResults')}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground px-1">
+                {t('meals.foodSearchHint')}
+              </p>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t('meals.foodName')}</label>
               <Input
-                type="number"
-                min="0"
-                placeholder="e.g., 320"
-                value={formData.calories ?? ''}
-                onChange={(e) => setFormData({ ...formData, calories: e.target.value })}
+                placeholder="e.g., 4 Eggs, Injera with Shiro"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                autoFocus={!!food}
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t('meals.protein')}</label>
-              <Input
-                type="number"
-                min="0"
-                step="0.1"
-                placeholder="e.g., 24"
-                value={formData.protein ?? ''}
-                onChange={(e) => setFormData({ ...formData, protein: e.target.value })}
-              />
-            </div>
-          </div>
 
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-              <X className="h-4 w-4 mr-2" />
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" className="flex-1">
-              <Save className="h-4 w-4 mr-2" />
-              {food ? t('common.update') : t('common.add')}
-            </Button>
-          </div>
-        </form>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">{t('meals.calories')}</label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="320"
+                  value={formData.calories ?? ''}
+                  onChange={(e) => setFormData({ ...formData, calories: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">{t('meals.protein')}</label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  placeholder="24"
+                  value={formData.protein ?? ''}
+                  onChange={(e) => setFormData({ ...formData, protein: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">{t('meals.carbs', { defaultValue: 'Carbs (g)' })}</label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  placeholder="40"
+                  value={formData.carbs ?? ''}
+                  onChange={(e) => setFormData({ ...formData, carbs: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">{t('meals.fat', { defaultValue: 'Fat (g)' })}</label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  placeholder="10"
+                  value={formData.fat ?? ''}
+                  onChange={(e) => setFormData({ ...formData, fat: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+                <X className="h-4 w-4 mr-2" />
+                {t('common.cancel')}
+              </Button>
+              <Button type="submit" className="flex-1">
+                <Save className="h-4 w-4 mr-2" />
+                {food ? t('common.update') : t('common.add')}
+              </Button>
+            </div>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   )

@@ -16,6 +16,7 @@ import {
   Copy,
   Library,
   Clipboard,
+  LayoutTemplate,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
@@ -46,6 +47,7 @@ import AddExerciseToDayDialog from './AddExerciseToDayDialog'
 import CopyDayDialog from './CopyDayDialog'
 import ScheduleExerciseList from './ScheduleExerciseList'
 import { ExerciseLibraryCard } from './ExerciseCard'
+import TemplateManager from './TemplateManager'
 import { filterExerciseLibrary } from '@/lib/exerciseSearch'
 import { getPersonalRecord } from '@/lib/personalRecords'
 import { copyDaySchedule, reorderDayExercises } from '@/lib/workoutSchedule'
@@ -239,7 +241,7 @@ function CustomTab({ state, updateState }) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="exercises">
             <Dumbbell className="h-4 w-4 mr-2" />
             {t('exercises.tabLibrary')}
@@ -247,6 +249,10 @@ function CustomTab({ state, updateState }) {
           <TabsTrigger value="schedule">
             <Calendar className="h-4 w-4 mr-2" />
             {t('exercises.tabSchedule')}
+          </TabsTrigger>
+          <TabsTrigger value="templates">
+            <LayoutTemplate className="h-4 w-4 mr-2" />
+            {t('exercises.tabTemplates')}
           </TabsTrigger>
         </TabsList>
 
@@ -398,6 +404,11 @@ function CustomTab({ state, updateState }) {
               setAddTypeOpen(true)
             }}
           />
+        </TabsContent>
+
+        {/* TEMPLATES TAB */}
+        <TabsContent value="templates" className="space-y-4">
+          <TemplateManager state={state} updateState={updateState} />
         </TabsContent>
       </Tabs>
 
