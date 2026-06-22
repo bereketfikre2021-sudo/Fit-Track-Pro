@@ -82,6 +82,12 @@ function WorkoutExerciseEmptyActions({ showAiRecommend, aiLoading, onAiRecommend
           {t('workout.addExercises')}
         </Link>
       </Button>
+      <Button variant="outline" asChild>
+        <Link to="/exercises?tab=templates">
+          <Calendar className="h-4 w-4 mr-2" />
+          Use Template
+        </Link>
+      </Button>
     </div>
   )
 }
