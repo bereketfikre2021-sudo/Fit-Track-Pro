@@ -12,6 +12,8 @@ describe('mealPlan', () => {
     expect(getDayMacroTotals(mealPlan, 'Monday')).toEqual({
       calories: 550,
       protein: 54,
+      carbs: 0,
+      fat: 0,
       itemCount: 2,
     })
   })
