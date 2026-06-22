@@ -17,6 +17,8 @@ export function getDayMacroTotals(mealPlan, day) {
   const dayMeals = mealPlan?.[day] || {}
   let calories = 0
   let protein = 0
+  let carbs = 0
+  let fat = 0
   let itemCount = 0
 
   MEAL_SLOT_IDS.forEach((slot) => {
@@ -25,10 +27,12 @@ export function getDayMacroTotals(mealPlan, day) {
     foods.forEach((food) => {
       calories += parseMacro(food.calories)
       protein += parseMacro(food.protein)
+      carbs += parseMacro(food.carbs)
+      fat += parseMacro(food.fat)
     })
   })
 
-  return { calories, protein, itemCount }
+  return { calories, protein, carbs, fat, itemCount }
 }
 
 export function collectAllFoodNames(mealPlan) {
@@ -44,9 +48,11 @@ export function collectAllFoodNames(mealPlan) {
   return [...names]
 }
 
-export function formatMacroSummary({ calories, protein }) {
+export function formatMacroSummary({ calories, protein, carbs, fat }) {
   const parts = []
   if (calories > 0) parts.push(`${Math.round(calories)} kcal`)
-  if (protein > 0) parts.push(`${Math.round(protein)}g protein`)
+  if (protein > 0) parts.push(`${Math.round(protein)}g P`)
+  if (carbs > 0) parts.push(`${Math.round(carbs)}g C`)
+  if (fat > 0) parts.push(`${Math.round(fat)}g F`)
   return parts.length ? parts.join(' · ') : null
 }

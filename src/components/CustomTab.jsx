@@ -17,8 +17,7 @@ import {
   Library,
   Clipboard,
   LayoutTemplate,
-} from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
+} from 'lucide-react'import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
@@ -62,6 +61,7 @@ import ImportExerciseDialog from './ImportExerciseDialog'
 import AiRecommendButton from './AiRecommendButton'
 import JsonFileActions from './JsonFileActions'
 import PresetExerciseBrowser from './PresetExerciseBrowser'
+import ExerciseHistorySheet from './ExerciseHistorySheet'
 import { EXERCISE_CATEGORIES } from '@/lib/presetExercises'
 import { displayCategory } from '@/lib/exerciseFilterDisplay'
 import { fetchExerciseRecommendation } from '@/lib/aiRecommendations'
@@ -86,7 +86,7 @@ function CustomTab({ state, updateState }) {
 
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab === 'schedule' || tab === 'exercises') {
+    if (tab === 'schedule' || tab === 'exercises' || tab === 'templates') {
       setActiveTab(tab)
     }
   }, [searchParams])
@@ -99,6 +99,7 @@ function CustomTab({ state, updateState }) {
   const [importFile, setImportFile] = useState(null)
   const [addTypeOpen, setAddTypeOpen] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
+  const [historyExercise, setHistoryExercise] = useState(null)
 
   const customExercises = state.customExercises || []
   const showExerciseSetupPrompt = shouldShowExerciseSetupPrompt(state)
@@ -322,9 +323,9 @@ function CustomTab({ state, updateState }) {
                     <Plus className="h-4 w-4 mr-2" />
                     {t('exercises.addExercise')}
                   </Button>
-                  <Button variant="outline" onClick={() => setPresetBrowserOpen(true)}>
-                    <Library className="h-4 w-4 mr-2" />
-                    {t('exercises.presetBrowse')}
+                  <Button variant="outline" onClick={() => setActiveTab('templates')}>
+                    <LayoutTemplate className="h-4 w-4 mr-2" />
+                    Use Template
                   </Button>
                 </div>
               </CardContent>
@@ -359,6 +360,7 @@ function CustomTab({ state, updateState }) {
                   personalRecord={getPersonalRecord(completedExercises, exercise.id)?.label}
                   onEdit={() => setEditingExercise(exercise)}
                   onDelete={() => handleDeleteExercise(exercise.id)}
+                  onHistory={() => setHistoryExercise(exercise)}
                   onUploadImage={async (file) => {
                     if (file.size > 5 * 1024 * 1024) {
                       toast.error(t('custom.toastImageSize'))
@@ -492,6 +494,15 @@ function CustomTab({ state, updateState }) {
             }
             closeExerciseDialog()
           }}
+        />
+      )}
+
+      {/* Exercise History Sheet */}
+      {historyExercise && (
+        <ExerciseHistorySheet
+          exercise={historyExercise}
+          completedExercises={completedExercises}
+          onClose={() => setHistoryExercise(null)}
         />
       )}
 

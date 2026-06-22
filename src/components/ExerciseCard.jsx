@@ -9,6 +9,7 @@ import {
   Edit2,
   Trash2,
   SkipForward,
+  BarChart2,
 } from 'lucide-react'
 import { Card } from './ui/card'
 import { Button } from './ui/button'
@@ -123,6 +124,7 @@ export function ExerciseLibraryCard({
   onEdit,
   onDelete,
   onUploadImage,
+  onHistory,
 }) {
   const { t } = useTranslation()
   const phase = inferExercisePhase(exercise)
@@ -203,6 +205,11 @@ export function ExerciseLibraryCard({
               )}
             </div>
             <div className="flex gap-0.5 shrink-0">
+              {onHistory && (
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={onHistory} title="View history">
+                  <BarChart2 className="h-4 w-4" />
+                </Button>
+              )}
               {onEdit && (
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
                   <Edit2 className="h-4 w-4" />

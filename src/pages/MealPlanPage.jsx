@@ -698,17 +698,15 @@ function MealPlanPage({ state, updateState }) {
                                     </span>
                                     <span className="text-sm flex-1">
                                       {food.name}
-                                      {(Number(food.calories) > 0 || Number(food.protein) > 0) && (
+                                      {(Number(food.calories) > 0 || Number(food.protein) > 0 || Number(food.carbs) > 0 || Number(food.fat) > 0) && (
                                         <span className="text-[10px] text-muted-foreground ml-2">
-                                          {Number(food.calories) > 0
-                                            ? `${food.calories} ${t('common.kcal')}`
-                                            : ''}
-                                          {Number(food.calories) > 0 && Number(food.protein) > 0
-                                            ? ' · '
-                                            : ''}
-                                          {Number(food.protein) > 0
-                                            ? `${food.protein}${t('common.proteinShort')}`
-                                            : ''}
+                                          {Number(food.calories) > 0 ? `${food.calories} ${t('common.kcal')}` : ''}
+                                          {Number(food.calories) > 0 && Number(food.protein) > 0 ? ' · ' : ''}
+                                          {Number(food.protein) > 0 ? `${food.protein}${t('common.proteinShort')}` : ''}
+                                          {(Number(food.calories) > 0 || Number(food.protein) > 0) && Number(food.carbs) > 0 ? ' · ' : ''}
+                                          {Number(food.carbs) > 0 ? `${food.carbs}g C` : ''}
+                                          {(Number(food.calories) > 0 || Number(food.protein) > 0 || Number(food.carbs) > 0) && Number(food.fat) > 0 ? ' · ' : ''}
+                                          {Number(food.fat) > 0 ? `${food.fat}g F` : ''}
                                         </span>
                                       )}
                                     </span>
