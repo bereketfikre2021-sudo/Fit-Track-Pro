@@ -204,7 +204,7 @@ function App() {
               <Navigate to="/onboarding" replace />
             ) : (
               <DashboardLayout state={state} updateState={updateState}>
-                <HistoryPage state={state} />
+                <HistoryPage state={state} updateState={updateState} />
               </DashboardLayout>
             )
           }

@@ -40,6 +40,7 @@ export const DEFAULT_APP_SETTINGS = {
   geminiModel: '',
   /** Daily water goal in cups (1 cup ≈ 250 ml) */
   waterGoalCups: 8,
+  waterUnit: 'cups', // 'cups' | 'ml' | 'oz'
 }
 
 const MEAL_SLOT_IDS = [
@@ -104,6 +105,7 @@ export function normalizeAppSettings(settings) {
     waterGoalCups: Number.isFinite(Number(s.waterGoalCups)) && Number(s.waterGoalCups) >= 1
       ? Math.min(Math.round(Number(s.waterGoalCups)), 20)
       : 8,
+    waterUnit: ['cups', 'ml', 'oz'].includes(s.waterUnit) ? s.waterUnit : 'cups',
   }
 }
 

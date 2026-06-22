@@ -10,12 +10,14 @@ import { Badge } from './ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs'
 import WorkoutInsightsReport from './WorkoutInsightsReport'
 import AchievementsCard from './AchievementsCard'
+import PersonalRecordsCard from './PersonalRecordsCard'
+import CustomChallengesCard from './CustomChallengesCard'
 import { translateWeekday } from '@/lib/i18nHelpers'
 import { getSessionHistory } from '@/lib/sessionHistory'
 
 const ACTIVITY_PREVIEW_COUNT = 3
 
-function HistoryTab({ state }) {
+function HistoryTab({ state, updateState }) {
   const { t } = useTranslation()
   const [period, setPeriod] = useState(30)
   const [expandedDates, setExpandedDates] = useState(() => new Set())
@@ -86,6 +88,10 @@ function HistoryTab({ state }) {
       <WorkoutInsightsReport state={state} />
 
       <AchievementsCard state={state} />
+
+      <PersonalRecordsCard state={state} />
+
+      <CustomChallengesCard state={state} updateState={updateState} />
 
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

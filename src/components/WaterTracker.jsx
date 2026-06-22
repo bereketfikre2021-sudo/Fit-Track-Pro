@@ -3,7 +3,23 @@ import { Droplets, Plus, Minus } from 'lucide-react'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
 import { cn } from '@/lib/utils'
-import { getAppSettings } from '@/lib/appSettings'
+import { getAppSettings, updateAppSettings } from '@/lib/appSettings'
+
+// 1 cup ≈ 250 ml ≈ 8.45 oz
+const CUP_TO_ML = 250
+const CUP_TO_OZ = 8.45
+
+function formatAmount(cups, unit) {
+  if (unit === 'ml') return `${Math.round(cups * CUP_TO_ML)} ml`
+  if (unit === 'oz') return `${Math.round(cups * CUP_TO_OZ)} oz`
+  return `${cups} cup${cups !== 1 ? 's' : ''}`
+}
+
+function formatGoal(goal, unit) {
+  if (unit === 'ml') return `${goal * CUP_TO_ML} ml`
+  if (unit === 'oz') return `${Math.round(goal * CUP_TO_OZ)} oz`
+  return `${goal} cups`
+}
 
 /**
  * Daily water intake tracker widget.
@@ -13,6 +29,7 @@ function WaterTracker({ state, updateState, today }) {
   const { t } = useTranslation()
   const appSettings = getAppSettings(state)
   const goal = appSettings.waterGoalCups ?? 8
+  const unit = appSettings.waterUnit ?? 'cups'
 
   const waterLogs = state.waterLogs || {}
   const cups = waterLogs[today] ?? 0
@@ -22,6 +39,11 @@ function WaterTracker({ state, updateState, today }) {
   const setCups = (next) => {
     const clamped = Math.max(0, Math.min(next, goal + 5))
     updateState({ waterLogs: { ...waterLogs, [today]: clamped } })
+  }
+
+  const cycleUnit = () => {
+    const next = unit === 'cups' ? 'ml' : unit === 'ml' ? 'oz' : 'cups'
+    updateState(updateAppSettings(state, { waterUnit: next }))
   }
 
   return (
@@ -43,13 +65,22 @@ function WaterTracker({ state, updateState, today }) {
               <p className="text-xs text-muted-foreground">
                 {done
                   ? t('water.goalReached')
-                  : t('water.goalOf', { goal })}
+                  : `Goal: ${formatGoal(goal, unit)}`}
               </p>
             </div>
           </div>
 
-          {/* Counter */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Unit toggle */}
+            <button
+              type="button"
+              onClick={cycleUnit}
+              className="text-[10px] font-medium text-muted-foreground hover:text-foreground border border-border/60 rounded px-1.5 py-0.5 transition-colors"
+              title="Switch unit"
+            >
+              {unit.toUpperCase()}
+            </button>
+
             <Button
               type="button"
               variant="outline"
@@ -83,7 +114,7 @@ function WaterTracker({ state, updateState, today }) {
           </div>
         </div>
 
-        {/* Progress bar with cup icons */}
+        {/* Progress bar */}
         <div className="space-y-1.5">
           <div className="flex gap-1">
             {Array.from({ length: goal }, (_, i) => (
@@ -99,7 +130,7 @@ function WaterTracker({ state, updateState, today }) {
             ))}
           </div>
           <p className="text-[11px] text-muted-foreground text-right">
-            {t('water.progress', { cups, goal, percent })}
+            {formatAmount(cups, unit)} / {formatGoal(goal, unit)} ({percent}%)
           </p>
         </div>
       </CardContent>

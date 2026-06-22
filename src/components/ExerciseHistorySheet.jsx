@@ -80,8 +80,16 @@ export default function ExerciseHistorySheet({ exercise, completedExercises, onC
           fill: true,
           tension: 0.35,
           borderColor: 'hsl(var(--primary))',
-          backgroundColor: 'hsl(var(--primary) / 0.12)',
-          pointBackgroundColor: 'hsl(var(--primary))',
+          backgroundColor: (context) => {
+            const ctx = context.chart.ctx
+            const gradient = ctx.createLinearGradient(0, 0, 0, context.chart.height)
+            gradient.addColorStop(0, 'rgba(132, 204, 22, 0.25)')
+            gradient.addColorStop(1, 'rgba(132, 204, 22, 0.02)')
+            return gradient
+          },
+          borderColor: 'rgba(132, 204, 22, 0.9)',
+          pointBackgroundColor: 'rgba(132, 204, 22, 1)',
+          pointBorderColor: 'rgba(132, 204, 22, 1)',
           pointRadius: 4,
           pointHoverRadius: 6,
         },
@@ -92,17 +100,23 @@ export default function ExerciseHistorySheet({ exercise, completedExercises, onC
   const chartOptions = {
     responsive: true,
     plugins: { legend: { display: false }, tooltip: {
+      backgroundColor: 'rgba(0,0,0,0.75)',
+      titleColor: '#fff',
+      bodyColor: '#ccc',
       callbacks: {
         label: (ctx) => hasWeight ? `${ctx.raw} kg` : `${ctx.raw} reps`,
       },
     }},
     scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 }, color: 'hsl(var(--muted-foreground))' } },
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 10 }, color: 'rgba(150,150,150,0.8)' },
+      },
       y: {
-        grid: { color: 'hsl(var(--border) / 0.4)' },
+        grid: { color: 'rgba(150,150,150,0.15)' },
         ticks: {
           font: { size: 10 },
-          color: 'hsl(var(--muted-foreground))',
+          color: 'rgba(150,150,150,0.8)',
           callback: (v) => hasWeight ? `${v}kg` : `${v}r`,
         },
       },

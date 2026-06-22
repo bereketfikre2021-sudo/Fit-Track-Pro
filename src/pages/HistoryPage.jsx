@@ -1,7 +1,7 @@
 import HistoryTab from '../components/HistoryTab'
 
-function HistoryPage({ state }) {
-  return <HistoryTab state={state} />
+function HistoryPage({ state, updateState }) {
+  return <HistoryTab state={state} updateState={updateState} />
 }
 
 export default HistoryPage
