@@ -51,8 +51,8 @@ export function collectAllFoodNames(mealPlan) {
 export function formatMacroSummary({ calories, protein, carbs, fat }) {
   const parts = []
   if (calories > 0) parts.push(`${Math.round(calories)} kcal`)
-  if (protein > 0) parts.push(`${Math.round(protein)}g P`)
-  if (carbs > 0) parts.push(`${Math.round(carbs)}g C`)
-  if (fat > 0) parts.push(`${Math.round(fat)}g F`)
+  if (protein > 0) parts.push(`${Math.round(protein)}g protein`)
+  if (carbs > 0) parts.push(`${Math.round(carbs)}g carbs`)
+  if (fat > 0) parts.push(`${Math.round(fat)}g fat`)
   return parts.length ? parts.join(' · ') : null
 }
