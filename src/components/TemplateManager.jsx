@@ -34,6 +34,7 @@ import {
 import AddExerciseToDayDialog from './AddExerciseToDayDialog'
 import ScheduleExerciseList from './ScheduleExerciseList'
 import { translateWeekday } from '@/lib/i18nHelpers'
+import PresetTemplatesSection from './PresetTemplatesSection'
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -336,6 +337,16 @@ function TemplateManager({ state, updateState }) {
 
   return (
     <div className="space-y-4">
+      {/* Built-in preset plans */}
+      <PresetTemplatesSection state={state} updateState={updateState} />
+
+      {/* Divider */}
+      <div className="flex items-center gap-3 py-1">
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-xs text-muted-foreground font-medium">Your Templates</span>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+
       {/* Create new template */}
       {creating ? (
         <Card className="border-primary/30 bg-primary/5">

@@ -45,7 +45,7 @@
   "nav": {
     "workout": "ልምምድ",
     "report": "እድገት",
-    "exercises": "ብጁ",
+    "exercises": "ብጁ ልምምዶች",
     "meals": "ምግብ",
     "mealPlan": "የምግብ እቅድ",
     "profile": "መገለጫ",
@@ -558,7 +558,7 @@
     "itemNameRequired": "የንጥል ስም ያስፈልጋል"
   },
   "exercises": {
-    "pageTitle": "የአካል ብቃት",
+    "pageTitle": "ብጁ ልምምዶች",
     "pageSubtitle": "የአካል ብቃት ቤተ-መጽሐፍት እና የሳምንት መርሃግብር ይገንቡ",
     "tabLibrary": "የአካል ብቃት",
     "tabSchedule": "ቀናት",

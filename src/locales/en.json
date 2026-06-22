@@ -46,7 +46,7 @@
   "nav": {
     "workout": "Workout",
     "report": "Progress",
-    "exercises": "Custom",
+    "exercises": "Custom Exercises",
     "meals": "Meals",
     "mealPlan": "Meal Plan",
     "profile": "Profile",
@@ -559,9 +559,9 @@
     "itemNameRequired": "Item name is required"
   },
   "exercises": {
-    "pageTitle": "Custom",
+    "pageTitle": "Custom Exercises",
     "pageSubtitle": "Build your exercise library and weekly schedule",
-    "tabLibrary": "Custom",
+    "tabLibrary": "Exercises",
     "tabSchedule": "Days",
     "tabTemplates": "Templates",
     "inLibrary": "{{count}} in your library",
