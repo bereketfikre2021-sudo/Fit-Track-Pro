@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { Calendar, Dumbbell, Plus } from 'lucide-react'
+
+import confetti from 'canvas-confetti'
 
 import { Card, CardContent } from './ui/card'
 
@@ -41,6 +43,10 @@ import {
   completionKey,
 
   finishWorkoutSession,
+
+  getAllExercisesForDay,
+
+  areAllExercisesCompleted,
 
   getMainExercisesForDay,
 
@@ -92,8 +98,60 @@ function WorkoutExerciseEmptyActions({ showAiRecommend, aiLoading, onAiRecommend
   )
 }
 
+/** Return the first phase (warmup → main → cooldown) that has exercises for a day. */
+function getFirstPhaseWithExercises(exercises, customExercises) {
+  const enriched = (exercises || []).map((ex) => {
+    const library = customExercises.find((c) => c.id === ex.exerciseId)
+    return { ...ex, exercisePhase: inferExercisePhase({ ...library, ...ex }) }
+  })
+  for (const phase of [EXERCISE_PHASE.WARMUP, EXERCISE_PHASE.MAIN, EXERCISE_PHASE.COOLDOWN]) {
+    if (enriched.some((ex) => ex.exercisePhase === phase)) return phase
+  }
+  return EXERCISE_PHASE.MAIN
+}
+
+/** Return the next phase in the warmup → main → cooldown sequence. */
+function getNextPhase(currentPhase) {
+  const order = [EXERCISE_PHASE.WARMUP, EXERCISE_PHASE.MAIN, EXERCISE_PHASE.COOLDOWN]
+  const idx = order.indexOf(currentPhase)
+  return idx !== -1 && idx < order.length - 1 ? order[idx + 1] : null
+}
+
 function WorkoutTab({ state, updateState }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+
+  // Single clean pop from the centre-bottom, then show a brief celebration
+  // overlay before navigating home.
+  const celebrateAndGoHome = useCallback(() => {
+    // One quick double-pop — left and right of centre, no loop
+    confetti({
+      particleCount: 80,
+      angle: 75,
+      spread: 55,
+      startVelocity: 45,
+      decay: 0.88,
+      origin: { x: 0.4, y: 0.95 },
+      colors: ['#22c55e', '#facc15', '#f97316', '#a78bfa', '#38bdf8'],
+      scalar: 1.1,
+    })
+    confetti({
+      particleCount: 80,
+      angle: 105,
+      spread: 55,
+      startVelocity: 45,
+      decay: 0.88,
+      origin: { x: 0.6, y: 0.95 },
+      colors: ['#22c55e', '#facc15', '#f97316', '#a78bfa', '#38bdf8'],
+      scalar: 1.1,
+    })
+
+    setCelebrating(true)
+    setTimeout(() => {
+      setCelebrating(false)
+      navigate('/')
+    }, 2200)
+  }, [navigate])
 
   const [activeDay, setActiveDay] = useState(() => {
 
@@ -104,12 +162,19 @@ function WorkoutTab({ state, updateState }) {
 
   })
 
-  const [phaseFilter, setPhaseFilter] = useState(EXERCISE_PHASE.MAIN)
+  const [phaseFilter, setPhaseFilter] = useState(() => {
+    const days = state.profile?.workoutDays || []
+    const ctx = getTodayWorkoutContext(days)
+    const day = ctx.planDay || ctx.nextWorkoutDay || days[0] || null
+    const exercises = state.workoutSchedule?.[day]?.exercises || []
+    return getFirstPhaseWithExercises(exercises, state.customExercises || [])
+  })
   const [restTimer, setRestTimer] = useState(null)
   const [holdTimer, setHoldTimer] = useState(null)
   const [skipTarget, setSkipTarget] = useState(null)
   const [skipDayOpen, setSkipDayOpen] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
+  const [celebrating, setCelebrating] = useState(false)
 
   const workoutSchedule = state.workoutSchedule || {}
 
@@ -133,6 +198,50 @@ function WorkoutTab({ state, updateState }) {
     const ctx = getTodayWorkoutContext(workoutDays)
     setActiveDay(ctx.planDay || ctx.nextWorkoutDay || workoutDays[0] || null)
   }, [activeDay, workoutDays])
+
+  // Auto-advance phase: when all exercises in the current phase are done/skipped,
+  // automatically move to the next phase (warmup → main → cooldown).
+  useEffect(() => {
+    if (!activeDay) return
+    const dayExercises = workoutSchedule[activeDay]?.exercises || []
+    if (!dayExercises.length) return
+
+    const enriched = dayExercises.map((ex) => {
+      const library = customExercises.find((c) => c.id === ex.exerciseId)
+      return { ...ex, exercisePhase: inferExercisePhase({ ...library, ...ex }) }
+    })
+
+    const phaseExercises = enriched.filter((ex) => ex.exercisePhase === phaseFilter)
+    if (!phaseExercises.length) return
+
+    const allDone = phaseExercises.every((ex) => {
+      const entry = completedExercises[completionKey(today, activeDay, ex.id)]
+      return entry && (entry.completedAt || entry.skipped)
+    })
+
+    if (!allDone) return
+
+    const next = getNextPhase(phaseFilter)
+    if (!next) return
+
+    // Only advance if the next phase actually has exercises
+    const nextHasExercises = enriched.some((ex) => ex.exercisePhase === next)
+    if (!nextHasExercises) return
+
+    const phaseLabel = next === EXERCISE_PHASE.MAIN
+      ? t('exercisePhase.main.short')
+      : next === EXERCISE_PHASE.COOLDOWN
+        ? t('exercisePhase.cooldown.short')
+        : t('exercisePhase.warmup.short')
+
+    setPhaseFilter(next)
+    toast.success(
+      t('workout.phaseAdvance', {
+        phase: phaseLabel,
+        defaultValue: `Moving to ${phaseLabel}`,
+      })
+    )
+  }, [completedExercises, phaseFilter, activeDay, workoutSchedule, customExercises, today, t])
 
   const startRestTimer = (seconds, label = t('common.rest')) => {
     setHoldTimer(null)
@@ -198,9 +307,19 @@ function WorkoutTab({ state, updateState }) {
         library
       )
       toast.success(t('workout.toastComplete'))
+      const allExercises = getAllExercisesForDay(
+        { workoutSchedule, customExercises },
+        day
+      )
       const mainExercises = getMainExercisesForDay(
         { workoutSchedule, customExercises },
         day
+      )
+      const allDone = areAllExercisesCompleted(
+        newCompleted,
+        allExercises,
+        day,
+        today
       )
       const allMainCompleted = areAllMainExercisesCompleted(
         newCompleted,
@@ -217,19 +336,18 @@ function WorkoutTab({ state, updateState }) {
       if (
         appSettings.autoStartRestOnComplete &&
         !isSimplePhase(inferExercisePhase(library || scheduled || {})) &&
-        !allMainCompleted
+        !allDone
       ) {
         startRestTimer(restSec, scheduled?.name || library?.name)
       }
 
       const updates = { completedExercises: newCompleted }
 
-      if (allMainCompleted) {
-        // Always clear the rest timer when the workout is done
+      if (allDone) {
+        // All phases done — clear timers and finish session
         setRestTimer(null)
+        setHoldTimer(null)
 
-        // Finish the session — use activeSession if it matches today,
-        // otherwise synthesise one so the day always gets marked done
         const sessionToFinish =
           activeSession?.day === day && activeSession?.date === today
             ? activeSession
@@ -248,6 +366,7 @@ function WorkoutTab({ state, updateState }) {
               total: session.totalCount,
             })
           )
+          celebrateAndGoHome()
         }
       }
 
@@ -372,33 +491,6 @@ function WorkoutTab({ state, updateState }) {
 
   }
 
-
-
-  const handleEndSession = (day) => {
-
-    if (!activeSession || activeSession.day !== day) return
-
-
-
-    const updates = finishWorkoutSession(activeSession, state)
-
-    if (!updates) return
-
-
-
-    updateState(updates)
-
-    const session = updates.completedSessions[updates.completedSessions.length - 1]
-
-    toast.success(
-      t('workout.toastFinished', {
-        completed: session.completedCount,
-        total: session.totalCount,
-      })
-    )
-
-  }
-
   const handleAiExerciseRecommend = async () => {
     setAiLoading(true)
     try {
@@ -483,7 +575,8 @@ function WorkoutTab({ state, updateState }) {
         value={activeDay}
         onValueChange={(day) => {
           setActiveDay(day)
-          setPhaseFilter(EXERCISE_PHASE.MAIN)
+          const exercises = workoutSchedule[day]?.exercises || []
+          setPhaseFilter(getFirstPhaseWithExercises(exercises, customExercises))
         }}
         className="w-full"
       >
@@ -554,7 +647,6 @@ function WorkoutTab({ state, updateState }) {
 
                 todaySession={todaySession}
                 completedCount={completedToday}
-                onEnd={() => handleEndSession(day)}
 
               />
 
@@ -767,6 +859,21 @@ function WorkoutTab({ state, updateState }) {
         dayLabel={translateWeekday(todayCtx.calendarToday)}
         onConfirm={(reason) => handleSkipToday(todayCtx.calendarToday, reason)}
       />
+
+      {/* Workout complete celebration overlay */}
+      {celebrating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div className="flex flex-col items-center gap-3 bg-background/90 backdrop-blur-sm border border-border rounded-2xl px-10 py-8 shadow-2xl pointer-events-auto animate-in fade-in zoom-in-95 duration-300">
+            <span className="text-6xl" role="img" aria-label="trophy">🏆</span>
+            <p className="text-xl font-bold text-foreground">
+              {t('workout.celebrateTitle', { defaultValue: 'Workout Complete!' })}
+            </p>
+            <p className="text-sm text-muted-foreground text-center">
+              {t('workout.celebrateSubtitle', { defaultValue: 'Amazing work — you crushed it! 💪' })}
+            </p>
+          </div>
+        </div>
+      )}
 
     </div>
 

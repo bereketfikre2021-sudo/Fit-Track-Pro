@@ -641,9 +641,16 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
     }
 
     if (isSimple) {
-      if (!formData.duration || Number(formData.duration) <= 0) {
-        toast.error(t('custom.toastDurationRequired'))
-        return
+      if (formData.isTimeBased) {
+        if (!formData.duration || Number(formData.duration) <= 0) {
+          toast.error(t('custom.toastDurationRequired'))
+          return
+        }
+      } else {
+        if (!formData.reps || !formData.reps.toString().trim()) {
+          toast.error(t('dialogs.addToDay.toastReps', { defaultValue: 'Please enter reps.' }))
+          return
+        }
       }
       onSave(
         packSimplePhaseExercise(exercise, {
@@ -652,6 +659,10 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
           durationUnit: formData.durationUnit,
           notes: formData.description,
           exercisePhase: formData.exercisePhase,
+          sets: formData.sets,
+          reps: formData.reps,
+          isTimeBased: formData.isTimeBased,
+          restTime: formData.restTime,
         })
       )
       return
@@ -762,7 +773,7 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className={cn('max-h-[90vh] overflow-y-auto', isSimple ? 'max-w-md' : 'max-w-2xl')}>
+      <DialogContent className={cn('max-h-[90vh] overflow-y-auto', isSimple ? 'max-w-lg' : 'max-w-2xl')}>
         <DialogHeader>
           <DialogTitle>
             {exercise
@@ -814,28 +825,101 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t('custom.duration')}</label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                    required
+              {/* Hold toggle */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="simpleIsTimeBased"
+                    checked={formData.isTimeBased}
+                    onChange={(e) => {
+                      const isHold = e.target.checked
+                      setFormData((prev) => ({
+                        ...prev,
+                        isTimeBased: isHold,
+                        ...(isHold && !prev.duration && prev.restTime
+                          ? { duration: prev.restTime }
+                          : {}),
+                      }))
+                    }}
+                    className="h-4 w-4 rounded border-input"
                   />
+                  <label htmlFor="simpleIsTimeBased" className="text-sm font-medium">
+                    {t('custom.holdExerciseLabel', {
+                      defaultValue: 'Hold / timed exercise (plank, stretch, etc.)',
+                    })}
+                  </label>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t('custom.unit')}</label>
-                  <select
-                    value={formData.durationUnit || 'minutes'}
-                    onChange={(e) => setFormData({ ...formData, durationUnit: e.target.value })}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="minutes">{t('durationUnits.minutes')}</option>
-                    <option value="seconds">{t('durationUnits.seconds')}</option>
-                  </select>
+                <p className="text-xs text-muted-foreground">
+                  {formData.isTimeBased ? t('custom.holdHint') : t('custom.restHint')}
+                </p>
+              </div>
+
+              {/* Sets / Reps / Duration */}
+              <div className="space-y-4 rounded-lg border border-border p-4 bg-muted/20">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  {formData.isTimeBased ? t('custom.setsRepsDuration') : t('custom.setsRepsRest')}
+                </p>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">{t('custom.sets')}</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={formData.sets}
+                      onChange={(e) => setFormData({ ...formData, sets: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      {formData.isTimeBased
+                        ? t('dialogs.addToDay.repsOptional')
+                        : t('dialogs.addToDay.reps')}
+                    </label>
+                    <Input
+                      placeholder={formData.isTimeBased ? 'e.g., 5' : 'e.g., 10'}
+                      value={formData.reps}
+                      onChange={(e) => setFormData({ ...formData, reps: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      {formData.isTimeBased
+                        ? getDurationLabel(formData.durationUnit || 'seconds')
+                        : t('custom.restSec')}
+                    </label>
+                    {formData.isTimeBased ? (
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="30"
+                        value={formData.duration}
+                        onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                      />
+                    ) : (
+                      <Input
+                        type="number"
+                        min="0"
+                        step="15"
+                        value={formData.restTime}
+                        onChange={(e) => setFormData({ ...formData, restTime: e.target.value })}
+                      />
+                    )}
+                  </div>
                 </div>
+                {formData.isTimeBased && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">{t('dialogs.addToDay.durationUnit')}</label>
+                    <select
+                      value={formData.durationUnit || 'seconds'}
+                      onChange={(e) => setFormData({ ...formData, durationUnit: e.target.value })}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="seconds">{t('durationUnits.seconds')}</option>
+                      <option value="minutes">{t('durationUnits.minutes')}</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">

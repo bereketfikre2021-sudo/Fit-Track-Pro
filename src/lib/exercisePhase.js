@@ -114,43 +114,47 @@ export function buildSimplePhaseDefaults(phase) {
     name: '',
     description: '',
     exercisePhase: normalized,
-    sets: '1',
-    reps: '',
-    isTimeBased: true,
-    duration: '5',
-    durationUnit: 'minutes',
+    sets: '3',
+    reps: '10',
+    isTimeBased: false,
+    duration: '30',
+    durationUnit: 'seconds',
+    restTime: '60',
     muscleGroups: [],
     equipment: '',
     difficulty: 'Beginner',
     category: normalized === EXERCISE_PHASE.WARMUP ? 'Warm-up' : 'Cool-down',
-    restTime: '',
     imageUrl: '',
     instructions: '',
     tips: '',
-    target: '5 min',
+    target: '3 × 10',
   }
 }
 
 export function packSimplePhaseExercise(
   existing,
-  { name, duration, durationUnit, notes, exercisePhase }
+  { name, duration, durationUnit, notes, exercisePhase, sets, reps, isTimeBased, restTime }
 ) {
   const phase = normalizeExercisePhase(
     exercisePhase ?? inferExercisePhase(existing ?? {})
   )
+  const resolvedIsTimeBased = isTimeBased !== undefined ? isTimeBased : true
   const d = String(duration || '5')
   const unit = durationUnit === 'seconds' ? 'seconds' : 'minutes'
-  const target = formatSimplePhaseTarget({ duration: d, durationUnit: unit })
+  const target = resolvedIsTimeBased
+    ? formatSimplePhaseTarget({ duration: d, durationUnit: unit })
+    : `${sets || '1'} × ${reps || '10'}`
   return {
     ...(existing || buildSimplePhaseDefaults(phase)),
     name: name.trim(),
     exercisePhase: phase,
     description: notes?.trim() || '',
-    sets: '1',
-    reps: '',
-    isTimeBased: true,
+    sets: sets || '1',
+    reps: resolvedIsTimeBased ? (reps || '') : (reps || '10'),
+    isTimeBased: resolvedIsTimeBased,
     duration: d,
     durationUnit: unit,
+    restTime: restTime || '',
     muscleGroups: [],
     equipment: '',
     imageUrl: '',

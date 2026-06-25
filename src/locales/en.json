@@ -663,7 +663,10 @@
     "toastStarted": "Started {{day}} workout",
     "toastFinished": "Workout finished · {{completed}}/{{total}} main exercises",
     "restComplete": "Rest complete — next set!",
-    "stopRest": "Stop rest timer"
+    "stopRest": "Stop rest timer",
+    "phaseAdvance": "Moving to {{phase}}",
+    "celebrateTitle": "Workout Complete!",
+    "celebrateSubtitle": "Amazing work — you crushed it! 💪"
   },
   "profile": {
     "settingsAria": "Settings",
@@ -851,7 +854,7 @@
     "formEditCooldown": "Edit Cool-down",
     "formEditExercise": "Edit Exercise",
     "formAddMain": "Add Main Exercise",
-    "formDescSimple": "Name and how long — keep it simple.",
+    "formDescSimple": "Name, sets, reps or hold time — your choice.",
     "formDescMain": "Fill in the details for your main workout exercise",
     "name": "Name *",
     "duration": "Duration *",

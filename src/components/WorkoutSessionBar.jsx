@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Square, Timer } from 'lucide-react'
+import { Timer } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent } from './ui/card'
-import { Button } from './ui/button'
 import {
   countDayCompletions,
   formatSessionDuration,
@@ -18,7 +17,6 @@ function WorkoutSessionBar({
   completedExercises,
   todaySession,
   completedCount,
-  onEnd,
 }) {
   const { t } = useTranslation()
   const [elapsed, setElapsed] = useState(0)
@@ -92,14 +90,6 @@ function WorkoutSessionBar({
           )}
         </div>
 
-        <div className="flex gap-2 shrink-0">
-          {isActiveForDay ? (
-            <Button size="sm" variant="outline" onClick={onEnd}>
-              <Square className="h-4 w-4 mr-2" />
-              {t('sessionBar.endWorkout')}
-            </Button>
-          ) : null}
-        </div>
       </CardContent>
     </Card>
   )

@@ -31,6 +31,12 @@ export function getMainExercisesForDay(state, day) {
   })
 }
 
+/** All exercises for a day regardless of phase (warmup + main + cooldown). */
+export function getAllExercisesForDay(state, day) {
+  const schedule = state.workoutSchedule?.[day]
+  return schedule?.exercises || []
+}
+
 export function countMainDayCompletions(completedExercises, mainExercises, day, date = todayDateString()) {
   return mainExercises.reduce((acc, ex) => {
     const entry = completedExercises?.[completionKey(date, day, ex.id)]
@@ -46,6 +52,20 @@ export function areAllMainExercisesCompleted(
 ) {
   if (!mainExercises?.length) return false
   return countMainDayCompletions(completedExercises, mainExercises, day, date) === mainExercises.length
+}
+
+/** Returns true when every exercise across all phases is completed or skipped. */
+export function areAllExercisesCompleted(
+  completedExercises,
+  allExercises,
+  day,
+  date = todayDateString()
+) {
+  if (!allExercises?.length) return false
+  return allExercises.every((ex) => {
+    const entry = completedExercises?.[completionKey(date, day, ex.id)]
+    return entry && (entry.completedAt || entry.skipped)
+  })
 }
 
 export function startWorkoutSession(day, date = todayDateString()) {
@@ -65,9 +85,15 @@ export function finishWorkoutSession(activeSession, state) {
   if (!activeSession) return null
 
   const { day, date, startedAt } = activeSession
+  const allExercises = getAllExercisesForDay(state, day)
   const mainExercises = getMainExercisesForDay(state, day)
-  const totalCount = mainExercises.length
-  const completedCount = countMainDayCompletions(state.completedExercises, mainExercises, day, date)
+  const totalCount = allExercises.length
+  const completedCount = allExercises.reduce((acc, ex) => {
+    const entry = state.completedExercises?.[completionKey(date, day, ex.id)]
+    return acc + (entry?.completedAt && !entry?.skipped ? 1 : 0)
+  }, 0)
+  // Keep mainCompleted for legacy stats compatibility
+  const mainCompletedCount = countMainDayCompletions(state.completedExercises, mainExercises, day, date)
 
   const session = {
     id: String(Date.now()),
@@ -77,6 +103,7 @@ export function finishWorkoutSession(activeSession, state) {
     endedAt: Date.now(),
     completedCount,
     totalCount,
+    mainCompletedCount,
   }
 
   return {
