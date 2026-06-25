@@ -8,6 +8,7 @@ import { isGeminiConfigured } from '@/lib/gemini'
 function AiRecommendButton({
   onClick,
   loading = false,
+  disabled = false,
   label,
   className,
   size = 'sm',
@@ -17,7 +18,7 @@ function AiRecommendButton({
   const displayLabel = label ?? t('ai.defaultLabel')
 
   const handleClick = () => {
-    if (loading) return
+    if (loading || disabled) return
     if (!configured) {
       toast.error(t('ai.notConfigured'))
       return
@@ -29,8 +30,8 @@ function AiRecommendButton({
     <Button
       type="button"
       size={size}
-      className={cn(!configured && !loading && 'opacity-90', className)}
-      disabled={loading}
+      className={cn((!configured && !loading) && 'opacity-90', className)}
+      disabled={loading || disabled}
       onClick={handleClick}
       title={configured ? undefined : t('ai.notConfigured')}
     >

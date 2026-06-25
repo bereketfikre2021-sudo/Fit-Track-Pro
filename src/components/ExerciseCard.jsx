@@ -258,7 +258,7 @@ export function ExerciseWorkoutCard({
 
   const migrated =
     migrateCompletionEntry(completionEntry, exercise, fullExercise) ||
-    (enableSetLogging && !isSimple
+    (enableSetLogging && onSaveEntry
       ? migrateCompletionEntry(
           { notes: '', sets: buildDefaultSets(exercise, fullExercise) },
           exercise,
@@ -279,11 +279,9 @@ export function ExerciseWorkoutCard({
   const merged = { ...fullExercise, ...exercise }
   const isHold = isHoldExercise(merged)
   const holdSeconds = parseHoldSeconds(merged)
-  const targetLabel = isSimple
-    ? formatSimplePhaseTarget(merged)
-    : formatExerciseTarget(merged)
+  const targetLabel = formatExerciseTarget(merged)
   const setsSummary = formatSetsSummary(sets)
-  const showSetLogging = enableSetLogging && !isSimple && onSaveEntry && !readOnly
+  const showSetLogging = enableSetLogging && onSaveEntry && !readOnly
 
   return (
     <Card
@@ -332,8 +330,7 @@ export function ExerciseWorkoutCard({
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {targetLabel}
-                {!isSimple &&
-                  !merged.isTimeBased &&
+                {!merged.isTimeBased &&
                   (merged.restTime || fullExercise.restTime) &&
                   ` · ${t('exerciseCard.restSec', { sec: merged.restTime || fullExercise.restTime })}`}
               </p>

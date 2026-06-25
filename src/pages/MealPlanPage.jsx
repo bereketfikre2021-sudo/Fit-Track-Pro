@@ -19,6 +19,8 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
+  LayoutTemplate,
+  Info,
 } from 'lucide-react'
 import { getDayMacroTotals, formatMacroSummary } from '../lib/mealPlan'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
@@ -53,6 +55,7 @@ import {
 } from '../lib/shoppingListImport'
 import AiRecommendButton from '../components/AiRecommendButton'
 import JsonFileActions from '../components/JsonFileActions'
+import MealPresetTemplatesSection from '../components/MealPresetTemplatesSection'
 import {
   fetchMealPlanRecommendation,
   fetchShoppingListRecommendation,
@@ -90,10 +93,10 @@ function MealPlanPage({ state, updateState }) {
   const [isAddingShoppingItem, setIsAddingShoppingItem] = useState(false)
   const [editingShoppingItem, setEditingShoppingItem] = useState(null)
   const [selectedCategory, setSelectedCategory] = useState('Protein Sources')
-  const [showOptionalInAppReminders, setShowOptionalInAppReminders] = useState(false)
   const [showMealReminderSetup, setShowMealReminderSetup] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiShoppingLoading, setAiShoppingLoading] = useState(false)
+  const [showPresets, setShowPresets] = useState(false)
 
   const mealPlan = state.mealPlan || {}
   const showAiMealRecommend = isMealPlanEmpty(mealPlan)
@@ -457,98 +460,155 @@ function MealPlanPage({ state, updateState }) {
 
         {/* MEALS TAB */}
         <TabsContent value="meals" className="space-y-4">
-          {showAiMealRecommend && (
-            <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-5">
-                <div>
-                  <p className="font-medium">{t('meals.emptyMealTitle')}</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {t('meals.emptyMealDesc')}
-                  </p>
-                </div>
-                <AiRecommendButton
-                  loading={aiLoading}
-                  label={t('ai.mealLabel')}
-                  onClick={handleAiMealRecommend}
-                  className="shrink-0"
-                />
-              </CardContent>
-            </Card>
+          {showAiMealRecommend && (() => {
+            const hasExercises = (state.customExercises || []).length > 0
+            return (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="py-5 space-y-4">
+                  <div>
+                    <p className="font-medium">{t('meals.emptyMealTitle')}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {t('meals.emptyMealDesc')}
+                    </p>
+                  </div>
+
+                  {/* Three action buttons in a row */}
+                  <div className="flex flex-wrap gap-2">
+                    {/* AI Recommend */}
+                    <div className="relative group">
+                      <AiRecommendButton
+                        loading={aiLoading}
+                        label={t('ai.mealLabel')}
+                        onClick={handleAiMealRecommend}
+                        disabled={!hasExercises}
+                      />
+                      {!hasExercises && (
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 rounded-md border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                          <Info className="inline h-3 w-3 mr-1 text-muted-foreground" />
+                          Add exercises to your library first — the AI uses your workout plan to tailor meals.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Use Template */}
+                    <Button
+                      type="button"
+                      variant={showPresets ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setShowPresets((v) => !v)}
+                    >
+                      <LayoutTemplate className="h-4 w-4 mr-2" />
+                      Use Template
+                      {showPresets
+                        ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
+                        : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
+                    </Button>
+
+                    {/* JSON — expands to template / export / import */}
+                    <JsonFileActions
+                      onTemplate={downloadMealPlanTemplate}
+                      onExport={handleExportMeals}
+                      onImportFileSelected={handleImportMealsFileSelected}
+                    />
+                  </div>
+
+                  {/* Preset templates reveal */}
+                  {showPresets && (
+                    <div className="pt-1">
+                      <MealPresetTemplatesSection state={state} updateState={updateState} />
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })()}
+
+          {!showAiMealRecommend && (
+            <JsonFileActions
+              className="mb-2"
+              onTemplate={downloadMealPlanTemplate}
+              onExport={handleExportMeals}
+              onImportFileSelected={handleImportMealsFileSelected}
+            />
           )}
 
-          <JsonFileActions
-            className="mb-2"
-            onTemplate={downloadMealPlanTemplate}
-            onExport={handleExportMeals}
-            onImportFileSelected={handleImportMealsFileSelected}
-          />
-
-          <Card id="meal-reminders" className="border-primary/40 bg-primary/10 scroll-mt-20">
-            <CardHeader className="pb-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <CalendarClock className="h-4 w-4 text-primary" />
-                  {t('meals.mealReminders')}
-                </CardTitle>
-                <Badge className="text-xs">{t('common.recommended')}</Badge>
+          <div className="rounded-lg border border-border/60 bg-card/50 scroll-mt-20" id="meal-reminders">
+            {/* Compact header row — always visible */}
+            <button
+              type="button"
+              className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left"
+              onClick={() => setShowMealReminderSetup((v) => !v)}
+            >
+              <span className="flex items-center gap-2 text-sm font-medium">
+                <CalendarClock className="h-4 w-4 text-primary shrink-0" />
+                {t('meals.mealReminders')}
+                <Badge className="text-[10px] px-1.5 py-0 h-4">{t('common.recommended')}</Badge>
                 {usingCalendarReminders && (
-                  <Badge variant="secondary" className="text-xs gap-1">
-                    <CheckCircle2 className="h-3 w-3 text-primary" />
-                    {t('meals.calendarActive', {
-                      app: t(`meals.calendarPlatforms.${calendarPlatform}.app`),
-                    })}
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 gap-0.5">
+                    <CheckCircle2 className="h-2.5 w-2.5 text-primary" />
+                    {t(`meals.calendarPlatforms.${calendarPlatform}.label`)}
                   </Badge>
                 )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3 text-xs">
-              <div className="space-y-1.5">
-                <p className="font-medium text-foreground">{t('meals.calendarPlatformLabel')}</p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                  {MEAL_CALENDAR_PLATFORMS.map((platform) => (
-                    <button
-                      key={platform}
-                      type="button"
-                      className={cn(
-                        'rounded-md border px-2 py-2 text-[11px] font-medium transition-colors text-center',
-                        calendarPlatform === platform
-                          ? 'border-primary bg-primary/15 text-primary'
-                          : 'border-border bg-muted/20 text-muted-foreground hover:border-primary/40'
-                      )}
-                      onClick={() => patchSettings({ mealCalendarPlatform: platform })}
-                    >
-                      {t(`meals.calendarPlatforms.${platform}.label`)}
-                    </button>
-                  ))}
+              </span>
+              {showMealReminderSetup
+                ? <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+                : <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />}
+            </button>
+
+            {/* Expanded content */}
+            {showMealReminderSetup && (
+              <div className="border-t border-border/60 px-3 pb-3 pt-3 space-y-3 text-xs">
+                {/* Platform picker */}
+                <div className="space-y-1.5">
+                  <p className="font-medium text-foreground">{t('meals.calendarPlatformLabel')}</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    {MEAL_CALENDAR_PLATFORMS.map((platform) => (
+                      <button
+                        key={platform}
+                        type="button"
+                        className={cn(
+                          'rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors text-center',
+                          calendarPlatform === platform
+                            ? 'border-primary bg-primary/15 text-primary'
+                            : 'border-border bg-muted/20 text-muted-foreground hover:border-primary/40'
+                        )}
+                        onClick={() => patchSettings({ mealCalendarPlatform: platform })}
+                      >
+                        {t(`meals.calendarPlatforms.${platform}.label`)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" onClick={handleDownloadCalendarReminders}>
-                  <CalendarClock className="h-4 w-4 mr-2" />
-                  {t('meals.downloadCalendar')}
-                </Button>
-                {!usingCalendarReminders && (
-                  <Button size="sm" variant="outline" onClick={handleConfirmCalendarImported}>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    {t('meals.confirmCalendar')}
+
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={handleDownloadCalendarReminders}>
+                    <CalendarClock className="h-4 w-4 mr-2" />
+                    {t('meals.downloadCalendar')}
                   </Button>
-                )}
-              </div>
-              <button
-                type="button"
-                className="w-full flex items-center justify-between gap-2 rounded-md px-1 py-1.5 text-left text-muted-foreground hover:text-foreground"
-                onClick={() => setShowMealReminderSetup((v) => !v)}
-              >
-                <span>{t('meals.setupSteps')}</span>
-                {showMealReminderSetup ? (
-                  <ChevronUp className="h-4 w-4 shrink-0" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 shrink-0" />
-                )}
-              </button>
-              {showMealReminderSetup && (
-                <div className="space-y-2 border-t border-border/60 pt-2">
-                  <ol className="list-decimal list-inside space-y-1.5 text-muted-foreground">
+                  {!usingCalendarReminders && (
+                    <Button size="sm" variant="outline" onClick={handleConfirmCalendarImported}>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      {t('meals.confirmCalendar')}
+                    </Button>
+                  )}
+                  {/* In-app toggle inline */}
+                  <Button
+                    variant={appSettings.mealRemindersEnabled ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={handleToggleInAppReminders}
+                    title={t('meals.inAppNotRecommended')}
+                  >
+                    <Bell className="h-4 w-4 mr-2" />
+                    {appSettings.mealRemindersEnabled
+                      ? t('mealToasts.inAppOn')
+                      : t('mealToasts.inAppTurnOn')}
+                  </Button>
+                </div>
+
+                {/* Setup steps */}
+                <div className="space-y-1.5 text-muted-foreground">
+                  <ol className="list-decimal list-inside space-y-1">
                     {(t(`meals.calendarPlatforms.${calendarPlatform}.steps`, {
                       returnObjects: true,
                       defaultValue: [],
@@ -556,56 +616,17 @@ function MealPlanPage({ state, updateState }) {
                       <li key={index}>{step}</li>
                     ))}
                   </ol>
-                  <p className="text-muted-foreground">
-                    Daily times:{' '}
+                  <p>
                     {Object.entries(appSettings.mealReminderTimes || {})
-                      .map(
-                        ([slot, time]) =>
-                          `${translateMealSlot(slot)} ${time}`
-                      )
+                      .map(([slot, time]) => `${translateMealSlot(slot)} ${time}`)
                       .join(' · ')}
                   </p>
-                  <p className="text-muted-foreground">
+                  <p>
                     {calendarPlatform === 'android'
                       ? t('meals.calendarFileNoteSamsung')
                       : t('meals.calendarFileNote')}
                   </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="rounded-lg border border-border/60 bg-card/50">
-            <button
-              type="button"
-              className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => setShowOptionalInAppReminders((v) => !v)}
-            >
-              <span className="flex items-center gap-2">
-                <Bell className="h-3.5 w-3.5" />
-                {t('meals.optionalInApp', {
-                  defaultValue: 'Optional: in-app reminders (only while app is open)',
-                })}
-              </span>
-              {showOptionalInAppReminders ? (
-                <ChevronUp className="h-4 w-4 shrink-0" />
-              ) : (
-                <ChevronDown className="h-4 w-4 shrink-0" />
-              )}
-            </button>
-            {showOptionalInAppReminders && (
-              <div className="px-3 pb-3 pt-0 space-y-2 border-t border-border/60">
-                <p className="text-xs text-muted-foreground pt-2">{t('meals.inAppNotRecommended')}</p>
-                <Button
-                  variant={appSettings.mealRemindersEnabled ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={handleToggleInAppReminders}
-                >
-                  <Bell className="h-4 w-4 mr-2" />
-                  {appSettings.mealRemindersEnabled
-                    ? t('mealToasts.inAppOn')
-                    : t('mealToasts.inAppTurnOn')}
-                </Button>
               </div>
             )}
           </div>
