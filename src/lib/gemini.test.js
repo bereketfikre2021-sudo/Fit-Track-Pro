@@ -29,32 +29,40 @@ describe('generateGeminiText retries', () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch
+    vi.useRealTimers()
     configureGeminiFromAppSettings({ geminiApiKey: '', geminiModel: '' })
   })
 
   it('retries and succeeds after a transient overload', async () => {
+    vi.useFakeTimers()
     let calls = 0
 
+    // Handle both proxy response shape ({ text }) and direct Google API shape
+    // (candidates[0].content.parts[0].text), since dev env may route either way.
     globalThis.fetch = vi.fn(async () => {
       calls += 1
       if (calls === 1) {
         return {
           ok: false,
           status: 503,
-          json: async () => ({
-            error: 'This model is currently experiencing high demand.',
-          }),
+          json: async () => ({ error: 'This model is currently experiencing high demand.' }),
         }
       }
       return {
         ok: true,
         status: 200,
-        json: async () => ({ text: '{"ok":true}' }),
+        json: async () => ({
+          text: '{"ok":true}',
+          candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }],
+        }),
       }
     })
 
-    const text = await generateGeminiText({ userPrompt: 'test' })
+    const promise = generateGeminiText({ userPrompt: 'test' })
+    // Fast-forward through the retry sleep delay
+    await vi.runAllTimersAsync()
+    const text = await promise
     expect(text).toBe('{"ok":true}')
     expect(calls).toBeGreaterThan(1)
-  })
+  }, 15000)
 })

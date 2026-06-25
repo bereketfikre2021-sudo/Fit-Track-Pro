@@ -49,7 +49,7 @@ describe('workoutSession', () => {
     )
   })
 
-  it('finishes session with main-exercise counts only', () => {
+  it('finishes session with all-exercise counts (warmup + main + cooldown)', () => {
     const active = startWorkoutSession('Monday', '2026-05-26')
     const state = {
       customExercises: [
@@ -77,8 +77,11 @@ describe('workoutSession', () => {
 
     const result = finishWorkoutSession(active, state)
     expect(result.completedSessions).toHaveLength(1)
-    expect(result.completedSessions[0].completedCount).toBe(1)
-    expect(result.completedSessions[0].totalCount).toBe(2)
+    // completedCount and totalCount now cover all phases (warmup + main + cooldown)
+    expect(result.completedSessions[0].completedCount).toBe(2) // a + w completed
+    expect(result.completedSessions[0].totalCount).toBe(3)     // a + b + w total
+    // mainCompletedCount preserved for legacy stats
+    expect(result.completedSessions[0].mainCompletedCount).toBe(1)
     expect(result.activeWorkoutSession).toBeNull()
   })
 
