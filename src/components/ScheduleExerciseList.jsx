@@ -5,7 +5,7 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog'
 import { cn } from '@/lib/utils'
-import { formatExerciseTarget, buildExerciseTarget } from '@/lib/exerciseFormat'
+import { formatExerciseTarget, buildExerciseTarget, normalizeHoldFields } from '@/lib/exerciseFormat'
 import { EXERCISE_PHASE, inferExercisePhase, getExercisePhaseLabel } from '@/lib/exercisePhase'
 
 /** Small dialog to edit the per-day sets / reps / rest for a scheduled exercise. */
@@ -20,26 +20,25 @@ function EditScheduleEntryDialog({ exercise, onClose, onSave }) {
   const [restTime, setRestTime] = useState(String(exercise.restTime ?? '60'))
 
   const handleSave = () => {
-    const updated = {
+    const normalized = normalizeHoldFields({
       ...exercise,
       sets,
+      reps,
+      duration,
+      durationUnit,
       restTime,
+      isTimeBased,
+    })
+    onSave({
+      ...normalized,
       target: buildExerciseTarget({
         isTimeBased,
-        sets,
-        reps: isTimeBased ? reps : reps,
-        duration,
-        durationUnit,
+        sets: normalized.sets,
+        reps: normalized.reps,
+        duration: normalized.duration,
+        durationUnit: normalized.durationUnit,
       }),
-    }
-    if (isTimeBased) {
-      updated.duration = duration
-      updated.durationUnit = durationUnit
-      if (reps.trim()) updated.reps = reps
-    } else {
-      updated.reps = reps
-    }
-    onSave(updated)
+    })
     onClose()
   }
 
@@ -58,19 +57,34 @@ function EditScheduleEntryDialog({ exercise, onClose, onSave }) {
         <div className="space-y-4 pt-1">
           {/* Sets */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">{t('custom.sets', { defaultValue: 'Sets' })}</label>
+            <label className="text-sm font-medium">
+              {isTimeBased
+                ? t('dialogs.addToDay.setsOptional', { defaultValue: 'Sets (optional)' })
+                : t('custom.sets', { defaultValue: 'Sets' })}
+            </label>
             <Input
               type="number"
-              min="1"
+              min={isTimeBased ? '0' : '1'}
               value={sets}
               onChange={(e) => setSets(e.target.value)}
-              placeholder="3"
+              placeholder={isTimeBased ? '0' : '3'}
             />
           </div>
 
           {/* Reps or Duration */}
           {isTimeBased ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">
+                  {t('dialogs.addToDay.repsOptional', { defaultValue: 'Reps (optional)' })}
+                </label>
+                <Input
+                  placeholder="0"
+                  value={reps}
+                  onChange={(e) => setReps(e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">{t('custom.duration', { defaultValue: 'Duration' })}</label>
                 <Input
@@ -92,6 +106,7 @@ function EditScheduleEntryDialog({ exercise, onClose, onSave }) {
                   <option value="minutes">{t('durationUnits.minutes', { defaultValue: 'Minutes' })}</option>
                 </select>
               </div>
+            </div>
             </div>
           ) : (
             <div className="space-y-1.5">

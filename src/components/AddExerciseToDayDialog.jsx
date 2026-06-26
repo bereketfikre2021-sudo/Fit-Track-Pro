@@ -13,7 +13,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { formatExerciseTarget, getDurationLabel, isHoldExercise } from '@/lib/exerciseFormat'
+import { formatExerciseTarget, getDurationLabel, isHoldExercise, normalizeHoldFields } from '@/lib/exerciseFormat'
 import {
   EXERCISE_PHASE,
   EXERCISE_PHASE_OPTIONS,
@@ -63,8 +63,9 @@ function AddExerciseToDayDialog({ day, customExercises, onClose, onAdd }) {
 
   useEffect(() => {
     if (!selected) return
-    setSets(selected.sets || '3')
-    setReps(selected.reps || (selected.isTimeBased ? '' : '10'))
+    const hold = isHoldExercise(selected)
+    setSets(hold ? (selected.sets ?? '0') : (selected.sets || '3'))
+    setReps(hold ? (selected.reps ?? '0') : (selected.reps || '10'))
     setDuration(selected.duration || '30')
     setDurationUnit(selected.durationUnit || 'seconds')
   }, [selected])
@@ -76,28 +77,29 @@ function AddExerciseToDayDialog({ day, customExercises, onClose, onAdd }) {
       return
     }
 
-    if (!sets || Number(sets) <= 0) {
-      toast.error(t('dialogs.addToDay.toastSets'))
-      return
-    }
-
     if (isHold) {
       if (!duration || Number(duration) <= 0) {
         toast.error(t('dialogs.addToDay.toastDuration'))
         return
       }
-    } else if (!reps?.toString().trim()) {
-      toast.error(t('dialogs.addToDay.toastReps'))
-      return
+    } else {
+      if (!sets || Number(sets) <= 0) {
+        toast.error(t('dialogs.addToDay.toastSets'))
+        return
+      }
+      if (!reps?.toString().trim()) {
+        toast.error(t('dialogs.addToDay.toastReps'))
+        return
+      }
     }
 
-    onAdd(selectedExercise, {
+    onAdd(selectedExercise, normalizeHoldFields({
       sets,
       reps,
       duration,
       durationUnit,
       isTimeBased: isHold,
-    })
+    }))
   }
 
   const categoryLabel = (value) => {
@@ -219,14 +221,19 @@ function AddExerciseToDayDialog({ day, customExercises, onClose, onAdd }) {
               <div className="mb-3 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-xs font-medium">{t('dialogs.addToDay.sets')}</label>
+                    <label className="text-xs font-medium">
+                      {isHold
+                        ? t('dialogs.addToDay.setsOptional', { defaultValue: 'Sets (optional)' })
+                        : t('dialogs.addToDay.sets')}
+                    </label>
                     <Input
                       type="number"
-                      min="1"
+                      min={isHold ? '0' : '1'}
+                      placeholder={isHold ? '0' : undefined}
                       value={sets}
                       onChange={(e) => setSets(e.target.value)}
                       className="h-9"
-                      required
+                      required={!isHold}
                     />
                   </div>
 
@@ -236,7 +243,7 @@ function AddExerciseToDayDialog({ day, customExercises, onClose, onAdd }) {
                         {t('dialogs.addToDay.repsOptional')}
                       </label>
                       <Input
-                        placeholder="e.g., 5"
+                        placeholder="0"
                         value={reps}
                         onChange={(e) => setReps(e.target.value)}
                         className="h-9"

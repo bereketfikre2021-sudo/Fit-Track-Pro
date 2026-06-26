@@ -3,7 +3,9 @@ import {
   areAllMainExercisesCompleted,
   completionKey,
   countDayCompletions,
+  countDayExerciseProgress,
   countMainDayCompletions,
+  canAccessWorkoutPhase,
   finishWorkoutSession,
   getMainExercisesForDay,
   skipWorkoutForToday,
@@ -29,6 +31,35 @@ describe('workoutSession', () => {
       '2026-05-26-Monday-b': { date: '2026-05-26', day: 'Monday', skipped: true },
     }
     expect(countDayCompletions(completed, 'Monday', '2026-05-26')).toBe(1)
+  })
+
+  it('counts exercise progress including skipped', () => {
+    const exercises = [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
+    const completed = {
+      '2026-05-26-Monday-a': { date: '2026-05-26', day: 'Monday', completedAt: 1 },
+      '2026-05-26-Monday-b': { date: '2026-05-26', day: 'Monday', skipped: true },
+    }
+    expect(countDayExerciseProgress(completed, exercises, 'Monday', '2026-05-26')).toEqual({
+      done: 2,
+      total: 3,
+      percent: 67,
+    })
+  })
+
+  it('blocks main until warm-up is complete or skipped', () => {
+    const enriched = [
+      { id: 'w1', exercisePhase: 'warmup' },
+      { id: 'm1', exercisePhase: 'main' },
+    ]
+    const completed = {}
+    expect(canAccessWorkoutPhase('main', enriched, completed, 'Monday', '2026-05-26')).toBe(false)
+    completed['2026-05-26-Monday-w1'] = {
+      date: '2026-05-26',
+      day: 'Monday',
+      skipped: true,
+      skipReason: 'busy',
+    }
+    expect(canAccessWorkoutPhase('main', enriched, completed, 'Monday', '2026-05-26')).toBe(true)
   })
 
   it('detects when all main exercises are completed', () => {

@@ -662,7 +662,9 @@
     "toastStarted": "{{day}} ልምምድ ተጀመረ",
     "toastFinished": "ልምምድ ተጠናቋል · {{completed}}/{{total}} ዋና",
     "restComplete": "እረፍት አለቀ — ቀጣይ ሴት!",
-    "stopRest": "የእረፍት ታይመር አቁም"
+    "stopRest": "የእረፍት ታይመር አቁም",
+    "phaseAdvance": "ወደ {{phase}} በመሄድ ላይ",
+    "phaseLocked": "መጀመሪያ ሁሉንም {{phase}} የአካል ብቃት ያጠናቁ ወይም ይዘልሉ"
   },
   "profile": {
     "settingsAria": "ቅንብሮች",
@@ -736,8 +738,11 @@
     "skippedToday": "ተዘልሏል · {{reason}}"
   },
   "sessionBar": {
-    "startProgress": "በ{{day}} ላይ ጊዜ እና ሂደት ለመከታተል ክፍለ ጊዜ ጀምሩ።",
-    "completedDetail": "ክፍለ ጊዜ ዛሬ ተጠናቋል · {{completed}}/{{total}} ዋና · {{duration}}",
+    "inProgress": "ልምምድ በሂደት ላይ",
+    "progress": "{{done}} ከ {{total}} የአካል ብቃት · {{percent}}%",
+    "activeOnDay": "ክፍለ ጊዜ በ{{day}} ላይ ንቁ — ለመቀጠል ወደ {{currentDay}} ይቀይሩ።",
+    "startProgress": "በ{{day}} ላይ የአካል ብቃት ሂደት ለመከታተል ክፍለ ጊዜ ጀምሩ።",
+    "completedDetail": "ክፍለ ጊዜ ዛሬ ተጠናቋል · {{completed}}/{{total}} · {{duration}}",
     "skippedDetail": "ለዛሬ ተዘልሏል · {{reason}}"
   },
   "bodyWeight": {
@@ -811,11 +816,11 @@
       "title": "ወደ {{day}} የአካል ብቃት ጨምር",
       "pickExercise": "ፈልጉ፣ ያጣሩ እና የአካል ብቃት ለመጨመር ይንኩ።",
       "descSimple": "ማሞቂያ/ማቀዝቀዣ ከቤተ-መጽሐፍት እንደሆነ ይጨመራል።",
-      "descHold": "ሴቶች፣ አማራጭ ድርሻ እና የመያዝ ጊዜ ያስቀምጡ።",
+      "descHold": "ለጊዜ/መያዣ የአካል ብቃት ሴቶች፣ አማራጭ ድርሻ እና ጊዜ ያስቀምጡ።",
       "descMain": "ለዚህ ልምምድ ሴት እና ድርሻ ያስቀምጡ።",
       "exercise": "የአካል ብቃት *",
       "selectExercise": "የአካል ብቃት ይምረጡ",
-      "hold": "(መያዝ)",
+      "hold": "(ጊዜ/መያዣ)",
       "sets": "ሴቶች *",
       "repsOptional": "ድርሻ (አማራጭ)",
       "reps": "ድርሻ *",
@@ -851,7 +856,9 @@
     "formEditCooldown": "ማቀዝቀዣ አርትዕ",
     "formEditExercise": "የአካል ብቃት አርትዕ",
     "formAddMain": "ዋና የአካል ብቃት ጨምር",
-    "formDescSimple": "ስም እና ጊዜ — ቀላል ይቆዩ።",
+    "toastHoldTimeRequired": "ጊዜ ያስገቡ",
+    "formDescSimple": "የድግግሞሽ ወይም ጊዜ/መያዣ — ጊዜ በሴት መካከል ዕረፍት አይደለም።",
+    "simpleHoldHint": "ጊዜ የአካል ብቃቱ ምን ያህል እንደሚዘጋጅ ነው (ለምሳ. 5 ደቂቃ ሩጫ፣ ፕላንክ) — በሴት መካከል ዕረፍት አይደለም።",
     "formDescMain": "ለዋና ልምምድ ዝርዝሮችን ይሙሉ",
     "name": "ስም *",
     "duration": "ጊዜ *",
@@ -859,7 +866,7 @@
     "noteOptional": "ማስታወሻ (አማራጭ)",
     "description": "መግለጫ",
     "exerciseType": "የአካል ብቃት አይነት",
-    "holdHint": "ሦስተኛው መስክ የመያዝ ጊዜ ነው፣ እረፍት አይደለም።",
+    "holdHint": "ሦስተኛው መስክ ጊዜ ነው (መያዣ ወይም ጊዜያዊ)፣ እረፍት አይደለም።",
     "restHint": "መደበኛ ምትኬዎች በሴቶች መካከል እረፍት ይጠቀማሉ።",
     "setsRepsRest": "ሴት · ድርሻ · እረፍት",
     "setsRepsDuration": "ሴት · ድርሻ · ጊዜ",
@@ -895,7 +902,9 @@
     "addToDay": "ወደ ቀን ጨምር",
     "removeDay": "ቀን አስወግድ",
     "dragReorder": "ለማዘዝ ይጎትቱ",
-    "removeFromDay": "ከቀን አስወግድ"
+    "removeFromDay": "ከቀን አስወግድ",
+    "holdExerciseType": "ጊዜ/መያዣ የአካል ብቃት (ለምሳ. 5 ደቂቃ ሩጫ፣ ፕላንክ)",
+    "holdExerciseLabel": "ጊዜ/መያዣ የአካል ብቃት (ለምሳ. 5 ደቂቃ ሩጫ፣ ፕላንክ)"
   },
   "exerciseCard": {
     "pr": "PR: {{label}}",
@@ -904,7 +913,7 @@
     "last": "የመጨረሻ: {{summary}}",
     "restSec": "{{sec}}ሰ እረፍት",
     "restAria": "{{sec}}ሰ እረፍት",
-    "holdAria": "የመያዝ ታይመር ጀምር ({{sec}}ሰ)",
+    "holdAria": "የጊዜ ታይመር ጀምር ({{sec}}ሰ)",
     "skipAria": "የአካል ብቃት ዝለል",
     "skipTitle": "ለዛሬ ዝለል",
     "undoSkipAria": "መዘለያ ቀልብስ",
@@ -923,10 +932,10 @@
   },
   "holdTimer": {
     "ready": "ዝግጁ ይሁኑ",
-    "holding": "ያዙ",
+    "holding": "ታይመር",
     "target": "ዒላማ: {{sec}}ሰ",
-    "complete": "መያዝ ተጠናቋል!",
-    "stopAria": "የመያዝ ታይመር አቁም"
+    "complete": "ጊዜ ተጠናቋል!",
+    "stopAria": "የጊዜ ታይመር አቁም"
   },
   "durationUnits": {
     "seconds": "ሰከንድ",

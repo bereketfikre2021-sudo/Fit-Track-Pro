@@ -665,6 +665,7 @@
     "restComplete": "Rest complete — next set!",
     "stopRest": "Stop rest timer",
     "phaseAdvance": "Moving to {{phase}}",
+    "phaseLocked": "Complete or skip all {{phase}} exercises first",
     "celebrateTitle": "Workout Complete!",
     "celebrateSubtitle": "Amazing work — you crushed it! 💪"
   },
@@ -740,8 +741,11 @@
     "skippedToday": "Skipped · {{reason}}"
   },
   "sessionBar": {
-    "startProgress": "Start a session to track time and today's progress on {{day}}.",
-    "completedDetail": "Session completed today · {{completed}}/{{total}} main exercises · {{duration}}",
+    "inProgress": "Workout in progress",
+    "progress": "{{done}} of {{total}} exercises · {{percent}}%",
+    "activeOnDay": "Session active on {{day}} — switch to {{currentDay}} to continue.",
+    "startProgress": "Start a session to track exercise progress on {{day}}.",
+    "completedDetail": "Session completed today · {{completed}}/{{total}} exercises · {{duration}}",
     "skippedDetail": "Skipped for today · {{reason}}"
   },
   "bodyWeight": {
@@ -814,11 +818,11 @@
       "title": "Add Exercise to {{day}}",
       "pickExercise": "Search, filter, and tap an exercise to add it to this day.",
       "descSimple": "Warm-up and cool-down are added as-is from your library.",
-      "descHold": "Set sets, optional reps, and hold duration.",
+      "descHold": "Set sets, optional reps, and duration for timed / hold exercises.",
       "descMain": "Set sets and reps for this workout.",
       "exercise": "Exercise *",
       "selectExercise": "Select an exercise",
-      "hold": "(hold)",
+      "hold": "(duration / hold)",
       "sets": "Sets *",
       "repsOptional": "Reps (optional)",
       "reps": "Reps *",
@@ -850,11 +854,13 @@
     "toastDeleted": "Deleted {{name}}",
     "toastNameRequired": "Exercise name is required",
     "toastDurationRequired": "Enter a duration",
+    "toastHoldTimeRequired": "Enter a duration",
     "formEditWarmup": "Edit Warm-up",
     "formEditCooldown": "Edit Cool-down",
     "formEditExercise": "Edit Exercise",
     "formAddMain": "Add Main Exercise",
-    "formDescSimple": "Name, sets, reps or hold time — your choice.",
+    "formDescSimple": "Rep-based, or duration / hold for timed exercises — not rest between sets.",
+    "simpleHoldHint": "Duration is how long the exercise lasts (e.g. 5 min run, plank hold) — not rest between sets.",
     "formDescMain": "Fill in the details for your main workout exercise",
     "name": "Name *",
     "duration": "Duration *",
@@ -862,7 +868,7 @@
     "noteOptional": "Note (optional)",
     "description": "Description",
     "exerciseType": "Exercise type",
-    "holdHint": "Third field is holding time per set (duration), not rest between sets.",
+    "holdHint": "Third field is duration per set (hold or timed exercise), not rest between sets.",
     "restHint": "Standard lifts use rest between sets.",
     "setsRepsRest": "Sets · Reps · Rest",
     "setsRepsDuration": "Sets · Reps · Duration",
@@ -906,7 +912,8 @@
     "selectDayForSchedule": "Select a day to add to your workout schedule",
     "confirmDeleteExercise": "Delete \"{{name}}\"? This will remove it from all workout days.",
     "mainLiftHint": "Adding a main lift instead? Use full exercise form",
-    "holdExerciseType": "Hold exercise (plank, dead hang, wall sit, etc.)",
+    "holdExerciseType": "Duration / hold exercise (e.g. 5 min run, plank hold)",
+    "holdExerciseLabel": "Duration / hold exercise (e.g. 5 min run, plank hold)",
     "toastImportedAi": "AI added {{parts}}",
     "toastImportedSchedule": "{{count}} schedule assignment(s)"
   },
@@ -917,7 +924,7 @@
     "last": "Last: {{summary}}",
     "restSec": "{{sec}}s rest",
     "restAria": "Rest {{sec}}s",
-    "holdAria": "Start hold timer ({{sec}}s)",
+    "holdAria": "Start duration timer ({{sec}}s)",
     "skipAria": "Skip exercise",
     "skipTitle": "Skip for today",
     "undoSkipAria": "Undo skip",
@@ -936,10 +943,10 @@
   },
   "holdTimer": {
     "ready": "Get ready",
-    "holding": "Hold",
+    "holding": "Timer",
     "target": "Target: {{sec}}s",
-    "complete": "Hold complete!",
-    "stopAria": "Stop hold timer"
+    "complete": "Time complete!",
+    "stopAria": "Stop duration timer"
   },
   "durationUnits": {
     "seconds": "Seconds",

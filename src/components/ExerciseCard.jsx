@@ -128,6 +128,7 @@ export function ExerciseLibraryCard({
 }) {
   const { t } = useTranslation()
   const phase = inferExercisePhase(exercise)
+  const isSimple = isSimplePhase(phase)
   const fileInputRef = useRef(null)
 
   const openPicker = () => {
@@ -137,8 +138,11 @@ export function ExerciseLibraryCard({
   return (
     <Card className={cn('p-3 hover:shadow-md transition-shadow', sharedRadius)}>
       <div className="flex gap-3">
-        <ExerciseThumbnail exercise={exercise} onClick={onUploadImage ? openPicker : onEdit} />
-        {onUploadImage && (
+        <ExerciseThumbnail
+          exercise={exercise}
+          onClick={!isSimple && onUploadImage ? openPicker : !isSimple ? onEdit : undefined}
+        />
+        {!isSimple && onUploadImage && (
           <input
             ref={fileInputRef}
             type="file"
@@ -170,11 +174,11 @@ export function ExerciseLibraryCard({
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {formatExerciseTarget(exercise)}
-                {exercise.restTime &&
+                {!isSimple &&
+                  exercise.restTime &&
                   ` · ${t('exerciseCard.restSec', { sec: exercise.restTime })}`}
               </p>
-              {/* Difficulty + Equipment inline */}
-              {(exercise.difficulty || exercise.equipment) && (
+              {!isSimple && (exercise.difficulty || exercise.equipment) && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {exercise.difficulty && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted border border-border text-muted-foreground leading-none">
@@ -188,8 +192,8 @@ export function ExerciseLibraryCard({
                   )}
                 </div>
               )}
-              <MuscleTags groups={exercise.muscleGroups} />
-              {personalRecord && (
+              {!isSimple && <MuscleTags groups={exercise.muscleGroups} />}
+              {!isSimple && personalRecord && (
                 <p className="text-[10px] text-primary mt-1">
                   {t('exerciseCard.pr', { label: personalRecord })}
                 </p>
@@ -201,7 +205,7 @@ export function ExerciseLibraryCard({
               )}
             </div>
             <div className="flex gap-0.5 shrink-0">
-              {onHistory && (
+              {!isSimple && onHistory && (
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={onHistory} title="View history">
                   <BarChart2 className="h-4 w-4" />
                 </Button>

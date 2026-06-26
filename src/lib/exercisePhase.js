@@ -103,9 +103,22 @@ export function isSimpleExercise(exercise) {
 }
 
 export function formatSimplePhaseTarget(exercise) {
-  const duration = exercise?.duration ?? '5'
-  const unit = exercise?.durationUnit === 'minutes' ? ' min' : 's'
-  return `${duration}${unit}`
+  if (exercise?.target) return exercise.target
+  const isTimeBased = exercise?.isTimeBased ?? false
+  const sets = exercise?.sets ?? '3'
+  const reps = exercise?.reps ?? '10'
+  const duration = exercise?.duration ?? '30'
+  const durationUnit = exercise?.durationUnit ?? 'seconds'
+  if (isTimeBased) {
+    const unitLabel = durationUnit === 'minutes' ? ' min' : 's'
+    const durationPart = `${duration}${unitLabel}`
+    const repsTrimmed = reps?.toString().trim()
+    if (repsTrimmed) {
+      return `${sets} sets × ${repsTrimmed} reps × ${durationPart}`
+    }
+    return `${sets} sets × ${durationPart}`
+  }
+  return `${sets}×${reps}`
 }
 
 export function buildSimplePhaseDefaults(phase) {
@@ -117,9 +130,9 @@ export function buildSimplePhaseDefaults(phase) {
     sets: '3',
     reps: '10',
     isTimeBased: false,
-    duration: '30',
+    duration: '',
     durationUnit: 'seconds',
-    restTime: '60',
+    restTime: '',
     muscleGroups: [],
     equipment: '',
     difficulty: 'Beginner',
@@ -140,9 +153,13 @@ export function packSimplePhaseExercise(
   const resolvedIsTimeBased = isTimeBased !== undefined ? isTimeBased : true
   const d = String(duration || '5')
   const unit = durationUnit === 'seconds' ? 'seconds' : 'minutes'
-  const target = resolvedIsTimeBased
-    ? formatSimplePhaseTarget({ duration: d, durationUnit: unit })
-    : `${sets || '1'} × ${reps || '10'}`
+  const target = formatSimplePhaseTarget({
+    isTimeBased: resolvedIsTimeBased,
+    sets: sets || '1',
+    reps: reps || '10',
+    duration: d,
+    durationUnit: unit,
+  })
   return {
     ...(existing || buildSimplePhaseDefaults(phase)),
     name: name.trim(),

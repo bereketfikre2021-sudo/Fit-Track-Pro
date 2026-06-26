@@ -28,7 +28,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { addExerciseToDay, removeExerciseFromDay } from '@/lib/workoutSchedule'
 import { compressImageFile } from '@/lib/imageUtils'
-import { formatExerciseTarget, getDurationLabel } from '@/lib/exerciseFormat'
+import { buildExerciseTarget, formatExerciseTarget, getHoldTimeLabel, normalizeHoldFields } from '@/lib/exerciseFormat'
 import {
   EXERCISE_PHASE,
   EXERCISE_PHASE_OPTIONS,
@@ -512,9 +512,17 @@ function CustomTab({ state, updateState }) {
 
   function handleAddExercise(exerciseData) {
     const phase = normalizeExercisePhase(exerciseData.exercisePhase)
+    const normalized = normalizeHoldFields(exerciseData)
     const newExercise = {
-      ...exerciseData,
+      ...normalized,
       exercisePhase: phase,
+      target: buildExerciseTarget({
+        isTimeBased: normalized.isTimeBased ?? false,
+        sets: normalized.sets,
+        reps: normalized.reps,
+        duration: normalized.duration,
+        durationUnit: normalized.durationUnit,
+      }),
       id: Date.now().toString(),
       createdAt: Date.now(),
     }
@@ -526,9 +534,21 @@ function CustomTab({ state, updateState }) {
   }
 
   function handleUpdateExercise(exerciseData) {
-    const updated = customExercises.map(ex =>
-      ex.id === exerciseData.id ? { ...exerciseData, updatedAt: Date.now() } : ex
-    )
+    const updated = customExercises.map(ex => {
+      if (ex.id !== exerciseData.id) return ex
+      const normalized = normalizeHoldFields(exerciseData)
+      return {
+        ...normalized,
+        target: buildExerciseTarget({
+          isTimeBased: normalized.isTimeBased ?? false,
+          sets: normalized.sets,
+          reps: normalized.reps,
+          duration: normalized.duration,
+          durationUnit: normalized.durationUnit,
+        }),
+        updatedAt: Date.now(),
+      }
+    })
     updateState({ customExercises: updated })
     toast.success(t('custom.toastUpdated', { name: exerciseData.name }))
   }
@@ -629,11 +649,43 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
   const [imageInputType, setImageInputType] = useState('file')
   const [imagePreview, setImagePreview] = useState(exercise?.imageUrl || '')
   const imageFileInputRef = useRef(null)
+  const isSimple = isSimplePhase(formData.exercisePhase)
+  const simplePhaseLabel = getExercisePhaseLabel(formData.exercisePhase)
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!formData.name.trim()) {
       toast.error(t('custom.toastNameRequired'))
+      return
+    }
+
+    if (isSimple) {
+      if (formData.isTimeBased) {
+        if (!formData.duration?.toString().trim() || Number(formData.duration) <= 0) {
+          toast.error(t('custom.toastHoldTimeRequired'))
+          return
+        }
+      } else if (!formData.reps || !formData.reps.toString().trim()) {
+        toast.error(t('dialogs.addToDay.toastReps', { defaultValue: 'Please enter reps.' }))
+        return
+      }
+      const phase = normalizeExercisePhase(formData.exercisePhase)
+      const payload = {
+        ...formData,
+        exercisePhase: phase,
+        isTimeBased: !!formData.isTimeBased,
+        restTime: '',
+        ...(formData.isTimeBased ? { sets: '0', reps: '0' } : { duration: '', durationUnit: 'seconds' }),
+        category: phase === EXERCISE_PHASE.WARMUP ? 'Warm-up' : 'Cool-down',
+        muscleGroups: [],
+        muscleGroup: [],
+        equipment: '',
+        difficulty: '',
+        imageUrl: '',
+        instructions: '',
+        tips: '',
+      }
+      onSave(formData.isTimeBased ? normalizeHoldFields(payload) : payload)
       return
     }
 
@@ -649,11 +701,11 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
       }
     }
 
-    onSave({
+    onSave(normalizeHoldFields({
       ...formData,
       exercisePhase: normalizeExercisePhase(formData.exercisePhase),
       muscleGroup: formData.muscleGroups || [],
-    })
+    }))
   }
 
   const toggleMuscleGroup = (muscle) => {
@@ -733,13 +785,21 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl">
+      <DialogContent className={cn('max-h-[90vh] overflow-y-auto', isSimple ? 'max-w-lg' : 'max-w-2xl')}>
         <DialogHeader>
           <DialogTitle>
-            {exercise ? t('custom.formEditExercise') : t('custom.formAddMain')}
+            {exercise
+              ? isSimple
+                ? formData.exercisePhase === EXERCISE_PHASE.WARMUP
+                  ? t('custom.formEditWarmup')
+                  : t('custom.formEditCooldown')
+                : t('custom.formEditExercise')
+              : isSimple
+                ? t('exercises.addPhase', { phase: simplePhaseLabel })
+                : t('custom.formAddMain')}
           </DialogTitle>
           <DialogDescription>
-            {t('custom.formDescMain')}
+            {isSimple ? t('custom.formDescSimple') : t('custom.formDescMain')}
           </DialogDescription>
         </DialogHeader>
 
@@ -754,7 +814,108 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
             />
           </div>
 
-          {/* Phase selector — same 3-option card grid for all phases */}
+          {isSimple ? (
+            <>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="simpleIsTimeBased"
+                    checked={formData.isTimeBased}
+                    onChange={(e) => {
+                      const isHold = e.target.checked
+                      setFormData((prev) => ({
+                        ...prev,
+                        isTimeBased: isHold,
+                        ...(isHold
+                          ? {
+                              sets: '0',
+                              reps: '0',
+                              duration: prev.duration || '30',
+                            }
+                          : {
+                              sets: prev.sets === '0' ? '3' : prev.sets || '3',
+                              reps: prev.reps === '0' ? '10' : prev.reps || '10',
+                              duration: '',
+                            }),
+                      }))
+                    }}
+                    className="h-4 w-4 rounded border-input"
+                  />
+                  <label htmlFor="simpleIsTimeBased" className="text-sm font-medium">
+                    {t('custom.holdExerciseType')}
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t('custom.simpleHoldHint')}
+                </p>
+              </div>
+
+              <div className="space-y-4 rounded-lg border border-border p-4 bg-muted/20">
+                {formData.isTimeBased ? (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        {getHoldTimeLabel(formData.durationUnit || 'seconds')}
+                      </label>
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="30"
+                        value={formData.duration}
+                        onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">{t('custom.unit')}</label>
+                      <select
+                        value={formData.durationUnit || 'seconds'}
+                        onChange={(e) => setFormData({ ...formData, durationUnit: e.target.value })}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <option value="seconds">{t('durationUnits.seconds')}</option>
+                        <option value="minutes">{t('durationUnits.minutes')}</option>
+                      </select>
+                    </div>
+                  </>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">{t('custom.sets')}</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="3"
+                        value={formData.sets}
+                        onChange={(e) => setFormData({ ...formData, sets: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">{t('dialogs.addToDay.reps')}</label>
+                      <Input
+                        placeholder="10"
+                        value={formData.reps}
+                        onChange={(e) => setFormData({ ...formData, reps: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">{t('custom.noteOptional')}</label>
+                <textarea
+                  rows="3"
+                  placeholder={t('custom.noteOptional')}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                />
+              </div>
+            </>
+          ) : (
+            <>
+          {/* Phase selector — main exercises only */}
           <div className="space-y-2">
             <label className="text-sm font-medium">{t('custom.exerciseType')}</label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -817,17 +978,22 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
                   setFormData((prev) => ({
                     ...prev,
                     isTimeBased: isHold,
-                    ...(isHold && !prev.duration && prev.restTime
-                      ? { duration: prev.restTime }
-                      : {}),
+                    ...(isHold
+                      ? {
+                          sets: '0',
+                          reps: '0',
+                          ...(!prev.duration && prev.restTime ? { duration: prev.restTime } : {}),
+                        }
+                      : {
+                          sets: prev.sets === '0' ? '3' : prev.sets,
+                          reps: prev.reps === '0' ? '10' : prev.reps,
+                        }),
                   }))
                 }}
                 className="h-4 w-4 rounded border-input"
               />
               <label htmlFor="isTimeBased" className="text-sm font-medium">
-                {t('custom.holdExerciseLabel', {
-                  defaultValue: 'Hold exercise (plank, dead hang, wall sit, etc.)',
-                })}
+                {t('custom.holdExerciseLabel')}
               </label>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -841,10 +1007,15 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
             </p>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">{t('custom.sets')}</label>
+                <label className="text-sm font-medium">
+                  {formData.isTimeBased
+                    ? t('dialogs.addToDay.setsOptional', { defaultValue: 'Sets (optional)' })
+                    : t('custom.sets')}
+                </label>
                 <Input
                   type="number"
-                  min="1"
+                  min={formData.isTimeBased ? '0' : '1'}
+                  placeholder={formData.isTimeBased ? '0' : undefined}
                   value={formData.sets}
                   onChange={(e) => setFormData({ ...formData, sets: e.target.value })}
                 />
@@ -856,7 +1027,7 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
                     : t('dialogs.addToDay.reps')}
                 </label>
                 <Input
-                  placeholder={formData.isTimeBased ? 'e.g., 5' : 'e.g., 10 or 8-12'}
+                  placeholder={formData.isTimeBased ? '0' : 'e.g., 10 or 8-12'}
                   value={formData.reps}
                   onChange={(e) => setFormData({ ...formData, reps: e.target.value })}
                 />
@@ -864,7 +1035,7 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
               <div className="space-y-2">
                 <label className="text-sm font-medium">
                   {formData.isTimeBased
-                    ? getDurationLabel(formData.durationUnit || 'seconds')
+                    ? getHoldTimeLabel(formData.durationUnit || 'seconds')
                     : t('custom.restSec')}
                 </label>
                 {formData.isTimeBased ? (
@@ -1111,6 +1282,8 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
               className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
             />
           </div>
+            </>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">

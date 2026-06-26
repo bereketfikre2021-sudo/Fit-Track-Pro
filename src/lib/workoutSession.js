@@ -21,6 +21,86 @@ export function countDayCompletions(completedExercises, day, date = todayDateStr
   ).length
 }
 
+/** Completed or skipped exercises vs total scheduled for a day. */
+export function countDayExerciseProgress(
+  completedExercises,
+  allExercises,
+  day,
+  date = todayDateString()
+) {
+  const total = allExercises?.length || 0
+  const done = (allExercises || []).reduce((acc, ex) => {
+    const entry = completedExercises?.[completionKey(date, day, ex.id)]
+    return acc + (entry && (entry.completedAt || entry.skipped) ? 1 : 0)
+  }, 0)
+  return {
+    done,
+    total,
+    percent: total > 0 ? Math.round((done / total) * 100) : 0,
+  }
+}
+
+export function enrichScheduleExercises(exercises, customExercises) {
+  return (exercises || []).map((ex) => {
+    const library = customExercises.find((c) => c.id === ex.exerciseId)
+    return { ...ex, exercisePhase: inferExercisePhase({ ...library, ...ex }) }
+  })
+}
+
+export function getPhaseExercises(enriched, phase) {
+  return enriched.filter((ex) => ex.exercisePhase === phase)
+}
+
+export function isPhaseComplete(completedExercises, phaseExercises, day, date = todayDateString()) {
+  if (!phaseExercises.length) return true
+  return phaseExercises.every((ex) => {
+    const entry = completedExercises?.[completionKey(date, day, ex.id)]
+    return entry && (entry.completedAt || entry.skipped)
+  })
+}
+
+/** Whether the user may open a workout phase tab (prior phases must be done or skipped). */
+export function canAccessWorkoutPhase(
+  targetPhase,
+  enriched,
+  completedExercises,
+  day,
+  date = todayDateString()
+) {
+  if (targetPhase === EXERCISE_PHASE.WARMUP) return true
+
+  const warmupDone = isPhaseComplete(
+    completedExercises,
+    getPhaseExercises(enriched, EXERCISE_PHASE.WARMUP),
+    day,
+    date
+  )
+  if (targetPhase === EXERCISE_PHASE.MAIN) return warmupDone
+
+  if (targetPhase === EXERCISE_PHASE.COOLDOWN) {
+    const mainDone = isPhaseComplete(
+      completedExercises,
+      getPhaseExercises(enriched, EXERCISE_PHASE.MAIN),
+      day,
+      date
+    )
+    return warmupDone && mainDone
+  }
+
+  return false
+}
+
+/** First phase that still has unfinished exercises, or cooldown if all done. */
+export function getCurrentWorkoutPhase(enriched, completedExercises, day, date = todayDateString()) {
+  for (const phase of [EXERCISE_PHASE.WARMUP, EXERCISE_PHASE.MAIN, EXERCISE_PHASE.COOLDOWN]) {
+    const phaseExercises = getPhaseExercises(enriched, phase)
+    if (phaseExercises.length && !isPhaseComplete(completedExercises, phaseExercises, day, date)) {
+      return phase
+    }
+  }
+  return EXERCISE_PHASE.COOLDOWN
+}
+
 export function getMainExercisesForDay(state, day) {
   const schedule = state.workoutSchedule?.[day]
   const exercises = schedule?.exercises || []

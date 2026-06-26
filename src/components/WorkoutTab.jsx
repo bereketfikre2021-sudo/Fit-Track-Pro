@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Link, useNavigate } from 'react-router-dom'
@@ -32,6 +32,7 @@ import { getTodayWorkoutContext } from '@/lib/calendarDay'
 import {
   EXERCISE_PHASE,
   filterExercisesByPhase,
+  getExercisePhaseLabel,
   inferExercisePhase,
   isSimplePhase,
 } from '@/lib/exercisePhase'
@@ -40,13 +41,21 @@ import {
 
   areAllMainExercisesCompleted,
 
+  canAccessWorkoutPhase,
+
   completionKey,
+
+  countDayExerciseProgress,
+
+  enrichScheduleExercises,
 
   finishWorkoutSession,
 
   getAllExercisesForDay,
 
   areAllExercisesCompleted,
+
+  getCurrentWorkoutPhase,
 
   getMainExercisesForDay,
 
@@ -96,18 +105,6 @@ function WorkoutExerciseEmptyActions({ showAiRecommend, aiLoading, onAiRecommend
       </Button>
     </div>
   )
-}
-
-/** Return the first phase (warmup → main → cooldown) that has exercises for a day. */
-function getFirstPhaseWithExercises(exercises, customExercises) {
-  const enriched = (exercises || []).map((ex) => {
-    const library = customExercises.find((c) => c.id === ex.exerciseId)
-    return { ...ex, exercisePhase: inferExercisePhase({ ...library, ...ex }) }
-  })
-  for (const phase of [EXERCISE_PHASE.WARMUP, EXERCISE_PHASE.MAIN, EXERCISE_PHASE.COOLDOWN]) {
-    if (enriched.some((ex) => ex.exercisePhase === phase)) return phase
-  }
-  return EXERCISE_PHASE.MAIN
 }
 
 /** Return the next phase in the warmup → main → cooldown sequence. */
@@ -162,19 +159,14 @@ function WorkoutTab({ state, updateState }) {
 
   })
 
-  const [phaseFilter, setPhaseFilter] = useState(() => {
-    const days = state.profile?.workoutDays || []
-    const ctx = getTodayWorkoutContext(days)
-    const day = ctx.planDay || ctx.nextWorkoutDay || days[0] || null
-    const exercises = state.workoutSchedule?.[day]?.exercises || []
-    return getFirstPhaseWithExercises(exercises, state.customExercises || [])
-  })
+  const [phaseFilter, setPhaseFilter] = useState(EXERCISE_PHASE.WARMUP)
   const [restTimer, setRestTimer] = useState(null)
   const [holdTimer, setHoldTimer] = useState(null)
   const [skipTarget, setSkipTarget] = useState(null)
   const [skipDayOpen, setSkipDayOpen] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [celebrating, setCelebrating] = useState(false)
+  const sessionStartedAtRef = useRef(null)
 
   const workoutSchedule = state.workoutSchedule || {}
 
@@ -199,6 +191,43 @@ function WorkoutTab({ state, updateState }) {
     setActiveDay(ctx.planDay || ctx.nextWorkoutDay || workoutDays[0] || null)
   }, [activeDay, workoutDays])
 
+  // When a new session starts (e.g. from home), open on warm-up first.
+  useEffect(() => {
+    if (!activeSession || activeSession.date !== today) return
+    if (activeSession.startedAt === sessionStartedAtRef.current) return
+    sessionStartedAtRef.current = activeSession.startedAt
+    if (activeSession.day === activeDay) {
+      setPhaseFilter(EXERCISE_PHASE.WARMUP)
+    }
+  }, [activeSession, activeDay, today])
+
+  const tryChangePhase = (day, targetPhase, enriched, readOnly) => {
+    if (readOnly || canAccessWorkoutPhase(targetPhase, enriched, completedExercises, day, today)) {
+      setPhaseFilter(targetPhase)
+      return
+    }
+
+    const blockedPhase =
+      targetPhase === EXERCISE_PHASE.MAIN ? EXERCISE_PHASE.WARMUP : EXERCISE_PHASE.MAIN
+    toast.error(
+      t('workout.phaseLocked', {
+        phase: getExercisePhaseLabel(blockedPhase),
+      })
+    )
+  }
+
+  // Keep the visible tab on the earliest incomplete phase during today's workout.
+  useEffect(() => {
+    if (!activeDay || activeDay !== todayCtx.calendarToday) return
+    const dayExercises = workoutSchedule[activeDay]?.exercises || []
+    if (!dayExercises.length) return
+
+    const enriched = enrichScheduleExercises(dayExercises, customExercises)
+    if (canAccessWorkoutPhase(phaseFilter, enriched, completedExercises, activeDay, today)) return
+
+    setPhaseFilter(getCurrentWorkoutPhase(enriched, completedExercises, activeDay, today))
+  }, [completedExercises, phaseFilter, activeDay, workoutSchedule, customExercises, today, todayCtx.calendarToday])
+
   // Auto-advance phase: when all exercises in the current phase are done/skipped,
   // automatically move to the next phase (warmup → main → cooldown).
   useEffect(() => {
@@ -206,10 +235,7 @@ function WorkoutTab({ state, updateState }) {
     const dayExercises = workoutSchedule[activeDay]?.exercises || []
     if (!dayExercises.length) return
 
-    const enriched = dayExercises.map((ex) => {
-      const library = customExercises.find((c) => c.id === ex.exerciseId)
-      return { ...ex, exercisePhase: inferExercisePhase({ ...library, ...ex }) }
-    })
+    const enriched = enrichScheduleExercises(dayExercises, customExercises)
 
     const phaseExercises = enriched.filter((ex) => ex.exercisePhase === phaseFilter)
     if (!phaseExercises.length) return
@@ -486,6 +512,7 @@ function WorkoutTab({ state, updateState }) {
     }
 
     updateState({ activeWorkoutSession: startWorkoutSession(day, today) })
+    setPhaseFilter(EXERCISE_PHASE.WARMUP)
 
     toast.success(t('workout.toastStarted', { day: translateWeekday(day) }))
 
@@ -575,8 +602,7 @@ function WorkoutTab({ state, updateState }) {
         value={activeDay}
         onValueChange={(day) => {
           setActiveDay(day)
-          const exercises = workoutSchedule[day]?.exercises || []
-          setPhaseFilter(getFirstPhaseWithExercises(exercises, customExercises))
+          setPhaseFilter(EXERCISE_PHASE.WARMUP)
         }}
         className="w-full"
       >
@@ -611,20 +637,22 @@ function WorkoutTab({ state, updateState }) {
           const daySchedule = workoutSchedule[day] || { note: '', exercises: [] }
 
           const exerciseCount = daySchedule.exercises.length
-
-          const mainExercises = daySchedule.exercises.filter((ex) => {
-            const library = customExercises.find((c) => c.id === ex.exerciseId)
-            return (
-              inferExercisePhase({
-                ...library,
-                ...ex,
-              }) === EXERCISE_PHASE.MAIN
-            )
-          })
+          const enrichedDayExercises = enrichScheduleExercises(daySchedule.exercises, customExercises)
+          const mainExercises = enrichedDayExercises.filter(
+            (ex) => ex.exercisePhase === EXERCISE_PHASE.MAIN
+          )
           const mainExerciseCount = mainExercises.length
           const completedToday = mainExercises.reduce(
             (acc, ex) => acc + (isExerciseCompleted(day, ex.id) ? 1 : 0),
             0
+          )
+          const sessionActiveForDay =
+            activeSession?.day === day && activeSession?.date === today
+          const dayProgress = countDayExerciseProgress(
+            completedExercises,
+            daySchedule.exercises,
+            day,
+            today
           )
 
           const todaySession = getTodaySessionForDay(completedSessions, day, today)
@@ -636,21 +664,15 @@ function WorkoutTab({ state, updateState }) {
             <TabsContent key={day} value={day} className="space-y-4">
 
               <WorkoutSessionBar
-
                 day={day}
-
                 activeSession={activeSession}
-
-                dayExerciseCount={mainExerciseCount}
-
+                allExercises={daySchedule.exercises}
                 completedExercises={completedExercises}
-
                 todaySession={todaySession}
-                completedCount={completedToday}
-
+                progress={dayProgress}
               />
 
-              {!readOnly && mainExerciseCount > 0 && !todaySession && (
+              {!readOnly && mainExerciseCount > 0 && !todaySession && !sessionActiveForDay && (
                 <div className="flex justify-end">
                   <Button size="sm" variant="outline" onClick={() => setSkipDayOpen(true)}>
                     {t('todayCard.skipToday')}
@@ -673,11 +695,44 @@ function WorkoutTab({ state, updateState }) {
 
               {exerciseCount > 0 && (
                 <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <Tabs value={phaseFilter} onValueChange={setPhaseFilter}>
+                  <Tabs
+                    value={phaseFilter}
+                    onValueChange={(next) => tryChangePhase(day, next, enrichedDayExercises, readOnly)}
+                  >
                     <TabsList className="h-auto">
-                      <TabsTrigger value={EXERCISE_PHASE.WARMUP}>{t('exercisePhase.warmup.short')}</TabsTrigger>
-                      <TabsTrigger value={EXERCISE_PHASE.MAIN}>{t('exercisePhase.main.short')}</TabsTrigger>
-                      <TabsTrigger value={EXERCISE_PHASE.COOLDOWN}>{t('exercisePhase.cooldown.short')}</TabsTrigger>
+                      <TabsTrigger value={EXERCISE_PHASE.WARMUP}>
+                        {t('exercisePhase.warmup.short')}
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value={EXERCISE_PHASE.MAIN}
+                        disabled={
+                          !readOnly &&
+                          !canAccessWorkoutPhase(
+                            EXERCISE_PHASE.MAIN,
+                            enrichedDayExercises,
+                            completedExercises,
+                            day,
+                            today
+                          )
+                        }
+                      >
+                        {t('exercisePhase.main.short')}
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value={EXERCISE_PHASE.COOLDOWN}
+                        disabled={
+                          !readOnly &&
+                          !canAccessWorkoutPhase(
+                            EXERCISE_PHASE.COOLDOWN,
+                            enrichedDayExercises,
+                            completedExercises,
+                            day,
+                            today
+                          )
+                        }
+                      >
+                        {t('exercisePhase.cooldown.short')}
+                      </TabsTrigger>
                     </TabsList>
                   </Tabs>
                   <p className="text-xs text-muted-foreground px-1">
@@ -726,16 +781,7 @@ function WorkoutTab({ state, updateState }) {
                 <div className="space-y-5">
 
                   {(() => {
-                    const enriched = daySchedule.exercises.map((ex) => {
-                      const library = customExercises.find((c) => c.id === ex.exerciseId)
-                      return {
-                        ...ex,
-                        exercisePhase: inferExercisePhase({
-                          ...library,
-                          ...ex,
-                        }),
-                      }
-                    })
+                    const enriched = enrichedDayExercises
 
                     const filtered = filterExercisesByPhase(enriched, phaseFilter)
 

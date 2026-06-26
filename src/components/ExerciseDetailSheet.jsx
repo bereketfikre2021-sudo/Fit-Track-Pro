@@ -10,11 +10,9 @@ import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { formatExerciseTarget } from '@/lib/exerciseFormat'
 import {
-  formatSimplePhaseTarget,
   getExercisePhaseBadgeClass,
   getExercisePhaseLabel,
   inferExercisePhase,
-  isSimplePhase,
 } from '@/lib/exercisePhase'
 
 /* ─── GIF / image fetching ────────────────────────────────────────────────── *
@@ -125,7 +123,6 @@ export default function ExerciseDetailSheet({ exercise, open, onClose, personalR
   const [mediaLoading, setMediaLoading] = useState(false)
 
   const phase = exercise ? inferExercisePhase(exercise) : 'main'
-  const isSimple = isSimplePhase(phase)
 
   useEffect(() => {
     if (!open || !exercise) return
@@ -149,9 +146,7 @@ export default function ExerciseDetailSheet({ exercise, open, onClose, personalR
 
   if (!exercise) return null
 
-  const target = isSimple
-    ? formatSimplePhaseTarget(exercise)
-    : formatExerciseTarget(exercise)
+  const target = formatExerciseTarget(exercise)
 
   const muscles = exercise.muscleGroups?.length
     ? exercise.muscleGroups

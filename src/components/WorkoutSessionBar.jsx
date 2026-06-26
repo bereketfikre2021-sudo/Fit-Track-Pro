@@ -1,50 +1,36 @@
-import { useEffect, useState } from 'react'
-import { Timer } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent } from './ui/card'
 import {
-  countDayCompletions,
+  countDayExerciseProgress,
   formatSessionDuration,
   todayDateString,
 } from '@/lib/workoutSession'
 import { translateWeekday } from '@/lib/i18nHelpers'
 import { getSkipReasonLabel } from '@/lib/exerciseSkip'
+import { cn } from '@/lib/utils'
 
 function WorkoutSessionBar({
   day,
   activeSession,
-  dayExerciseCount,
+  allExercises,
   completedExercises,
   todaySession,
-  completedCount,
+  progress,
 }) {
   const { t } = useTranslation()
-  const [elapsed, setElapsed] = useState(0)
   const today = todayDateString()
   const isActiveForDay = activeSession?.day === day && activeSession?.date === today
-  const completedToday =
-    typeof completedCount === 'number'
-      ? completedCount
-      : countDayCompletions(completedExercises, day, today)
   const dayLabel = translateWeekday(day)
 
-  useEffect(() => {
-    if (!isActiveForDay) {
-      setElapsed(0)
-      return undefined
-    }
+  const { done, total, percent } =
+    progress ??
+    countDayExerciseProgress(completedExercises, allExercises, day, today)
 
-    const tick = () => setElapsed(Date.now() - activeSession.startedAt)
-    tick()
-    const id = setInterval(tick, 1000)
-    return () => clearInterval(id)
-  }, [isActiveForDay, activeSession?.startedAt])
-
-  if (dayExerciseCount === 0) return null
+  if (total === 0) return null
 
   return (
     <Card className="border-primary/30 bg-primary/5">
-      <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <CardContent className="p-4 space-y-3">
         <div className="space-y-1">
           {isActiveForDay ? (
             <>
@@ -52,14 +38,8 @@ function WorkoutSessionBar({
                 <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                 {t('sessionBar.inProgress')}
               </p>
-              <p className="text-xs text-muted-foreground flex items-center gap-3 flex-wrap">
-                <span className="flex items-center gap-1">
-                  <Timer className="h-3.5 w-3.5" />
-                  {formatSessionDuration(elapsed)}
-                </span>
-                <span>
-                  {t('sessionBar.progress', { done: completedToday, total: dayExerciseCount })}
-                </span>
+              <p className="text-xs text-muted-foreground">
+                {t('sessionBar.progress', { done, total, percent })}
               </p>
             </>
           ) : activeSession ? (
@@ -90,6 +70,34 @@ function WorkoutSessionBar({
           )}
         </div>
 
+        {(isActiveForDay || todaySession) && (
+          <div className="space-y-1.5">
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div
+                className={cn(
+                  'h-full transition-all duration-300',
+                  isActiveForDay ? 'bg-primary' : 'bg-primary/70'
+                )}
+                style={{
+                  width: `${
+                    todaySession && !isActiveForDay
+                      ? todaySession.totalCount > 0
+                        ? Math.round(
+                            (todaySession.completedCount / todaySession.totalCount) * 100
+                          )
+                        : 0
+                      : percent
+                  }%`,
+                }}
+              />
+            </div>
+            {isActiveForDay && (
+              <p className="text-[10px] text-muted-foreground text-right tabular-nums">
+                {percent}%
+              </p>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   )
