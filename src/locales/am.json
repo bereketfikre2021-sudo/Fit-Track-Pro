@@ -661,6 +661,8 @@
     "toastFinishFirst": "መጀመሪያ የ{{day}} ክፍለ ጊዜዎን አጠናቅቁ",
     "toastStarted": "{{day}} ልምምድ ተጀመረ",
     "toastFinished": "ልምምድ ተጠናቋል · {{completed}}/{{total}} ዋና",
+    "toastSessionLocked": "የዛሬው ልምምድ ተጠናቋል — ልምምዶችን መቀየር አይቻልም",
+    "allExercisesShown": "ሁሉም {{count}} ልምምዶች (ለקריאה ብቻ)",
     "restComplete": "እረፍት አለቀ — ቀጣይ ሴት!",
     "stopRest": "የእረፍት ታይመር አቁም",
     "phaseAdvance": "ወደ {{phase}} በመሄድ ላይ",

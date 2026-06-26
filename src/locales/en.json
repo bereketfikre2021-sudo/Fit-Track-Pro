@@ -662,6 +662,8 @@
     "toastFinishFirst": "Finish your {{day}} session first",
     "toastStarted": "Started {{day}} workout",
     "toastFinished": "Workout finished · {{completed}}/{{total}} main exercises",
+    "toastSessionLocked": "Today's workout is finished — exercises can't be changed",
+    "allExercisesShown": "All {{count}} exercises (read-only)",
     "restComplete": "Rest complete — next set!",
     "stopRest": "Stop rest timer",
     "phaseAdvance": "Moving to {{phase}}",

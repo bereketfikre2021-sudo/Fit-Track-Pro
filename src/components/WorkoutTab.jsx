@@ -107,11 +107,29 @@ function WorkoutExerciseEmptyActions({ showAiRecommend, aiLoading, onAiRecommend
   )
 }
 
+const WORKOUT_PHASE_ORDER = [EXERCISE_PHASE.WARMUP, EXERCISE_PHASE.MAIN, EXERCISE_PHASE.COOLDOWN]
+
 /** Return the next phase in the warmup → main → cooldown sequence. */
 function getNextPhase(currentPhase) {
-  const order = [EXERCISE_PHASE.WARMUP, EXERCISE_PHASE.MAIN, EXERCISE_PHASE.COOLDOWN]
-  const idx = order.indexOf(currentPhase)
-  return idx !== -1 && idx < order.length - 1 ? order[idx + 1] : null
+  const idx = WORKOUT_PHASE_ORDER.indexOf(currentPhase)
+  return idx !== -1 && idx < WORKOUT_PHASE_ORDER.length - 1 ? WORKOUT_PHASE_ORDER[idx + 1] : null
+}
+
+function getPhaseFilterLabel(phase, t) {
+  if (phase === EXERCISE_PHASE.WARMUP) return t('exercisePhase.warmup.short')
+  if (phase === EXERCISE_PHASE.COOLDOWN) return t('exercisePhase.cooldown.short')
+  return t('exercisePhase.main.short')
+}
+
+function buildWorkoutPhaseGroups(enriched, phaseFilter, { allPhases }, t) {
+  const phases = allPhases ? WORKOUT_PHASE_ORDER : [phaseFilter]
+  return phases
+    .map((phase) => ({
+      phase,
+      label: getPhaseFilterLabel(phase, t),
+      exercises: filterExercisesByPhase(enriched, phase),
+    }))
+    .filter((g) => g.exercises.length > 0)
 }
 
 function WorkoutTab({ state, updateState }) {
@@ -219,6 +237,7 @@ function WorkoutTab({ state, updateState }) {
   // Keep the visible tab on the earliest incomplete phase during today's workout.
   useEffect(() => {
     if (!activeDay || activeDay !== todayCtx.calendarToday) return
+    if (getTodaySessionForDay(completedSessions, activeDay, today)) return
     const dayExercises = workoutSchedule[activeDay]?.exercises || []
     if (!dayExercises.length) return
 
@@ -226,12 +245,13 @@ function WorkoutTab({ state, updateState }) {
     if (canAccessWorkoutPhase(phaseFilter, enriched, completedExercises, activeDay, today)) return
 
     setPhaseFilter(getCurrentWorkoutPhase(enriched, completedExercises, activeDay, today))
-  }, [completedExercises, phaseFilter, activeDay, workoutSchedule, customExercises, today, todayCtx.calendarToday])
+  }, [completedExercises, completedSessions, phaseFilter, activeDay, workoutSchedule, customExercises, today, todayCtx.calendarToday])
 
   // Auto-advance phase: when all exercises in the current phase are done/skipped,
   // automatically move to the next phase (warmup → main → cooldown).
   useEffect(() => {
     if (!activeDay) return
+    if (getTodaySessionForDay(completedSessions, activeDay, today)) return
     const dayExercises = workoutSchedule[activeDay]?.exercises || []
     if (!dayExercises.length) return
 
@@ -267,7 +287,10 @@ function WorkoutTab({ state, updateState }) {
         defaultValue: `Moving to ${phaseLabel}`,
       })
     )
-  }, [completedExercises, phaseFilter, activeDay, workoutSchedule, customExercises, today, t])
+  }, [completedExercises, completedSessions, phaseFilter, activeDay, workoutSchedule, customExercises, today, t])
+
+  const isSessionFinishedForDay = (day) =>
+    !!getTodaySessionForDay(completedSessions, day, today)
 
   const startRestTimer = (seconds, label = t('common.rest')) => {
     setHoldTimer(null)
@@ -307,6 +330,10 @@ function WorkoutTab({ state, updateState }) {
     const existing = newCompleted[key]
 
     if (isCompletedEntry(existing)) {
+      if (isSessionFinishedForDay(day)) {
+        toast.error(t('workout.toastSessionLocked'))
+        return
+      }
       delete newCompleted[key]
       toast.success(t('workout.toastIncomplete'))
     } else {
@@ -408,6 +435,10 @@ function WorkoutTab({ state, updateState }) {
       toast.error(t('workout.toastOnlyToday', { day: translateWeekday(todayCtx.calendarToday) }))
       return
     }
+    if (isSessionFinishedForDay(day)) {
+      toast.error(t('workout.toastSessionLocked'))
+      return
+    }
     const key = completionKey(today, day, scheduleExerciseId)
     const scheduled = workoutSchedule[day]?.exercises?.find((e) => e.id === scheduleExerciseId)
     const library = scheduled?.exerciseId
@@ -434,6 +465,10 @@ function WorkoutTab({ state, updateState }) {
   const handleUnskipExercise = (day, scheduleExerciseId) => {
     if (day !== todayCtx.calendarToday) {
       toast.error(t('workout.toastOnlyToday', { day: translateWeekday(todayCtx.calendarToday) }))
+      return
+    }
+    if (isSessionFinishedForDay(day)) {
+      toast.error(t('workout.toastSessionLocked'))
       return
     }
     const key = completionKey(today, day, scheduleExerciseId)
@@ -470,6 +505,10 @@ function WorkoutTab({ state, updateState }) {
   const saveCompletionEntry = (day, scheduleExerciseId, patch) => {
     if (day !== todayCtx.calendarToday) {
       toast.error(t('workout.toastOnlyToday', { day: translateWeekday(todayCtx.calendarToday) }))
+      return
+    }
+    if (isSessionFinishedForDay(day)) {
+      toast.error(t('workout.toastSessionLocked'))
       return
     }
     const key = completionKey(today, day, scheduleExerciseId)
@@ -656,8 +695,8 @@ function WorkoutTab({ state, updateState }) {
           )
 
           const todaySession = getTodaySessionForDay(completedSessions, day, today)
-
-
+          const sessionComplete = !readOnly && !!todaySession
+          const workoutLocked = readOnly || sessionComplete
 
           return (
 
@@ -693,7 +732,7 @@ function WorkoutTab({ state, updateState }) {
 
               )}
 
-              {exerciseCount > 0 && (
+              {exerciseCount > 0 && !sessionComplete && (
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <Tabs
                     value={phaseFilter}
@@ -743,6 +782,12 @@ function WorkoutTab({ state, updateState }) {
                 </div>
               )}
 
+              {exerciseCount > 0 && sessionComplete && (
+                <p className="text-xs text-muted-foreground px-1">
+                  {t('workout.allExercisesShown', { count: exerciseCount })}
+                </p>
+              )}
+
 
 
               {exerciseCount === 0 ? (
@@ -782,21 +827,9 @@ function WorkoutTab({ state, updateState }) {
 
                   {(() => {
                     const enriched = enrichedDayExercises
-
-                    const filtered = filterExercisesByPhase(enriched, phaseFilter)
-
-                    const groups = [
-                      {
-                        phase: phaseFilter,
-                        label:
-                          phaseFilter === EXERCISE_PHASE.WARMUP
-                            ? t('exercisePhase.warmup.short')
-                            : phaseFilter === EXERCISE_PHASE.COOLDOWN
-                              ? t('exercisePhase.cooldown.short')
-                              : t('exercisePhase.main.short'),
-                        exercises: filtered,
-                      },
-                    ].filter((g) => g.exercises.length > 0)
+                    const groups = buildWorkoutPhaseGroups(enriched, phaseFilter, {
+                      allPhases: sessionComplete,
+                    }, t)
 
                     return groups.map((group) => (
 
@@ -821,15 +854,15 @@ function WorkoutTab({ state, updateState }) {
                             isCompleted={isExerciseCompleted(day, ex.id)}
                             completionEntry={getCompletionEntry(day, ex.id)}
                             enableSetLogging={appSettings.enableSetLogging}
-                            readOnly={readOnly}
+                            readOnly={workoutLocked}
                             onSaveEntry={
-                              readOnly ? undefined : (patch) => saveCompletionEntry(day, ex.id, patch)
+                              workoutLocked ? undefined : (patch) => saveCompletionEntry(day, ex.id, patch)
                             }
                             onToggleComplete={
-                              readOnly ? undefined : () => toggleExerciseCompletion(day, ex.id)
+                              workoutLocked ? undefined : () => toggleExerciseCompletion(day, ex.id)
                             }
                             onSkip={
-                              readOnly
+                              workoutLocked
                                 ? undefined
                                 : () =>
                                     setSkipTarget({
@@ -839,13 +872,13 @@ function WorkoutTab({ state, updateState }) {
                                     })
                             }
                             onUnskip={
-                              readOnly ? undefined : () => handleUnskipExercise(day, ex.id)
+                              workoutLocked ? undefined : () => handleUnskipExercise(day, ex.id)
                             }
                             onStartRest={
-                              readOnly ? undefined : (seconds, label) => startRestTimer(seconds, label)
+                              workoutLocked ? undefined : (seconds, label) => startRestTimer(seconds, label)
                             }
                             onStartHold={
-                              readOnly ? undefined : (seconds, label) => startHoldTimer(seconds, label)
+                              workoutLocked ? undefined : (seconds, label) => startHoldTimer(seconds, label)
                             }
                           />
 
