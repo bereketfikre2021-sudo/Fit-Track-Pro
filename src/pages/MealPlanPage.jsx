@@ -536,23 +536,32 @@ function MealPlanPage({ state, updateState }) {
             {/* Compact header row — always visible */}
             <button
               type="button"
-              className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left"
+              className="w-full px-3 py-2.5 text-left"
               onClick={() => setShowMealReminderSetup((v) => !v)}
             >
-              <span className="flex items-center gap-2 text-sm font-medium">
-                <CalendarClock className="h-4 w-4 text-primary shrink-0" />
-                {t('meals.mealReminders')}
-                <Badge className="text-[10px] px-1.5 py-0 h-4">{t('common.recommended')}</Badge>
+              <div className="flex items-start justify-between gap-2">
+                <span className="flex items-center gap-2 text-sm font-medium min-w-0">
+                  <CalendarClock className="h-4 w-4 text-primary shrink-0" />
+                  <span className="leading-tight">{t('meals.mealReminders')}</span>
+                </span>
+                {showMealReminderSetup
+                  ? <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
+                  : <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />}
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 mt-1.5 pl-6">
+                <Badge className="text-[10px] px-1.5 py-0.5 leading-none">
+                  {t('common.recommended')}
+                </Badge>
                 {usingCalendarReminders && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 gap-0.5">
-                    <CheckCircle2 className="h-2.5 w-2.5 text-primary" />
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] px-1.5 py-0.5 leading-none gap-0.5 whitespace-nowrap"
+                  >
+                    <CheckCircle2 className="h-2.5 w-2.5 text-primary shrink-0" />
                     {t(`meals.calendarPlatforms.${calendarPlatform}.label`)}
                   </Badge>
                 )}
-              </span>
-              {showMealReminderSetup
-                ? <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
-                : <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />}
+              </div>
             </button>
 
             {/* Expanded content */}

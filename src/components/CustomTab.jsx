@@ -681,7 +681,7 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
         muscleGroup: [],
         equipment: '',
         difficulty: '',
-        imageUrl: '',
+        imageUrl: formData.imageUrl || '',
         instructions: '',
         tips: '',
       }
@@ -1139,11 +1139,36 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
             </div>
           </div>
 
-          {/* Image Upload/URL */}
+          {/* Instructions */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t('custom.instructions')}</label>
+            <textarea
+              rows="4"
+              placeholder={t('custom.instructionsPlaceholder')}
+              value={formData.instructions}
+              onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+            />
+          </div>
+
+          {/* Tips */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t('custom.tips')}</label>
+            <textarea
+              rows="3"
+              placeholder={t('custom.tipsPlaceholder')}
+              value={formData.tips}
+              onChange={(e) => setFormData({ ...formData, tips: e.target.value })}
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+            />
+          </div>
+            </>
+          )}
+
+          {/* Image Upload/URL — shared by main, warm-up, and cool-down forms */}
           <div className="space-y-2">
             <label className="text-sm font-medium">{t('custom.exerciseImage')}</label>
-            
-            {/* Toggle between URL, File, and Paste */}
+
             <div className="flex gap-2 mb-2">
               <Button
                 type="button"
@@ -1230,7 +1255,6 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
               </div>
             )}
 
-            {/* Image Preview */}
             {imagePreview && (
               <div className="relative mt-2">
                 <img
@@ -1258,32 +1282,6 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
               </div>
             )}
           </div>
-
-          {/* Instructions */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t('custom.instructions')}</label>
-            <textarea
-              rows="4"
-              placeholder={t('custom.instructionsPlaceholder')}
-              value={formData.instructions}
-              onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
-            />
-          </div>
-
-          {/* Tips */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t('custom.tips')}</label>
-            <textarea
-              rows="3"
-              placeholder={t('custom.tipsPlaceholder')}
-              value={formData.tips}
-              onChange={(e) => setFormData({ ...formData, tips: e.target.value })}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
-            />
-          </div>
-            </>
-          )}
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">

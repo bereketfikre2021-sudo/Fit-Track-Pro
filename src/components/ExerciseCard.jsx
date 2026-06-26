@@ -140,9 +140,9 @@ export function ExerciseLibraryCard({
       <div className="flex gap-3">
         <ExerciseThumbnail
           exercise={exercise}
-          onClick={!isSimple && onUploadImage ? openPicker : !isSimple ? onEdit : undefined}
+          onClick={onUploadImage ? openPicker : onEdit}
         />
-        {!isSimple && onUploadImage && (
+        {onUploadImage && (
           <input
             ref={fileInputRef}
             type="file"
