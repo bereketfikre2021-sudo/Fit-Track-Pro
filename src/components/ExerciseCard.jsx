@@ -128,7 +128,6 @@ export function ExerciseLibraryCard({
 }) {
   const { t } = useTranslation()
   const phase = inferExercisePhase(exercise)
-  const isSimple = isSimplePhase(phase)
   const fileInputRef = useRef(null)
 
   const openPicker = () => {
@@ -170,11 +169,8 @@ export function ExerciseLibraryCard({
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {isSimple
-                  ? formatSimplePhaseTarget(exercise)
-                  : formatExerciseTarget(exercise)}
-                {!isSimple &&
-                  exercise.restTime &&
+                {formatExerciseTarget(exercise)}
+                {exercise.restTime &&
                   ` · ${t('exerciseCard.restSec', { sec: exercise.restTime })}`}
               </p>
               {/* Difficulty + Equipment inline */}

@@ -630,9 +630,6 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
   const [imagePreview, setImagePreview] = useState(exercise?.imageUrl || '')
   const imageFileInputRef = useRef(null)
 
-  const isSimple = isSimplePhase(formData.exercisePhase)
-  const simplePhaseLabel = getExercisePhaseLabel(formData.exercisePhase)
-
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!formData.name.trim()) {
@@ -640,32 +637,16 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
       return
     }
 
-    if (isSimple) {
-      if (formData.isTimeBased) {
-        if (!formData.duration || Number(formData.duration) <= 0) {
-          toast.error(t('custom.toastDurationRequired'))
-          return
-        }
-      } else {
-        if (!formData.reps || !formData.reps.toString().trim()) {
-          toast.error(t('dialogs.addToDay.toastReps', { defaultValue: 'Please enter reps.' }))
-          return
-        }
+    if (formData.isTimeBased) {
+      if (!formData.duration || Number(formData.duration) <= 0) {
+        toast.error(t('custom.toastDurationRequired'))
+        return
       }
-      onSave(
-        packSimplePhaseExercise(exercise, {
-          name: formData.name,
-          duration: formData.duration,
-          durationUnit: formData.durationUnit,
-          notes: formData.description,
-          exercisePhase: formData.exercisePhase,
-          sets: formData.sets,
-          reps: formData.reps,
-          isTimeBased: formData.isTimeBased,
-          restTime: formData.restTime,
-        })
-      )
-      return
+    } else {
+      if (!formData.reps || !formData.reps.toString().trim()) {
+        toast.error(t('dialogs.addToDay.toastReps', { defaultValue: 'Please enter reps.' }))
+        return
+      }
     }
 
     onSave({
@@ -673,27 +654,6 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
       exercisePhase: normalizeExercisePhase(formData.exercisePhase),
       muscleGroup: formData.muscleGroups || [],
     })
-  }
-
-  const switchToMainForm = () => {
-    setFormData((prev) => ({
-      name: prev.name,
-      description: prev.description || '',
-      sets: '3',
-      reps: '10',
-      restTime: '60',
-      equipment: defaultEquipment,
-      difficulty: defaultDifficulty,
-      muscleGroups: [],
-      imageUrl: '',
-      instructions: '',
-      tips: '',
-      category: 'Strength',
-      isTimeBased: false,
-      duration: '30',
-      durationUnit: 'seconds',
-      exercisePhase: EXERCISE_PHASE.MAIN,
-    }))
   }
 
   const toggleMuscleGroup = (muscle) => {
@@ -773,21 +733,13 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className={cn('max-h-[90vh] overflow-y-auto', isSimple ? 'max-w-lg' : 'max-w-2xl')}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {exercise
-              ? isSimple
-                ? formData.exercisePhase === EXERCISE_PHASE.WARMUP
-                  ? t('custom.formEditWarmup')
-                  : t('custom.formEditCooldown')
-                : t('custom.formEditExercise')
-              : isSimple
-                ? t('exercises.addPhase', { phase: simplePhaseLabel })
-                : t('custom.formAddMain')}
+            {exercise ? t('custom.formEditExercise') : t('custom.formAddMain')}
           </DialogTitle>
           <DialogDescription>
-            {isSimple ? t('custom.formDescSimple') : t('custom.formDescMain')}
+            {t('custom.formDescMain')}
           </DialogDescription>
         </DialogHeader>
 
@@ -802,160 +754,7 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
             />
           </div>
 
-          {isSimple ? (
-            <>
-              <div className="flex gap-2">
-                {[EXERCISE_PHASE.WARMUP, EXERCISE_PHASE.COOLDOWN].map((phase) => (
-                  <Button
-                    key={phase}
-                    type="button"
-                    size="sm"
-                    variant={formData.exercisePhase === phase ? 'default' : 'outline'}
-                    className="flex-1"
-                    onClick={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        exercisePhase: phase,
-                        category: phase === EXERCISE_PHASE.WARMUP ? 'Warm-up' : 'Cool-down',
-                      }))
-                    }
-                  >
-                    {getExercisePhaseLabel(phase)}
-                  </Button>
-                ))}
-              </div>
-
-              {/* Hold toggle */}
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="simpleIsTimeBased"
-                    checked={formData.isTimeBased}
-                    onChange={(e) => {
-                      const isHold = e.target.checked
-                      setFormData((prev) => ({
-                        ...prev,
-                        isTimeBased: isHold,
-                        ...(isHold && !prev.duration && prev.restTime
-                          ? { duration: prev.restTime }
-                          : {}),
-                      }))
-                    }}
-                    className="h-4 w-4 rounded border-input"
-                  />
-                  <label htmlFor="simpleIsTimeBased" className="text-sm font-medium">
-                    {t('custom.holdExerciseLabel', {
-                      defaultValue: 'Hold / timed exercise (plank, stretch, etc.)',
-                    })}
-                  </label>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {formData.isTimeBased ? t('custom.holdHint') : t('custom.restHint')}
-                </p>
-              </div>
-
-              {/* Sets / Reps / Duration */}
-              <div className="space-y-4 rounded-lg border border-border p-4 bg-muted/20">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  {formData.isTimeBased ? t('custom.setsRepsDuration') : t('custom.setsRepsRest')}
-                </p>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">{t('custom.sets')}</label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={formData.sets}
-                      onChange={(e) => setFormData({ ...formData, sets: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      {formData.isTimeBased
-                        ? t('dialogs.addToDay.repsOptional')
-                        : t('dialogs.addToDay.reps')}
-                    </label>
-                    <Input
-                      placeholder={formData.isTimeBased ? 'e.g., 5' : 'e.g., 10'}
-                      value={formData.reps}
-                      onChange={(e) => setFormData({ ...formData, reps: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      {formData.isTimeBased
-                        ? getDurationLabel(formData.durationUnit || 'seconds')
-                        : t('custom.restSec')}
-                    </label>
-                    {formData.isTimeBased ? (
-                      <Input
-                        type="number"
-                        min="1"
-                        placeholder="30"
-                        value={formData.duration}
-                        onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                      />
-                    ) : (
-                      <Input
-                        type="number"
-                        min="0"
-                        step="15"
-                        value={formData.restTime}
-                        onChange={(e) => setFormData({ ...formData, restTime: e.target.value })}
-                      />
-                    )}
-                  </div>
-                </div>
-                {formData.isTimeBased && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">{t('dialogs.addToDay.durationUnit')}</label>
-                    <select
-                      value={formData.durationUnit || 'seconds'}
-                      onChange={(e) => setFormData({ ...formData, durationUnit: e.target.value })}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <option value="seconds">{t('durationUnits.seconds')}</option>
-                      <option value="minutes">{t('durationUnits.minutes')}</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t('custom.noteOptional')}</label>
-                <Input
-                  placeholder="e.g., Light pace"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
-              </div>
-
-              {!exercise && (
-                <button
-                  type="button"
-                  onClick={switchToMainForm}
-                  className="text-xs text-muted-foreground hover:text-primary underline"
-                >
-                  {t('custom.switchToMainForm', {
-                    defaultValue: 'Adding a main lift instead? Use full exercise form',
-                  })}
-                </button>
-              )}
-            </>
-          ) : (
-            <>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t('custom.description')}</label>
-            <textarea
-              rows="2"
-              placeholder="Brief description of the exercise"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
-            />
-          </div>
-
+          {/* Phase selector — same 3-option card grid for all phases */}
           <div className="space-y-2">
             <label className="text-sm font-medium">{t('custom.exerciseType')}</label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -963,23 +762,20 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => {
-                    if (isSimplePhase(option.value)) {
-                      setFormData((prev) =>
-                        packSimplePhaseExercise(
-                          { exercisePhase: option.value },
-                          {
-                            name: prev.name,
-                            duration: '5',
-                            durationUnit: 'minutes',
-                            notes: prev.description,
-                          }
-                        )
-                      )
-                    } else {
-                      setFormData((prev) => ({ ...prev, exercisePhase: option.value }))
-                    }
-                  }}
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      exercisePhase: option.value,
+                      category:
+                        option.value === EXERCISE_PHASE.WARMUP
+                          ? 'Warm-up'
+                          : option.value === EXERCISE_PHASE.COOLDOWN
+                            ? 'Cool-down'
+                            : prev.category === 'Warm-up' || prev.category === 'Cool-down'
+                              ? 'Strength'
+                              : prev.category,
+                    }))
+                  }
                   className={cn(
                     'rounded-lg border p-3 text-left transition-colors',
                     formData.exercisePhase === option.value
@@ -996,6 +792,17 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t('custom.description')}</label>
+            <textarea
+              rows="2"
+              placeholder="Brief description of the exercise"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+            />
           </div>
 
           {/* Sets, Reps, Duration / Rest */}
@@ -1304,8 +1111,6 @@ function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onCl
               className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
             />
           </div>
-            </>
-          )}
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">

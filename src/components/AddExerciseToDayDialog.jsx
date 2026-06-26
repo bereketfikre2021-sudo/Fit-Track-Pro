@@ -17,7 +17,6 @@ import { formatExerciseTarget, getDurationLabel, isHoldExercise } from '@/lib/ex
 import {
   EXERCISE_PHASE,
   EXERCISE_PHASE_OPTIONS,
-  formatSimplePhaseTarget,
   getExercisePhaseLabel,
   inferExercisePhase,
   isSimplePhase,
@@ -60,18 +59,10 @@ function AddExerciseToDayDialog({ day, customExercises, onClose, onAdd }) {
   )
 
   const selected = customExercises.find((ex) => ex.id === selectedExercise)
-  const isSimple = selected ? isSimplePhase(inferExercisePhase(selected)) : false
   const isHold = selected ? isHoldExercise(selected) : false
 
   useEffect(() => {
     if (!selected) return
-    if (isSimplePhase(inferExercisePhase(selected))) {
-      setSets('1')
-      setReps('')
-      setDuration(selected.duration || '5')
-      setDurationUnit(selected.durationUnit || 'minutes')
-      return
-    }
     setSets(selected.sets || '3')
     setReps(selected.reps || (selected.isTimeBased ? '' : '10'))
     setDuration(selected.duration || '30')
@@ -82,17 +73,6 @@ function AddExerciseToDayDialog({ day, customExercises, onClose, onAdd }) {
     e.preventDefault()
     if (!selectedExercise) {
       toast.error(t('dialogs.addToDay.toastSelect'))
-      return
-    }
-
-    if (isSimple) {
-      onAdd(selectedExercise, {
-        sets: '1',
-        reps: '',
-        duration: selected.duration,
-        durationUnit: selected.durationUnit || 'minutes',
-        isTimeBased: true,
-      })
       return
     }
 
@@ -199,9 +179,7 @@ function AddExerciseToDayDialog({ day, customExercises, onClose, onAdd }) {
                   const subtitle = [
                     displayCategory(ex.category || 'Strength', t),
                     ex.equipment ? displayEquipment(ex.equipment, t) : null,
-                    isSimplePhase(phase)
-                      ? formatSimplePhaseTarget(ex)
-                      : formatExerciseTarget(ex),
+                    formatExerciseTarget(ex),
                   ]
                     .filter(Boolean)
                     .join(' · ')
@@ -237,7 +215,7 @@ function AddExerciseToDayDialog({ day, customExercises, onClose, onAdd }) {
               !selectedExercise && 'opacity-90'
             )}
           >
-            {selectedExercise && !isSimple && (
+            {selectedExercise && (
               <div className="mb-3 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
@@ -309,15 +287,6 @@ function AddExerciseToDayDialog({ day, customExercises, onClose, onAdd }) {
                   </div>
                 )}
               </div>
-            )}
-
-            {selectedExercise && isSimple && selected && (
-              <p className="mb-3 text-xs text-muted-foreground rounded-md border border-border bg-muted/30 px-2.5 py-2">
-                {t('dialogs.addToDay.addsFor', {
-                  name: selected.name,
-                  target: formatSimplePhaseTarget(selected),
-                })}
-              </p>
             )}
 
             <div className="flex gap-2">

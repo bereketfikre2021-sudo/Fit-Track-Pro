@@ -130,7 +130,6 @@ export function buildSimplePhaseDefaults(phase) {
     target: '3 × 10',
   }
 }
-
 export function packSimplePhaseExercise(
   existing,
   { name, duration, durationUnit, notes, exercisePhase, sets, reps, isTimeBased, restTime }
