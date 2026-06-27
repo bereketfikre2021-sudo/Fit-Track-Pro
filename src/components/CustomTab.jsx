@@ -420,6 +420,7 @@ function CustomTab({ state, updateState }) {
         onOpenChange={setPresetBrowserOpen}
         customExercises={customExercises}
         onAdd={handlePresetsAdded}
+        profileEquipment={state.profile?.equipment || []}
       />
 
       <ImportExerciseDialog

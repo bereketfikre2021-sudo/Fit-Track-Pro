@@ -23,6 +23,7 @@ export default function PresetExerciseBrowser({
   onOpenChange,
   customExercises,
   onAdd,
+  profileEquipment = [],
 }) {
   const { t } = useTranslation()
   const presets = useMemo(() => getPresetExercises(), [])
@@ -30,7 +31,14 @@ export default function PresetExerciseBrowser({
   const [detailExercise, setDetailExercise] = useState(null)
   const [categoryFilter, setCategoryFilter] = useState('Strength')
   const [muscleFilter, setMuscleFilter] = useState('')
-  const [equipmentFilter, setEquipmentFilter] = useState('')
+  // Auto-set from profile on first open — 'Gym' means no filter (full gym = all equipment)
+  const defaultEquipmentFilter = useMemo(() => {
+    if (!profileEquipment.length) return ''
+    if (profileEquipment.includes('Gym')) return ''
+    return profileEquipment[0] || ''
+  }, [profileEquipment])
+  const [equipmentFilter, setEquipmentFilter] = useState(defaultEquipmentFilter)
+  const [autoFiltered, setAutoFiltered] = useState(!!defaultEquipmentFilter)
   const [difficultyFilter, setDifficultyFilter] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
 
@@ -88,6 +96,8 @@ export default function PresetExerciseBrowser({
       setSearchQuery('')
       setMuscleFilter('')
       clearSecondaryFilters()
+      setEquipmentFilter(defaultEquipmentFilter)
+      setAutoFiltered(!!defaultEquipmentFilter)
     }
     onOpenChange(nextOpen)
   }
@@ -137,6 +147,21 @@ export default function PresetExerciseBrowser({
           <p className="text-[10px] text-muted-foreground">
             {t('exercises.shownSorted', { count: filteredPresets.length })}
           </p>
+
+          {autoFiltered && equipmentFilter && (
+            <div className="flex items-center justify-between gap-2 rounded-md bg-primary/8 border border-primary/20 px-2.5 py-1.5">
+              <p className="text-[11px] text-primary">
+                Showing <span className="font-semibold">{equipmentFilter}</span> exercises from your profile equipment
+              </p>
+              <button
+                type="button"
+                className="text-[11px] text-muted-foreground hover:text-foreground underline shrink-0"
+                onClick={() => { setEquipmentFilter(''); setAutoFiltered(false) }}
+              >
+                Show all
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col">

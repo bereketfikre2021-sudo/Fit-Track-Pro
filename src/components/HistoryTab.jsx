@@ -164,65 +164,29 @@ function HistoryTab({ state, updateState }) {
         <p className="text-sm text-muted-foreground">{t('report.subtitle')}</p>
       </div>
 
-      <WorkoutInsightsReport state={state} />
+      <WorkoutInsightsReport
+        state={state}
+        stats={{ totalWorkouts, totalExercises, uniqueExercises, mostActiveDay }}
+      />
 
-      {/* 12-week activity heatmap */}
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <ActivityHeatmap
-            completedExercises={completedExercises}
-            workoutDays={workoutDays}
-          />
-        </CardContent>
-      </Card>
+      {/* 12-week activity heatmap — HIDDEN for now, code kept for future use */}
+      {false && (
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <ActivityHeatmap
+              completedExercises={completedExercises}
+              workoutDays={workoutDays}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <AchievementsCard state={state} />
 
-      <PersonalRecordsCard state={state} />
+      {/* PersonalRecordsCard — HIDDEN for now, code kept for future use */}
+      {false && <PersonalRecordsCard state={state} />}
 
       <CustomChallengesCard state={state} updateState={updateState} />
-
-      {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Calendar className="h-4 w-4 text-primary" />
-              <p className="text-xs text-muted-foreground">{t('report.workoutDays')}</p>
-            </div>
-            <p className="text-2xl font-bold">{totalWorkouts}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <CheckCircle className="h-4 w-4 text-primary" />
-              <p className="text-xs text-muted-foreground">{t('report.exercisesDone')}</p>
-            </div>
-            <p className="text-2xl font-bold">{totalExercises}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Dumbbell className="h-4 w-4 text-primary" />
-              <p className="text-xs text-muted-foreground">{t('report.uniqueExercises')}</p>
-            </div>
-            <p className="text-2xl font-bold">{uniqueExercises}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              <p className="text-xs text-muted-foreground">{t('report.mostActive')}</p>
-            </div>
-            <p className="text-lg font-bold">
-              {mostActiveDay ? translateWeekday(mostActiveDay) : t('common.na')}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Combined Session History + Activity Log */}
       <Card>

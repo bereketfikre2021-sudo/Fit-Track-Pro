@@ -11,7 +11,6 @@ import {
 } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import { Scale, Plus, Trash2 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { DateInput } from './ui/date-input'
@@ -124,16 +123,8 @@ function BodyWeightTracker({ state, updateState }) {
   }
 
   return (
-    <Card className="mb-8">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Scale className="h-5 w-5 text-primary" />
-          {t('bodyWeight.title')}
-        </CardTitle>
-        <CardDescription>{t('bodyWeight.subtitle')}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <form onSubmit={handleAdd} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="space-y-6">
+      <form onSubmit={handleAdd} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">{t('bodyWeight.date')}</label>
             <DateInput value={date} onChange={(e) => setDate(e.target.value)} required />
@@ -207,8 +198,7 @@ function BodyWeightTracker({ state, updateState }) {
             {t('bodyWeight.noEntries')}
           </p>
         )}
-      </CardContent>
-    </Card>
+    </div>
   )
 }
 

@@ -60,6 +60,12 @@ import {
   fetchMealPlanRecommendation,
   fetchShoppingListRecommendation,
 } from '../lib/aiRecommendations'
+import {
+  PRESET_SHOPPING_LISTS,
+  buildPresetShoppingList,
+  getRecommendedShoppingListId,
+} from '../lib/presetShoppingLists'
+import { calculateBmi, getBmiCategory, resolveEffectiveTrainingGoal } from '../lib/profileUtils'
 import { isMealPlanEmpty, isShoppingListEmpty } from '../lib/planEmpty'
 import { searchFoods } from '../lib/ethiopianFoods'
 
@@ -104,6 +110,15 @@ function MealPlanPage({ state, updateState }) {
   const showAiShoppingRecommend =
     !isMealPlanEmpty(mealPlan) && isShoppingListEmpty(shoppingList)
   const appSettings = getAppSettings(state)
+
+  // Detect recommended shopping list from profile
+  const recommendedShoppingId = useMemo(() => {
+    const profile = state.profile || {}
+    const bmi = calculateBmi(profile.currentWeight, profile.height)
+    const bmiCategory = getBmiCategory(bmi)
+    const goal = resolveEffectiveTrainingGoal(profile)
+    return getRecommendedShoppingListId(bmiCategory, goal)
+  }, [state.profile])
 
   const patchSettings = (patch) => {
     updateState(updateAppSettings(state, patch))
@@ -778,6 +793,58 @@ function MealPlanPage({ state, updateState }) {
 
         {/* SHOPPING LIST TAB */}
         <TabsContent value="shopping" className="space-y-4">
+
+          {/* Preset shopping list templates */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {PRESET_SHOPPING_LISTS.map((preset) => {
+              const isRecommended = preset.id === recommendedShoppingId
+              return (
+                <Card
+                  key={preset.id}
+                  className={cn(
+                    'border transition-all',
+                    isRecommended
+                      ? 'border-primary/50 bg-primary/5'
+                      : 'border-border'
+                  )}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold flex items-center gap-1.5">
+                          <span>{preset.emoji}</span>
+                          {preset.name}
+                        </p>
+                        {isRecommended && (
+                          <span className="text-[10px] text-primary font-medium">
+                            ✓ Recommended for your goal
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+                      {preset.description}
+                    </p>
+                    <Button
+                      size="sm"
+                      variant={isRecommended ? 'default' : 'outline'}
+                      className="w-full"
+                      onClick={() => {
+                        const items = buildPresetShoppingList(preset.id)
+                        if (!items) return
+                        updateState({ shoppingList: items })
+                        toast.success(`${preset.emoji} ${preset.name} applied`)
+                      }}
+                    >
+                      <LayoutTemplate className="h-3.5 w-3.5 mr-1.5" />
+                      Use this list
+                    </Button>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+
           {showAiShoppingRecommend && (
             <Card className="border-primary/30 bg-primary/5">
               <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-5">

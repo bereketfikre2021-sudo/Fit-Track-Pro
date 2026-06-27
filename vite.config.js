@@ -66,7 +66,7 @@ export default defineConfig({
               cacheName: 'google-fonts-cache',
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                maxAgeSeconds: 60 * 60 * 24 * 365
               },
               cacheableResponse: {
                 statuses: [0, 200]
@@ -80,6 +80,23 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+    },
+  },
+  build: {
+    rolldownOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/heic2any')) return 'vendor-heic'
+          if (id.includes('node_modules/chart.js') || id.includes('node_modules/react-chartjs-2')) return 'vendor-charts'
+          if (id.includes('node_modules/i18next') || id.includes('node_modules/react-i18next')) return 'vendor-i18n'
+          if (id.includes('node_modules/@radix-ui')) return 'vendor-radix'
+          if (
+            id.includes('node_modules/react-router-dom') ||
+            id.includes('node_modules/react-dom') ||
+            (id.includes('node_modules/react/') && !id.includes('react-'))
+          ) return 'vendor-react'
+        },
+      },
     },
   },
 })

@@ -25,13 +25,17 @@ import {
 
 const GOAL_VALUES = ['strength', 'muscle', 'fat', 'endurance']
 const GENDER_VALUES = ['male', 'female']
+const FITNESS_LEVELS = [
+  { value: 'beginner', label: '🌱 Beginner' },
+  { value: 'intermediate', label: '⚡ Intermediate' },
+  { value: 'advanced', label: '🔥 Advanced' },
+]
+// Single-select groups — each option expands to the equipment values it covers
 const EQUIPMENT_OPTIONS = [
-  { value: 'Gym', label: '🏋️ Full gym' },
-  { value: 'Dumbbell', label: '🪆 Dumbbells' },
-  { value: 'Barbell', label: '🏋️ Barbell' },
-  { value: 'Bodyweight', label: '🤸 Bodyweight only' },
-  { value: 'Machine', label: '⚙️ Machines' },
-  { value: 'Cable', label: '🔗 Cables' },
+  { id: 'gym',         label: '🏋️ Full gym',          values: ['Gym', 'Barbell', 'Dumbbell', 'Machine', 'Cable'] },
+  { id: 'freeweights', label: '🥇 Free weights',       values: ['Barbell', 'Dumbbell'] },
+  { id: 'machines',    label: '⚙️ Machines & Cables',  values: ['Machine', 'Cable'] },
+  { id: 'bodyweight',  label: '🤸 Bodyweight only',    values: ['Bodyweight'] },
 ]
 
 function OnboardingPage({ profile, onResume, onComplete }) {
@@ -44,15 +48,8 @@ function OnboardingPage({ profile, onResume, onComplete }) {
   const [height, setHeight] = useState('')
   const [goal, setGoal] = useState('muscle')
   const [goalTouched, setGoalTouched] = useState(false)
-  const [equipment, setEquipment] = useState(['Gym'])
-
-  const toggleEquipment = (value) => {
-    setEquipment((prev) =>
-      prev.includes(value)
-        ? prev.length > 1 ? prev.filter((v) => v !== value) : prev // keep at least one
-        : [...prev, value]
-    )
-  }
+  const [equipmentId, setEquipmentId] = useState('gym') // single-select id
+  const [fitnessLevel, setFitnessLevel] = useState('beginner')
 
   const bmi = useMemo(
     () => calculateBmi(currentWeight, height),
@@ -125,8 +122,8 @@ function OnboardingPage({ profile, onResume, onComplete }) {
       avatarUrl: '',
       goal: suggestedGoal ?? goal,
       focusArea: 'full-body',
-      equipment,
-      fitnessLevel: 'beginner',
+      equipment: EQUIPMENT_OPTIONS.find((o) => o.id === equipmentId)?.values || ['Gym'],
+      fitnessLevel,
       workoutDays: [],
     })
     navigate('/')
@@ -345,22 +342,43 @@ function OnboardingPage({ profile, onResume, onComplete }) {
               </div>
 
               <div>
-                <span className="text-sm font-medium">Available equipment</span>
-                <p className="text-[10px] text-muted-foreground mt-0.5 mb-1.5">
-                  Select all that apply — AI uses this to tailor exercises
-                </p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {EQUIPMENT_OPTIONS.map(({ value, label }) => (
+                <span className="text-sm font-medium">Experience level</span>
+                <div className="grid grid-cols-3 gap-1.5 mt-1.5">
+                  {FITNESS_LEVELS.map(({ value, label }) => (
                     <button
                       key={value}
                       type="button"
                       className={cn(
-                        'rounded-md border px-2 py-2 text-[11px] font-medium transition-colors text-left',
-                        equipment.includes(value)
+                        'rounded-md border px-1 py-2 text-[11px] font-medium transition-colors text-center',
+                        fitnessLevel === value
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50'
                       )}
-                      onClick={() => toggleEquipment(value)}
+                      onClick={() => setFitnessLevel(value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-sm font-medium">Available equipment</span>
+                <p className="text-[10px] text-muted-foreground mt-0.5 mb-1.5">
+                  Choose what you have access to
+                </p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {EQUIPMENT_OPTIONS.map(({ id, label }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className={cn(
+                        'rounded-md border px-2 py-2 text-[11px] font-medium transition-colors text-left',
+                        equipmentId === id
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50'
+                      )}
+                      onClick={() => setEquipmentId(id)}
                     >
                       {label}
                     </button>

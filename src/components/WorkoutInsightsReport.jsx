@@ -48,7 +48,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, ChartTooltip)
 
 
 
-function WorkoutInsightsReport({ state, className }) {
+function WorkoutInsightsReport({ state, className, stats = null }) {
   const { t } = useTranslation()
 
   const [exporting, setExporting] = useState(false)
@@ -279,6 +279,42 @@ function WorkoutInsightsReport({ state, className }) {
           </div>
         )}
 
+        {/* Stats mini-cards — shown when passed from HistoryTab */}
+        {stats && (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="rounded-lg border border-border bg-muted/20 p-3">
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1 mb-1">
+                <Calendar className="h-3.5 w-3.5 text-primary" />
+                {t('report.workoutDays')}
+              </p>
+              <p className="text-xl font-bold">{stats.totalWorkouts}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/20 p-3">
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1 mb-1">
+                <Dumbbell className="h-3.5 w-3.5 text-primary" />
+                {t('report.exercisesDone')}
+              </p>
+              <p className="text-xl font-bold">{stats.totalExercises}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/20 p-3">
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1 mb-1">
+                <Dumbbell className="h-3.5 w-3.5 text-primary" />
+                {t('report.uniqueExercises')}
+              </p>
+              <p className="text-xl font-bold">{stats.uniqueExercises}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/20 p-3">
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1 mb-1">
+                <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                {t('report.mostActive')}
+              </p>
+              <p className="text-base font-bold">
+                {stats.mostActiveDay ? translateWeekday(stats.mostActiveDay) : t('common.na')}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Weekly volume */}
         {(volume.totalSets > 0 || volume.totalVolumeKg > 0) && (
           <div className="grid grid-cols-2 gap-3">
@@ -475,8 +511,8 @@ function WorkoutInsightsReport({ state, className }) {
 
         </div>
 
-        {/* 8-week volume trend */}
-        {weeklyVolumeTrend.some((w) => w.volume > 0 || w.sets > 0) && (
+        {/* 8-week volume trend — HIDDEN for now, code kept for future use */}
+        {false && weeklyVolumeTrend.some((w) => w.volume > 0 || w.sets > 0) && (
           <div className="space-y-2">
             <p className="text-sm font-medium flex items-center gap-2">
               <BarChart2 className="h-4 w-4 text-primary" />

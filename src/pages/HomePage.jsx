@@ -106,18 +106,13 @@ function HomePage({ state, updateState }) {
     <div className="relative p-4 md:p-6 pb-20 md:pb-6 min-h-[calc(100vh-12rem)] pt-10 md:pt-12">
       <GymFloatingPattern />
       <div className="relative z-10">
-        {/* Motivational quote */}
+        {/* App motto */}
         <div className="mb-7 pl-4 border-l-4 border-primary">
-          <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-primary mb-2 opacity-80">
-            Today's Motivation
+          <p className="text-2xl font-display font-extrabold tracking-tight leading-tight text-foreground">
+            Train with <span className="text-primary">purpose.</span>
           </p>
-          <p className="text-4xl font-display font-extrabold tracking-tight leading-tight text-foreground">
-            Train with{' '}
-            <span className="text-primary">purpose.</span>
-          </p>
-          <p className="text-4xl font-display font-extrabold tracking-tight leading-tight text-foreground">
-            Track your{' '}
-            <span className="text-primary">progress.</span>
+          <p className="text-2xl font-display font-extrabold tracking-tight leading-tight text-foreground">
+            Track your <span className="text-primary">progress.</span>
           </p>
         </div>
 
@@ -134,8 +129,8 @@ function HomePage({ state, updateState }) {
 
         <WaterTracker state={state} updateState={updateState} today={today} />
 
-        {/* Today's macro summary — only show if meals are logged */}
-        {todayMacros.itemCount > 0 && (
+        {/* Today's macro summary — HIDDEN for now, code kept for future use */}
+        {false && todayMacros.itemCount > 0 && (
           <Card className="mb-6 border-border/60 bg-card/80">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">

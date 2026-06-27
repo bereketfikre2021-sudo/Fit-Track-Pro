@@ -109,6 +109,16 @@ function WorkoutExerciseEmptyActions({ showAiRecommend, aiLoading, onAiRecommend
 
 const WORKOUT_PHASE_ORDER = [EXERCISE_PHASE.WARMUP, EXERCISE_PHASE.MAIN, EXERCISE_PHASE.COOLDOWN]
 
+/** Return the first phase that has at least one exercise, falling back to MAIN */
+function getDefaultPhase(exercises = []) {
+  for (const phase of WORKOUT_PHASE_ORDER) {
+    if (exercises.some((ex) => (ex.exercisePhase || inferExercisePhase(ex)) === phase)) {
+      return phase
+    }
+  }
+  return EXERCISE_PHASE.MAIN
+}
+
 /** Return the next phase in the warmup → main → cooldown sequence. */
 function getNextPhase(currentPhase) {
   const idx = WORKOUT_PHASE_ORDER.indexOf(currentPhase)
@@ -191,7 +201,13 @@ function WorkoutTab({ state, updateState }) {
 
   })
 
-  const [phaseFilter, setPhaseFilter] = useState(EXERCISE_PHASE.WARMUP)
+  const [phaseFilter, setPhaseFilter] = useState(() => {
+    const workoutDays = state.profile?.workoutDays || []
+    const ctx = getTodayWorkoutContext(workoutDays)
+    const day = ctx.planDay || ctx.nextWorkoutDay || workoutDays[0] || null
+    const exercises = day ? (state.workoutSchedule?.[day]?.exercises || []) : []
+    return getDefaultPhase(exercises)
+  })
   const [completedPhaseFilter, setCompletedPhaseFilter] = useState(EXERCISE_PHASE.MAIN)
   const [restTimer, setRestTimer] = useState(null)
   const [restNextExercise, setRestNextExercise] = useState(null)
@@ -231,7 +247,8 @@ function WorkoutTab({ state, updateState }) {
     if (activeSession.startedAt === sessionStartedAtRef.current) return
     sessionStartedAtRef.current = activeSession.startedAt
     if (activeSession.day === activeDay) {
-      setPhaseFilter(EXERCISE_PHASE.WARMUP)
+      const exercises = workoutSchedule[activeDay]?.exercises || []
+      setPhaseFilter(getDefaultPhase(enrichScheduleExercises(exercises, customExercises)))
     }
   }, [activeSession, activeDay, today])
 
@@ -580,7 +597,8 @@ function WorkoutTab({ state, updateState }) {
     }
 
     updateState({ activeWorkoutSession: startWorkoutSession(day, today) })
-    setPhaseFilter(EXERCISE_PHASE.WARMUP)
+    const exercises = workoutSchedule[day]?.exercises || []
+    setPhaseFilter(getDefaultPhase(enrichScheduleExercises(exercises, customExercises)))
 
     toast.success(t('workout.toastStarted', { day: translateWeekday(day) }))
 
@@ -670,7 +688,8 @@ function WorkoutTab({ state, updateState }) {
         value={activeDay}
         onValueChange={(day) => {
           setActiveDay(day)
-          setPhaseFilter(EXERCISE_PHASE.WARMUP)
+          const exercises = workoutSchedule[day]?.exercises || []
+          setPhaseFilter(getDefaultPhase(enrichScheduleExercises(exercises, customExercises)))
         }}
         className="w-full"
       >
