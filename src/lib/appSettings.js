@@ -41,6 +41,9 @@ export const DEFAULT_APP_SETTINGS = {
   /** Daily water goal in cups (1 cup ≈ 250 ml) */
   waterGoalCups: 8,
   waterUnit: 'cups', // 'cups' | 'ml' | 'oz'
+  /** Workout reminder notification */
+  workoutReminderEnabled: false,
+  workoutReminderTime: '07:00',
 }
 
 const MEAL_SLOT_IDS = [
@@ -106,6 +109,8 @@ export function normalizeAppSettings(settings) {
       ? Math.min(Math.round(Number(s.waterGoalCups)), 20)
       : 8,
     waterUnit: ['cups', 'ml', 'oz'].includes(s.waterUnit) ? s.waterUnit : 'cups',
+    workoutReminderEnabled: s.workoutReminderEnabled === true,
+    workoutReminderTime: normalizeTimeString(s.workoutReminderTime, '07:00'),
   }
 }
 

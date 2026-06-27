@@ -20,6 +20,7 @@ import {
   hydrateAppStateFromBackup,
 } from './lib/appState'
 import { useMealReminders } from './lib/useMealReminders'
+import { useWorkoutReminder } from './lib/useWorkoutReminder'
 import I18nSync from './components/I18nSync'
 import PwaInstallPrompt from './components/PwaInstallPrompt'
 import i18n from './i18n'
@@ -40,6 +41,7 @@ function App() {
 
   useDebouncedSave(state)
   useMealReminders(state)
+  useWorkoutReminder(state)
 
   const updateState = (updates) => {
     setState((prev) => ({ ...prev, ...updates }))
@@ -69,6 +71,7 @@ function App() {
         avatarUrl: onboardingData.avatarUrl || '',
         goal: onboardingData.goal,
         focusArea: onboardingData.focusArea,
+        equipment: onboardingData.equipment || [],
         fitnessLevel: onboardingData.fitnessLevel,
         workoutDays: onboardingData.workoutDays,
       },

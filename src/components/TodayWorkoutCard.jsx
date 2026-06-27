@@ -32,14 +32,28 @@ function TodayWorkoutCard({
 
   const schedule = workoutSchedule[focusDay] || { exercises: [] }
   const allExercises = schedule.exercises || []
+  const warmupExercises = allExercises.filter(
+    (ex) => inferExercisePhase(ex) === EXERCISE_PHASE.WARMUP
+  )
   const mainExercises = allExercises.filter(
     (ex) => inferExercisePhase(ex) === EXERCISE_PHASE.MAIN
   )
+  const cooldownExercises = allExercises.filter(
+    (ex) => inferExercisePhase(ex) === EXERCISE_PHASE.COOLDOWN
+  )
   const total = mainExercises.length
+  const totalAll = allExercises.length
   const completed = mainExercises.reduce((acc, ex) => {
     const entry = completedExercises?.[completionKey(today, focusDay, ex.id)]
     return acc + (entry?.completedAt && !entry?.skipped ? 1 : 0)
   }, 0)
+
+  // Phase breakdown string e.g. "🔥 2 · 💪 6 · ❄️ 1"
+  const phaseParts = [
+    warmupExercises.length > 0 ? `🔥 ${warmupExercises.length}` : null,
+    mainExercises.length > 0   ? `💪 ${mainExercises.length}`   : null,
+    cooldownExercises.length > 0 ? `❄️ ${cooldownExercises.length}` : null,
+  ].filter(Boolean).join(' · ')
   const sessionActive = activeSession?.day === focusDay
   const isToday = !!ctx.planDay
   const todaySession =
@@ -70,7 +84,10 @@ function TodayWorkoutCard({
             <div className="flex flex-wrap items-center gap-2 mt-2">
               <Badge variant="secondary" className="text-xs">
                 <Dumbbell className="h-3 w-3 mr-1" />
-                {t('common.exercises', { count: total })}
+                {t('common.exercises', { count: totalAll })}
+                {phaseParts && (
+                  <span className="ml-1.5 text-muted-foreground font-normal">({phaseParts})</span>
+                )}
               </Badge>
               {sessionDoneToday && todaySession?.skipped && (
                 <Badge variant="outline" className="text-xs">
@@ -84,11 +101,6 @@ function TodayWorkoutCard({
                   <CheckCircle className="h-3 w-3 mr-1" />
                   {t('common.completed')}
                 </Badge>
-              )}
-              {total > 0 && isToday && (
-                <span className="text-xs text-muted-foreground">
-                  {t('todayCard.doneToday', { completed, total })}
-                </span>
               )}
             </div>
           </div>

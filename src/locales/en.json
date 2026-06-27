@@ -998,7 +998,7 @@
     "inAppTurnOn": "Turn on in-app reminders"
   },
   "pwaInstall": {
-    "title": "Install Fit Track Pro",
+    "title": "Install FitTrack Pro",
     "description": "Add to your home screen for quick access, offline use, and meal reminders.",
     "install": "Install",
     "notNow": "Not now"

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Dumbbell, Plus } from 'lucide-react'
+import { Dumbbell, Plus, UtensilsCrossed } from 'lucide-react'
 import { toast } from 'sonner'
 import GymFloatingPattern from '../components/GymFloatingPattern'
 import TodayWorkoutCard from '../components/TodayWorkoutCard'
@@ -22,6 +22,7 @@ import {
 } from '@/lib/workoutSession'
 import { translateWeekday } from '@/lib/i18nHelpers'
 import { getAiToastKey } from '@/lib/aiErrors'
+import { getDayMacroTotals } from '@/lib/mealPlan'
 
 function HomePage({ state, updateState }) {
   const { t } = useTranslation()
@@ -29,6 +30,10 @@ function HomePage({ state, updateState }) {
   const today = todayDateString()
   const [aiLoading, setAiLoading] = useState(false)
   const showExerciseSetupPrompt = shouldShowExerciseSetupPrompt(state)
+
+  // Today's day name for meal plan lookup (mealPlan is keyed by weekday name)
+  const todayDayName = new Date().toLocaleDateString('en-US', { weekday: 'long' })
+  const todayMacros = getDayMacroTotals(state.mealPlan, todayDayName)
 
   const handleStartSession = (day) => {
     const workoutDays = state.profile?.workoutDays || []
@@ -106,11 +111,11 @@ function HomePage({ state, updateState }) {
           <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-primary mb-2 opacity-80">
             Today's Motivation
           </p>
-          <p className="text-3xl font-extrabold leading-tight tracking-tight text-foreground">
+          <p className="text-4xl font-display font-extrabold tracking-tight leading-tight text-foreground">
             Train with{' '}
             <span className="text-primary">purpose.</span>
           </p>
-          <p className="text-3xl font-extrabold leading-tight tracking-tight text-foreground">
+          <p className="text-4xl font-display font-extrabold tracking-tight leading-tight text-foreground">
             Track your{' '}
             <span className="text-primary">progress.</span>
           </p>
@@ -128,6 +133,35 @@ function HomePage({ state, updateState }) {
         />
 
         <WaterTracker state={state} updateState={updateState} today={today} />
+
+        {/* Today's macro summary — only show if meals are logged */}
+        {todayMacros.itemCount > 0 && (
+          <Card className="mb-6 border-border/60 bg-card/80">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <UtensilsCrossed className="h-4 w-4 text-primary" />
+                <p className="text-sm font-semibold">Today's nutrition</p>
+                <Link to="/meal-plan" className="ml-auto text-xs text-primary hover:underline">
+                  Edit
+                </Link>
+              </div>
+              <div className="grid grid-cols-4 gap-2 text-center">
+                {[
+                  { label: 'Calories', value: todayMacros.calories > 0 ? `${Math.round(todayMacros.calories)}` : '—', unit: 'kcal' },
+                  { label: 'Protein', value: todayMacros.protein > 0 ? `${Math.round(todayMacros.protein)}` : '—', unit: 'g' },
+                  { label: 'Carbs', value: todayMacros.carbs > 0 ? `${Math.round(todayMacros.carbs)}` : '—', unit: 'g' },
+                  { label: 'Fat', value: todayMacros.fat > 0 ? `${Math.round(todayMacros.fat)}` : '—', unit: 'g' },
+                ].map(({ label, value, unit }) => (
+                  <div key={label} className="rounded-lg bg-muted/40 py-2 px-1">
+                    <p className="text-[10px] text-muted-foreground mb-0.5">{label}</p>
+                    <p className="text-sm font-bold leading-none">{value}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{unit}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {showExerciseSetupPrompt && (
           <Card className="border-border/80 bg-card/90 backdrop-blur-sm">

@@ -48,6 +48,7 @@ export function createDefaultAppState() {
       goal: 'muscle',
       focusArea: 'full-body',
       fitnessLevel: 'beginner',
+      equipment: [],
       workoutDays: [],
       notes: '',
     },

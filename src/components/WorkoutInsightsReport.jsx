@@ -35,6 +35,16 @@ import {
 
 import { toast } from 'sonner'
 import { translateWeekday, translateWeekdayAbbrev } from '@/lib/i18nHelpers'
+import { Bar } from 'react-chartjs-2'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip as ChartTooltip,
+} from 'chart.js'
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, ChartTooltip)
 
 
 
@@ -81,6 +91,21 @@ function WorkoutInsightsReport({ state, className }) {
     () => getWeeklyVolume(state, -1),
     [state.completedExercises]
   )
+
+  // 8-week volume trend (week -7 to current)
+  const weeklyVolumeTrend = useMemo(() => {
+    return Array.from({ length: 8 }, (_, i) => {
+      const offset = i - 7
+      const v = getWeeklyVolume(state, offset)
+      // Build a short "Mon DD" label for the week start
+      const d = new Date()
+      const day = d.getDay()
+      const mondayOffset = day === 0 ? -6 : 1 - day
+      d.setDate(d.getDate() + mondayOffset + offset * 7)
+      const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      return { label, volume: v.totalVolumeKg, sets: v.totalSets }
+    })
+  }, [state.completedExercises])
 
 
 
@@ -449,6 +474,63 @@ function WorkoutInsightsReport({ state, className }) {
           )}
 
         </div>
+
+        {/* 8-week volume trend */}
+        {weeklyVolumeTrend.some((w) => w.volume > 0 || w.sets > 0) && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium flex items-center gap-2">
+              <BarChart2 className="h-4 w-4 text-primary" />
+              8-week volume trend
+            </p>
+            <div className="rounded-lg border border-border bg-muted/10 p-3">
+              <Bar
+                height={110}
+                data={{
+                  labels: weeklyVolumeTrend.map((w) => w.label),
+                  datasets: [
+                    {
+                      label: 'Volume (kg)',
+                      data: weeklyVolumeTrend.map((w) => w.volume),
+                      backgroundColor: weeklyVolumeTrend.map((_, i) =>
+                        i === 7 ? 'rgba(132,204,22,0.85)' : 'rgba(132,204,22,0.3)'
+                      ),
+                      borderRadius: 4,
+                      borderSkipped: false,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                      backgroundColor: 'rgba(0,0,0,0.75)',
+                      titleColor: '#fff',
+                      bodyColor: '#ccc',
+                      callbacks: {
+                        label: (ctx) => `${ctx.raw.toLocaleString()} kg`,
+                      },
+                    },
+                  },
+                  scales: {
+                    x: {
+                      grid: { display: false },
+                      ticks: { font: { size: 9 }, color: 'rgba(150,150,150,0.8)' },
+                    },
+                    y: {
+                      grid: { color: 'rgba(150,150,150,0.1)' },
+                      ticks: {
+                        font: { size: 9 },
+                        color: 'rgba(150,150,150,0.8)',
+                        callback: (v) => v === 0 ? '' : `${v}kg`,
+                      },
+                    },
+                  },
+                }}
+              />
+            </div>
+          </div>
+        )}
 
       </CardContent>
 

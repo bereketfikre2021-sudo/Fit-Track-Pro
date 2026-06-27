@@ -17,6 +17,85 @@ import { getSessionHistory } from '@/lib/sessionHistory'
 
 const ACTIVITY_PREVIEW_COUNT = 3
 
+/** Build a 12-week heatmap grid (Sun–Sat columns, 12 rows = 84 days) */
+function buildHeatmapData(completedExercises, workoutDays) {
+  const counts = {}
+  Object.values(completedExercises || {}).forEach((entry) => {
+    if (!entry?.date || entry.skipped || !entry.completedAt) return
+    if (!isAlignedWorkoutCompletion(entry, workoutDays)) return
+    counts[entry.date] = (counts[entry.date] || 0) + 1
+  })
+
+  // Start from Sunday 12 weeks ago
+  const today = new Date()
+  const startDay = new Date(today)
+  startDay.setDate(today.getDate() - 83)
+  // Align to Sunday
+  startDay.setDate(startDay.getDate() - startDay.getDay())
+
+  const days = []
+  for (let i = 0; i < 84; i++) {
+    const d = new Date(startDay)
+    d.setDate(startDay.getDate() + i)
+    const str = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const isFuture = d > today
+    days.push({ date: str, count: counts[str] || 0, isFuture })
+  }
+  return days
+}
+
+function ActivityHeatmap({ completedExercises, workoutDays }) {
+  const days = buildHeatmapData(completedExercises, workoutDays)
+  const maxCount = Math.max(...days.map((d) => d.count), 1)
+
+  const getColor = (count, isFuture) => {
+    if (isFuture) return 'bg-transparent'
+    if (count === 0) return 'bg-muted/40'
+    const intensity = count / maxCount
+    if (intensity < 0.25) return 'bg-primary/25'
+    if (intensity < 0.5) return 'bg-primary/50'
+    if (intensity < 0.75) return 'bg-primary/75'
+    return 'bg-primary'
+  }
+
+  // Build 12 columns (weeks), each with 7 rows (Sun–Sat)
+  const weeks = []
+  for (let w = 0; w < 12; w++) {
+    weeks.push(days.slice(w * 7, w * 7 + 7))
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-medium flex items-center gap-2">
+        <Calendar className="h-4 w-4 text-primary" />
+        12-week activity
+      </p>
+      <div className="flex gap-0.5 overflow-x-auto pb-1">
+        {weeks.map((week, wi) => (
+          <div key={wi} className="flex flex-col gap-0.5">
+            {week.map((day) => (
+              <div
+                key={day.date}
+                title={day.count > 0 ? `${day.date}: ${day.count} exercise${day.count !== 1 ? 's' : ''}` : day.date}
+                className={`w-3 h-3 rounded-sm transition-colors ${getColor(day.count, day.isFuture)}`}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+        <span>Less</span>
+        <div className="w-3 h-3 rounded-sm bg-muted/40" />
+        <div className="w-3 h-3 rounded-sm bg-primary/25" />
+        <div className="w-3 h-3 rounded-sm bg-primary/50" />
+        <div className="w-3 h-3 rounded-sm bg-primary/75" />
+        <div className="w-3 h-3 rounded-sm bg-primary" />
+        <span>More</span>
+      </div>
+    </div>
+  )
+}
+
 function HistoryTab({ state, updateState }) {
   const { t } = useTranslation()
   const [period, setPeriod] = useState(30)
@@ -86,6 +165,16 @@ function HistoryTab({ state, updateState }) {
       </div>
 
       <WorkoutInsightsReport state={state} />
+
+      {/* 12-week activity heatmap */}
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <ActivityHeatmap
+            completedExercises={completedExercises}
+            workoutDays={workoutDays}
+          />
+        </CardContent>
+      </Card>
 
       <AchievementsCard state={state} />
 

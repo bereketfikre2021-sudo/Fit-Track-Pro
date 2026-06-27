@@ -121,12 +121,26 @@ function getPhaseFilterLabel(phase, t) {
   return t('exercisePhase.main.short')
 }
 
+function getPhaseFullLabel(phase, t) {
+  if (phase === EXERCISE_PHASE.WARMUP) return t('exercisePhase.warmup.label')
+  if (phase === EXERCISE_PHASE.COOLDOWN) return t('exercisePhase.cooldown.label')
+  return t('exercisePhase.main.label')
+}
+
+function getPhaseIcon(phase) {
+  if (phase === EXERCISE_PHASE.WARMUP) return '🔥'
+  if (phase === EXERCISE_PHASE.COOLDOWN) return '❄️'
+  return '💪'
+}
+
 function buildWorkoutPhaseGroups(enriched, phaseFilter, { allPhases }, t) {
   const phases = allPhases ? WORKOUT_PHASE_ORDER : [phaseFilter]
   return phases
     .map((phase) => ({
       phase,
       label: getPhaseFilterLabel(phase, t),
+      fullLabel: getPhaseFullLabel(phase, t),
+      icon: getPhaseIcon(phase),
       exercises: filterExercisesByPhase(enriched, phase),
     }))
     .filter((g) => g.exercises.length > 0)
@@ -178,7 +192,9 @@ function WorkoutTab({ state, updateState }) {
   })
 
   const [phaseFilter, setPhaseFilter] = useState(EXERCISE_PHASE.WARMUP)
+  const [completedPhaseFilter, setCompletedPhaseFilter] = useState(EXERCISE_PHASE.MAIN)
   const [restTimer, setRestTimer] = useState(null)
+  const [restNextExercise, setRestNextExercise] = useState(null)
   const [holdTimer, setHoldTimer] = useState(null)
   const [skipTarget, setSkipTarget] = useState(null)
   const [skipDayOpen, setSkipDayOpen] = useState(false)
@@ -292,7 +308,7 @@ function WorkoutTab({ state, updateState }) {
   const isSessionFinishedForDay = (day) =>
     !!getTodaySessionForDay(completedSessions, day, today)
 
-  const startRestTimer = (seconds, label = t('common.rest')) => {
+  const startRestTimer = (seconds, label = t('common.rest'), nextEx = null) => {
     setHoldTimer(null)
     const sec = Math.max(1, seconds)
     setRestTimer({
@@ -300,6 +316,7 @@ function WorkoutTab({ state, updateState }) {
       totalSeconds: sec,
       label,
     })
+    setRestNextExercise(nextEx)
   }
 
   const startHoldTimer = (seconds, label) => {
@@ -391,7 +408,18 @@ function WorkoutTab({ state, updateState }) {
         !isSimplePhase(inferExercisePhase(library || scheduled || {})) &&
         !allDone
       ) {
-        startRestTimer(restSec, scheduled?.name || library?.name)
+        // Find the next incomplete exercise in the current phase for "up next" display
+        const phaseExercises = enrichScheduleExercises(
+          workoutSchedule[day]?.exercises || [], customExercises
+        ).filter((ex) => ex.exercisePhase === phaseFilter)
+        const currentIdx = phaseExercises.findIndex((ex) => ex.id === scheduleExerciseId)
+        const nextEx = phaseExercises
+          .slice(currentIdx + 1)
+          .find((ex) => {
+            const entry = newCompleted[completionKey(today, day, ex.id)]
+            return !entry?.completedAt && !entry?.skipped
+          })
+        startRestTimer(restSec, scheduled?.name || library?.name, nextEx?.name || null)
       }
 
       const updates = { completedExercises: newCompleted }
@@ -399,6 +427,7 @@ function WorkoutTab({ state, updateState }) {
       if (allDone) {
         // All phases done — clear timers and finish session
         setRestTimer(null)
+        setRestNextExercise(null)
         setHoldTimer(null)
 
         const sessionToFinish =
@@ -740,6 +769,7 @@ function WorkoutTab({ state, updateState }) {
                   >
                     <TabsList className="h-auto">
                       <TabsTrigger value={EXERCISE_PHASE.WARMUP}>
+                        <span className="mr-1" aria-hidden="true">🔥</span>
                         {t('exercisePhase.warmup.short')}
                       </TabsTrigger>
                       <TabsTrigger
@@ -755,6 +785,7 @@ function WorkoutTab({ state, updateState }) {
                           )
                         }
                       >
+                        <span className="mr-1" aria-hidden="true">💪</span>
                         {t('exercisePhase.main.short')}
                       </TabsTrigger>
                       <TabsTrigger
@@ -770,6 +801,7 @@ function WorkoutTab({ state, updateState }) {
                           )
                         }
                       >
+                        <span className="mr-1" aria-hidden="true">❄️</span>
                         {t('exercisePhase.cooldown.short')}
                       </TabsTrigger>
                     </TabsList>
@@ -783,9 +815,26 @@ function WorkoutTab({ state, updateState }) {
               )}
 
               {exerciseCount > 0 && sessionComplete && (
-                <p className="text-xs text-muted-foreground px-1">
-                  {t('workout.allExercisesShown', { count: exerciseCount })}
-                </p>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <Tabs
+                    value={completedPhaseFilter}
+                    onValueChange={(v) => setCompletedPhaseFilter(v)}
+                  >
+                    <TabsList className="h-auto">
+                      {buildWorkoutPhaseGroups(enrichedDayExercises, phaseFilter, { allPhases: true }, t).map((group) => (
+                        <TabsTrigger key={group.phase} value={group.phase}>
+                          <span className="mr-1" aria-hidden="true">{group.icon}</span>
+                          {group.label}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </Tabs>
+                  <p className="text-xs text-muted-foreground px-1">
+                    {t('workout.shown', {
+                      count: filterExercisesByPhase(enrichedDayExercises, completedPhaseFilter).length,
+                    })}
+                  </p>
+                </div>
               )}
 
 
@@ -823,72 +872,81 @@ function WorkoutTab({ state, updateState }) {
 
               ) : (
 
-                <div className="space-y-5">
+                <div className="space-y-3">
 
                   {(() => {
                     const enriched = enrichedDayExercises
-                    const groups = buildWorkoutPhaseGroups(enriched, phaseFilter, {
-                      allPhases: sessionComplete,
+
+                    // After session complete: show only the selected tab's phase
+                    // During active session: show the current phaseFilter group
+                    const activePhase = sessionComplete ? completedPhaseFilter : phaseFilter
+                    const groups = buildWorkoutPhaseGroups(enriched, activePhase, {
+                      allPhases: false,
                     }, t)
 
-                    return groups.map((group) => (
+                    // If the selected completed tab has no exercises, fall back gracefully
+                    const visibleExercises = groups[0]?.exercises || []
 
-                    <div key={group.phase} className="space-y-2">
-
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-1">
-
-                        {group.label}
-
-                      </h3>
-
-                      <div className="flex flex-col gap-3">
-
-                        {group.exercises.map((ex, i) => (
-
-                          <ExerciseWorkoutCard
-                            key={ex.id || i}
-                            exercise={ex}
-                            day={day}
-                            customExercises={customExercises}
-                            completedExercises={completedExercises}
-                            isCompleted={isExerciseCompleted(day, ex.id)}
-                            completionEntry={getCompletionEntry(day, ex.id)}
-                            enableSetLogging={appSettings.enableSetLogging}
-                            readOnly={workoutLocked}
-                            onSaveEntry={
-                              workoutLocked ? undefined : (patch) => saveCompletionEntry(day, ex.id, patch)
-                            }
-                            onToggleComplete={
-                              workoutLocked ? undefined : () => toggleExerciseCompletion(day, ex.id)
-                            }
-                            onSkip={
-                              workoutLocked
-                                ? undefined
-                                : () =>
-                                    setSkipTarget({
-                                      day,
-                                      scheduleExerciseId: ex.id,
-                                      name: ex.name,
-                                    })
-                            }
-                            onUnskip={
-                              workoutLocked ? undefined : () => handleUnskipExercise(day, ex.id)
-                            }
-                            onStartRest={
-                              workoutLocked ? undefined : (seconds, label) => startRestTimer(seconds, label)
-                            }
-                            onStartHold={
-                              workoutLocked ? undefined : (seconds, label) => startHoldTimer(seconds, label)
-                            }
-                          />
-
+                    return (
+                      <>
+                        {!sessionComplete && groups.map((group) => (
+                          <div key={group.phase} className="space-y-2">
+                            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-1">
+                              {group.label}
+                            </h3>
+                            <div className="flex flex-col gap-3">
+                              {group.exercises.map((ex, i) => (
+                                <ExerciseWorkoutCard
+                                  key={ex.id || i}
+                                  exercise={ex}
+                                  day={day}
+                                  customExercises={customExercises}
+                                  completedExercises={completedExercises}
+                                  isCompleted={isExerciseCompleted(day, ex.id)}
+                                  completionEntry={getCompletionEntry(day, ex.id)}
+                                  enableSetLogging={appSettings.enableSetLogging}
+                                  readOnly={workoutLocked}
+                                  onSaveEntry={workoutLocked ? undefined : (patch) => saveCompletionEntry(day, ex.id, patch)}
+                                  onToggleComplete={workoutLocked ? undefined : () => toggleExerciseCompletion(day, ex.id)}
+                                  onSkip={workoutLocked ? undefined : () => setSkipTarget({ day, scheduleExerciseId: ex.id, name: ex.name })}
+                                  onUnskip={workoutLocked ? undefined : () => handleUnskipExercise(day, ex.id)}
+                                  onStartRest={workoutLocked ? undefined : (seconds, label) => startRestTimer(seconds, label)}
+                                  onStartHold={workoutLocked ? undefined : (seconds, label) => startHoldTimer(seconds, label)}
+                                />
+                              ))}
+                            </div>
+                          </div>
                         ))}
 
-                      </div>
-
-                    </div>
-
-                  ))
+                        {sessionComplete && (
+                          <div className="flex flex-col gap-3">
+                            {visibleExercises.length === 0 ? (
+                              <p className="text-xs text-muted-foreground px-1 py-4 text-center">
+                                {t('exercisePhase.' + completedPhaseFilter + '.description', { defaultValue: 'No exercises in this phase.' })}
+                              </p>
+                            ) : visibleExercises.map((ex, i) => (
+                              <ExerciseWorkoutCard
+                                key={ex.id || i}
+                                exercise={ex}
+                                day={day}
+                                customExercises={customExercises}
+                                completedExercises={completedExercises}
+                                isCompleted={isExerciseCompleted(day, ex.id)}
+                                completionEntry={getCompletionEntry(day, ex.id)}
+                                enableSetLogging={appSettings.enableSetLogging}
+                                readOnly={true}
+                                onSaveEntry={undefined}
+                                onToggleComplete={undefined}
+                                onSkip={undefined}
+                                onUnskip={undefined}
+                                onStartRest={undefined}
+                                onStartHold={undefined}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )
                   })()}
 
                 </div>
@@ -907,8 +965,9 @@ function WorkoutTab({ state, updateState }) {
 
       <RestTimer
         timer={restTimer}
-        onStop={() => setRestTimer(null)}
+        onStop={() => { setRestTimer(null); setRestNextExercise(null) }}
         onExtend={extendRestTimer}
+        nextExercise={restNextExercise}
         playSound={appSettings.restTimerSound}
         vibrate={appSettings.restTimerVibrate}
       />

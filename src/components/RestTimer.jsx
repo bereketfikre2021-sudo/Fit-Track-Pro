@@ -11,7 +11,7 @@ import {
 } from '@/lib/restTimer'
 import { toast } from 'sonner'
 
-function RestTimer({ timer, onStop, onExtend, playSound = true, vibrate = true }) {
+function RestTimer({ timer, onStop, onExtend, nextExercise = null, playSound = true, vibrate = true }) {
   const { t } = useTranslation()
   const [remaining, setRemaining] = useState(0)
 
@@ -75,6 +75,12 @@ function RestTimer({ timer, onStop, onExtend, playSound = true, vibrate = true }
             style={{ width: `${Math.min(100, progress)}%` }}
           />
         </div>
+
+        {nextExercise && (
+          <p className="text-xs text-muted-foreground mb-3">
+            Up next: <span className="text-foreground font-medium">{nextExercise}</span>
+          </p>
+        )}
 
         <div className="flex flex-wrap gap-2">
           {REST_PRESETS.map((sec) => (

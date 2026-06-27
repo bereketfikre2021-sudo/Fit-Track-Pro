@@ -13,8 +13,7 @@ import GymFloatingPattern from '../components/GymFloatingPattern'
 import { BACKGROUND_HOME } from '../lib/backgrounds'
 import { saveAppState } from '../lib/storage'
 import { hydrateAppStateFromBackup } from '../lib/appState'
-import { FOCUS_AREAS } from '../lib/profileOptions'
-import { translateGoal, translateFocusArea } from '@/lib/i18nHelpers'
+import { translateGoal } from '@/lib/i18nHelpers'
 
 import {
   calculateBmi,
@@ -26,6 +25,14 @@ import {
 
 const GOAL_VALUES = ['strength', 'muscle', 'fat', 'endurance']
 const GENDER_VALUES = ['male', 'female']
+const EQUIPMENT_OPTIONS = [
+  { value: 'Gym', label: '🏋️ Full gym' },
+  { value: 'Dumbbell', label: '🪆 Dumbbells' },
+  { value: 'Barbell', label: '🏋️ Barbell' },
+  { value: 'Bodyweight', label: '🤸 Bodyweight only' },
+  { value: 'Machine', label: '⚙️ Machines' },
+  { value: 'Cable', label: '🔗 Cables' },
+]
 
 function OnboardingPage({ profile, onResume, onComplete }) {
   const { t } = useTranslation()
@@ -37,7 +44,15 @@ function OnboardingPage({ profile, onResume, onComplete }) {
   const [height, setHeight] = useState('')
   const [goal, setGoal] = useState('muscle')
   const [goalTouched, setGoalTouched] = useState(false)
-  const [focusArea, setFocusArea] = useState('full-body')
+  const [equipment, setEquipment] = useState(['Gym'])
+
+  const toggleEquipment = (value) => {
+    setEquipment((prev) =>
+      prev.includes(value)
+        ? prev.length > 1 ? prev.filter((v) => v !== value) : prev // keep at least one
+        : [...prev, value]
+    )
+  }
 
   const bmi = useMemo(
     () => calculateBmi(currentWeight, height),
@@ -109,7 +124,8 @@ function OnboardingPage({ profile, onResume, onComplete }) {
       targetWeight: suggestedTargetWeight != null ? String(suggestedTargetWeight) : '',
       avatarUrl: '',
       goal: suggestedGoal ?? goal,
-      focusArea,
+      focusArea: 'full-body',
+      equipment,
       fitnessLevel: 'beginner',
       workoutDays: [],
     })
@@ -140,7 +156,8 @@ function OnboardingPage({ profile, onResume, onComplete }) {
               height={64}
               className="h-16 w-16 rounded-2xl mx-auto mb-4"
             />
-            <h1 className="text-3xl font-bold">{t('onboarding.title')}</h1>
+            <h1 className="text-4xl font-display font-extrabold tracking-tight">FitTrack Pro</h1>
+            <p className="text-sm text-muted-foreground mt-1">{t('onboarding.subtitle')}</p>
           </div>
 
           {canResume && (
@@ -328,21 +345,24 @@ function OnboardingPage({ profile, onResume, onComplete }) {
               </div>
 
               <div>
-                <span className="text-sm font-medium">{t('onboarding.targetMuscles')}</span>
-                <div className="grid grid-cols-2 gap-1.5 mt-1.5">
-                  {FOCUS_AREAS.map((area) => (
+                <span className="text-sm font-medium">Available equipment</span>
+                <p className="text-[10px] text-muted-foreground mt-0.5 mb-1.5">
+                  Select all that apply — AI uses this to tailor exercises
+                </p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {EQUIPMENT_OPTIONS.map(({ value, label }) => (
                     <button
-                      key={area.value}
+                      key={value}
                       type="button"
                       className={cn(
-                        'rounded-md border px-2 py-2 text-[11px] font-medium transition-colors text-center',
-                        focusArea === area.value
+                        'rounded-md border px-2 py-2 text-[11px] font-medium transition-colors text-left',
+                        equipment.includes(value)
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50'
                       )}
-                      onClick={() => setFocusArea(area.value)}
+                      onClick={() => toggleEquipment(value)}
                     >
-                      {translateFocusArea(area.value)}
+                      {label}
                     </button>
                   ))}
                 </div>

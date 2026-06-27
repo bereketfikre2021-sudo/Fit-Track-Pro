@@ -225,6 +225,10 @@ function buildUserContext(profile = {}) {
     `Training days per week: ${(profile.workoutDays || []).join(', ') || 'not set'}`
   )
 
+  if (profile.equipment?.length) {
+    lines.push(`Available equipment: ${profile.equipment.join(', ')}`)
+  }
+
   if (profile.gender) lines.push(`Gender: ${profile.gender}`)
   if (profile.currentWeight) lines.push(`Current weight: ${profile.currentWeight} kg`)
   if (profile.height) lines.push(`Height: ${profile.height} cm`)
@@ -316,7 +320,7 @@ ${dayRequirement}
 - Weekly movement coverage: include horizontal push, vertical push, horizontal pull, vertical pull, squat/knee-dominant, hinge/hip-dominant, core, and conditioning or carry work
 - ${focusRule}
 - Do NOT repeat the same main compound lift on consecutive days; rotate muscle emphasis across days
-- Use at least 3 equipment types (e.g. Bodyweight, Dumbbell, Barbell, Cable, Kettlebell, Band, Machine)
+- Use at least 3 equipment types (e.g. Bodyweight, Dumbbell, Barbell, Cable, Kettlebell, Band, Machine); use ONLY equipment the user has listed if "Available equipment" is set in their profile
 - Every exercise name in "schedule" must exist in the "exercises" library
 - Each schedule day needs "note" and "exercises" array with { name, sets?, reps?, prescription? }
 - Match exercisePhase: warmup, main, or cooldown
