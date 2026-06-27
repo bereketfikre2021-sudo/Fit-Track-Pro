@@ -1,4 +1,5 @@
 import { DEFAULT_APP_SETTINGS, normalizeAppSettings } from './appSettings'
+import { inferPlanSetupComplete } from './planSetup'
 
 export const CURRENT_SCHEMA_VERSION = 2
 
@@ -36,6 +37,8 @@ export function createDefaultAppState() {
   return {
     schemaVersion: CURRENT_SCHEMA_VERSION,
     onboarded: false,
+    planSetupComplete: false,
+    planSetupMethod: null,
     profile: {
       name: '',
       registrationDate: '',
@@ -125,6 +128,7 @@ export function migrateAppState(state, defaults = createDefaultAppState()) {
   }
 
   merged.schemaVersion = CURRENT_SCHEMA_VERSION
+  merged.planSetupComplete = inferPlanSetupComplete(merged)
   return merged
 }
 

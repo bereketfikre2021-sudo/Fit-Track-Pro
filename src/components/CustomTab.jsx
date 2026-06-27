@@ -69,6 +69,11 @@ import { fetchExerciseRecommendation } from '@/lib/aiRecommendations'
 import { getAiToastKey } from '@/lib/aiErrors'
 import { shouldShowExerciseSetupPrompt } from '@/lib/planEmpty'
 import {
+  allowsAiPlanFeatures,
+  allowsTemplatePlanFeatures,
+  getPlanSetupMethod,
+} from '@/lib/planSetup'
+import {
   EQUIPMENT_I18N_KEYS,
   MUSCLE_I18N_KEYS,
   translateWeekday,
@@ -85,12 +90,6 @@ function CustomTab({ state, updateState }) {
   const [searchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('exercises')
 
-  useEffect(() => {
-    const tab = searchParams.get('tab')
-    if (tab === 'schedule' || tab === 'exercises' || tab === 'templates') {
-      setActiveTab(tab)
-    }
-  }, [searchParams])
   const [isAddingExercise, setIsAddingExercise] = useState(false)
   const [newExercisePhase, setNewExercisePhase] = useState(EXERCISE_PHASE.MAIN)
   const [exercisePhaseFilter, setExercisePhaseFilter] = useState(EXERCISE_PHASE.MAIN)
@@ -104,7 +103,23 @@ function CustomTab({ state, updateState }) {
 
   const customExercises = state.customExercises || []
   const showExerciseSetupPrompt = shouldShowExerciseSetupPrompt(state)
+  const setupMethod = getPlanSetupMethod(state)
+  const showAiFeatures = allowsAiPlanFeatures(state)
+  const showTemplateFeatures = allowsTemplatePlanFeatures(state)
+  const showTemplatesTab = showTemplateFeatures
   const completedExercises = state.completedExercises || {}
+
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab === 'schedule' || tab === 'exercises') {
+      setActiveTab(tab)
+    } else if (tab === 'templates' && showTemplatesTab) {
+      setActiveTab('templates')
+    } else if (tab === 'templates' && !showTemplatesTab) {
+      setActiveTab('exercises')
+    }
+  }, [searchParams, showTemplatesTab])
+
   const filteredExercises = useMemo(
     () =>
       filterExerciseLibrary(customExercises, {
@@ -243,7 +258,7 @@ function CustomTab({ state, updateState }) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
+        <TabsList className={cn('grid w-full mb-6', showTemplatesTab ? 'grid-cols-3' : 'grid-cols-2')}>
           <TabsTrigger value="exercises">
             <Dumbbell className="h-4 w-4 mr-2" />
             {t('exercises.tabLibrary')}
@@ -252,10 +267,12 @@ function CustomTab({ state, updateState }) {
             <Calendar className="h-4 w-4 mr-2" />
             {t('exercises.tabSchedule')}
           </TabsTrigger>
-          <TabsTrigger value="templates">
-            <LayoutTemplate className="h-4 w-4 mr-2" />
-            {t('exercises.tabTemplates')}
-          </TabsTrigger>
+          {showTemplatesTab && (
+            <TabsTrigger value="templates">
+              <LayoutTemplate className="h-4 w-4 mr-2" />
+              {t('exercises.tabTemplates')}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* EXERCISES TAB */}
@@ -271,15 +288,6 @@ function CustomTab({ state, updateState }) {
                   onExport={handleExportExercises}
                   onImportFileSelected={handleImportFileSelected}
                 />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="shrink-0"
-                  onClick={() => setPresetBrowserOpen(true)}
-                >
-                  <Library className="h-4 w-4 mr-1" />
-                  {t('exercises.presetBrowse')}
-                </Button>
                 <Button size="sm" className="shrink-0" onClick={() => setAddTypeOpen(true)}>
                   <Plus className="h-4 w-4 mr-1" />
                   {t('exercises.addExercise')}
@@ -307,27 +315,28 @@ function CustomTab({ state, updateState }) {
           </div>
 
           {customExercises.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Dumbbell className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">{t('exercises.emptyTitle')}</p>
-                <p className="text-sm text-muted-foreground mb-4 text-center">
-                  {t('exercises.emptyDesc')}
-                </p>
-                <div className="flex flex-col sm:flex-row flex-wrap gap-2 justify-center">
-                  <AiRecommendButton
-                    loading={aiLoading}
-                    label={t('ai.exerciseLabel')}
-                    onClick={handleAiExerciseRecommend}
-                  />
-                  <Button onClick={() => setAddTypeOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    {t('exercises.addExercise')}
-                  </Button>
-                  <Button variant="outline" onClick={() => setActiveTab('templates')}>
-                    <LayoutTemplate className="h-4 w-4 mr-2" />
-                    Use Template
-                  </Button>
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="py-5 space-y-4">
+                <div>
+                  <p className="font-medium">{t('exercises.emptyTitle')}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {t('exercises.emptyDesc')}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {showAiFeatures && (
+                    <AiRecommendButton
+                      loading={aiLoading}
+                      label={t('ai.exerciseLabel')}
+                      onClick={handleAiExerciseRecommend}
+                    />
+                  )}
+                  {showTemplateFeatures && (
+                    <Button size="sm" variant="outline" onClick={() => setActiveTab('templates')}>
+                      <LayoutTemplate className="h-4 w-4 mr-2" />
+                      {t('exercises.tabTemplates')}
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -399,20 +408,18 @@ function CustomTab({ state, updateState }) {
             customExercises={customExercises}
             state={state}
             updateState={updateState}
-            aiLoading={aiLoading}
-            onAiRecommend={handleAiExerciseRecommend}
-            showExerciseSetupPrompt={showExerciseSetupPrompt}
-            onAddExercise={() => {
-              setActiveTab('exercises')
-              setAddTypeOpen(true)
-            }}
           />
         </TabsContent>
 
-        {/* TEMPLATES TAB */}
-        <TabsContent value="templates" className="space-y-4">
-          <TemplateManager state={state} updateState={updateState} />
-        </TabsContent>
+        {showTemplatesTab && (
+          <TabsContent value="templates" className="space-y-4">
+            <TemplateManager
+              state={state}
+              updateState={updateState}
+              showPresetTemplates={showTemplateFeatures}
+            />
+          </TabsContent>
+        )}
       </Tabs>
 
       <PresetExerciseBrowser
@@ -1319,8 +1326,10 @@ function AddDaysDialog({ open, onOpenChange, workoutDays, onAdd }) {
   }
 
   const handleConfirm = () => {
-    onAdd(selected)
+    const toAdd = selected
     setSelected([])
+    onOpenChange(false)
+    onAdd(toAdd)
   }
 
   const availableCount = DAYS_OF_WEEK.filter((d) => !workoutDays.includes(d)).length
@@ -1426,25 +1435,23 @@ function ScheduleManager({
   customExercises,
   state,
   updateState,
-  aiLoading,
-  onAiRecommend,
-  showExerciseSetupPrompt,
-  onAddExercise,
 }) {
   const { t } = useTranslation()
   const [selectedDay, setSelectedDay] = useState(workoutDays[0] || null)
   const [isAddingDay, setIsAddingDay] = useState(false)
-  const [isAddingExercise, setIsAddingExercise] = useState(false)
   const [copyDialogOpen, setCopyDialogOpen] = useState(false)
 
   const handleAddDays = (days) => {
     if (!days.length) return
 
-    const newSchedule = { ...workoutSchedule }
+    const currentWorkoutDays = state.profile?.workoutDays || []
+    const currentSchedule = state.workoutSchedule || {}
+
+    const newSchedule = { ...currentSchedule }
     const addedDayNames = []
 
     days.forEach((day) => {
-      if (workoutDays.includes(day)) return
+      if (currentWorkoutDays.includes(day)) return
       newSchedule[day] = {
         note: i18n.t('common.dayWorkout', { day, lng: 'en' }),
         exercises: [],
@@ -1457,7 +1464,7 @@ function ScheduleManager({
     updateState({
       profile: {
         ...state.profile,
-        workoutDays: [...workoutDays, ...addedDayNames],
+        workoutDays: [...currentWorkoutDays, ...addedDayNames],
       },
       workoutSchedule: newSchedule,
     })
@@ -1474,7 +1481,6 @@ function ScheduleManager({
     }
 
     setSelectedDay(addedDayNames[addedDayNames.length - 1])
-    setIsAddingDay(false)
   }
 
   const handleRemoveDay = (day) => {
@@ -1485,20 +1491,23 @@ function ScheduleManager({
     )
       return
 
-    const newSchedule = { ...workoutSchedule }
+    const currentWorkoutDays = state.profile?.workoutDays || []
+    const currentSchedule = state.workoutSchedule || {}
+
+    const newSchedule = { ...currentSchedule }
     delete newSchedule[day]
 
     updateState({
       profile: {
         ...state.profile,
-        workoutDays: workoutDays.filter(d => d !== day)
+        workoutDays: currentWorkoutDays.filter(d => d !== day),
       },
-      workoutSchedule: newSchedule
+      workoutSchedule: newSchedule,
     })
 
     toast.success(t('custom.scheduleDayRemoved', { day: translateWeekday(day) }))
     if (selectedDay === day) {
-      setSelectedDay(workoutDays.filter(d => d !== day)[0] || null)
+      setSelectedDay(currentWorkoutDays.filter(d => d !== day)[0] || null)
     }
   }
 
@@ -1612,33 +1621,9 @@ function ScheduleManager({
     />
   )
 
-  const exerciseSetupCard = showExerciseSetupPrompt ? (
-    <Card className="border-primary/20 bg-primary/5">
-      <CardContent className="flex flex-col items-center justify-center py-8 px-4">
-        <Dumbbell className="h-10 w-10 text-muted-foreground mb-3 opacity-50" />
-        <p className="text-base font-medium mb-1 text-center">{t('home.emptyTitle')}</p>
-        <p className="text-sm text-muted-foreground mb-4 text-center max-w-sm">
-          {t('home.emptyDesc')}
-        </p>
-        <div className="flex flex-wrap gap-2 justify-center">
-          <AiRecommendButton
-            loading={aiLoading}
-            label={t('ai.exerciseLabel')}
-            onClick={onAiRecommend}
-          />
-          <Button variant="outline" onClick={onAddExercise}>
-            <Plus className="h-4 w-4 mr-2" />
-            {t('workout.addExercises')}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  ) : null
-
   if (workoutDays.length === 0) {
     return (
       <>
-        {exerciseSetupCard}
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Calendar className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
@@ -1657,7 +1642,6 @@ function ScheduleManager({
 
   return (
     <div className="space-y-4">
-      {exerciseSetupCard}
       {/* Day Management */}
       <Card>
         <CardHeader>
@@ -1665,10 +1649,10 @@ function ScheduleManager({
             <div>
               <CardTitle>{t('report.workoutDays')}</CardTitle>
               <CardDescription>
-                {t('common.days', { count: workoutDays.length })}
+                {t('custom.workoutDaysCount', { count: workoutDays.length })}
               </CardDescription>
             </div>
-            <Button onClick={() => setIsAddingDay(true)} size="sm">
+            <Button variant="outline" onClick={() => setIsAddingDay(true)} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               {t('custom.addDay', { defaultValue: 'Add Day' })}
             </Button>
@@ -1741,16 +1725,6 @@ function ScheduleManager({
                       {t('custom.copyDay')}
                     </Button>
                   )}
-                  {customExercises.length > 0 && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setIsAddingExercise(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      {t('exercises.addExercise')}
-                    </Button>
-                  )}
                 </div>
               </div>
 
@@ -1783,19 +1757,6 @@ function ScheduleManager({
         exerciseCount={workoutSchedule[selectedDay]?.exercises?.length ?? 0}
         onCopy={handleCopyDay}
       />
-
-      {/* Add Exercise Dialog */}
-      {isAddingExercise && selectedDay && (
-        <AddExerciseToDayDialog
-          day={selectedDay}
-          customExercises={customExercises}
-          onClose={() => setIsAddingExercise(false)}
-          onAdd={(exerciseId, details) => {
-            handleAddExerciseToDay(selectedDay, exerciseId, details)
-            setIsAddingExercise(false)
-          }}
-        />
-      )}
 
       {addDayDialog}
     </div>

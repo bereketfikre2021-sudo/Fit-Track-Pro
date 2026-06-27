@@ -71,39 +71,56 @@ import {
 
 import { toast } from 'sonner'
 import { translateWeekday } from '@/lib/i18nHelpers'
-import AiRecommendButton from './AiRecommendButton'
+import AiRecommendButton, { NewUserGetStartedCard } from './AiRecommendButton'
 import { fetchExerciseRecommendation } from '@/lib/aiRecommendations'
 import { applyExerciseImport, IMPORT_MODE } from '@/lib/exerciseImport'
 import { showImportWarnings } from '@/lib/importWarnings'
 import { getAiToastKey } from '@/lib/aiErrors'
+import {
+  allowsTemplatePlanFeatures,
+  getPlanSetupMethod,
+} from '@/lib/planSetup'
 
 
 
 const sharedRadius = 'rounded-md'
 
-function WorkoutExerciseEmptyActions({ showAiRecommend, aiLoading, onAiRecommend, t }) {
+function WorkoutExerciseEmptyActions({ t, dayLabel, noDays, showTemplateLink, showManualLink }) {
   return (
-    <div className="flex flex-wrap gap-2 justify-center">
-      {showAiRecommend && (
-        <AiRecommendButton
-          loading={aiLoading}
-          label={t('ai.exerciseLabel')}
-          onClick={onAiRecommend}
-        />
-      )}
-      <Button variant="outline" asChild>
-        <Link to="/exercises">
-          <Plus className="h-4 w-4 mr-2" />
-          {t('workout.addExercises')}
-        </Link>
-      </Button>
-      <Button variant="outline" asChild>
-        <Link to="/exercises?tab=templates">
-          <Calendar className="h-4 w-4 mr-2" />
-          Use Template
-        </Link>
-      </Button>
-    </div>
+    <Card className="border-primary/30 bg-primary/5 w-full">
+      <CardContent className="py-5 space-y-4">
+        <div>
+          <p className="font-medium">
+            {noDays ? t('workout.noDaysTitle') : t('workout.noExercisesTitle')}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {noDays
+              ? t('workout.noDaysDesc')
+              : dayLabel
+                ? t('workout.noExercisesDay', { day: dayLabel })
+                : t('workout.noExercisesGeneral')}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {showTemplateLink && (
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/exercises?tab=templates">
+                <Calendar className="h-4 w-4 mr-2" />
+                {t('exercises.tabTemplates')}
+              </Link>
+            </Button>
+          )}
+          {showManualLink && (
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/exercises">
+                <Plus className="h-4 w-4 mr-2" />
+                {t('workout.addExercises')}
+              </Link>
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -221,6 +238,9 @@ function WorkoutTab({ state, updateState }) {
   const workoutSchedule = state.workoutSchedule || {}
 
   const workoutDays = state.profile?.workoutDays || []
+  const setupMethod = getPlanSetupMethod(state)
+  const showTemplateFeatures = allowsTemplatePlanFeatures(state)
+  const showManualFeatures = setupMethod === null || setupMethod === 'manual'
 
   const customExercises = state.customExercises || []
 
@@ -647,30 +667,11 @@ function WorkoutTab({ state, updateState }) {
 
       <div className="p-4 md:p-6 pb-20 md:pb-6">
 
-        <Card>
-
-          <CardContent className="flex flex-col items-center justify-center py-12">
-
-            <Calendar className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-
-            <p className="text-lg font-medium mb-2">{t('workout.noDaysTitle')}</p>
-
-            <p className="text-sm text-muted-foreground mb-4 text-center">
-
-              {t('workout.noDaysDesc')}
-
-            </p>
-
-            <WorkoutExerciseEmptyActions
-              showAiRecommend
-              aiLoading={aiLoading}
-              onAiRecommend={handleAiExerciseRecommend}
-              t={t}
-            />
-
-          </CardContent>
-
-        </Card>
+        <NewUserGetStartedCard
+          aiLoading={aiLoading}
+          onAiGenerate={handleAiExerciseRecommend}
+          setupMethod={setupMethod}
+        />
 
       </div>
 
@@ -860,34 +861,12 @@ function WorkoutTab({ state, updateState }) {
 
               {exerciseCount === 0 ? (
 
-                <Card>
-
-                  <CardContent className="flex flex-col items-center justify-center py-12">
-
-                    <Dumbbell className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-
-                    <p className="text-lg font-medium mb-2">{t('workout.noExercisesTitle')}</p>
-
-                    <p className="text-sm text-muted-foreground mb-4 text-center">
-
-                      {customExercises.length > 0
-
-                        ? t('workout.noExercisesDay', { day: translateWeekday(day) })
-
-                        : t('workout.noExercisesGeneral')}
-
-                    </p>
-
-                    <WorkoutExerciseEmptyActions
-                      showAiRecommend
-                      aiLoading={aiLoading}
-                      onAiRecommend={handleAiExerciseRecommend}
-                      t={t}
-                    />
-
-                  </CardContent>
-
-                </Card>
+                <WorkoutExerciseEmptyActions
+                  dayLabel={customExercises.length > 0 ? translateWeekday(day) : null}
+                  t={t}
+                  showTemplateLink={showTemplateFeatures}
+                  showManualLink={showManualFeatures}
+                />
 
               ) : (
 

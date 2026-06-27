@@ -348,6 +348,24 @@
     "continueProfile": "መገለጫዎን ይቀጥሉ",
     "toastWelcomeBack": "እንኳን ደህና ተመለሱ፣ {{name}}!"
   },
+  "setup": {
+    "title": "እንዴት መጀመር ይፈልጋሉ?",
+    "subtitle": "ለ{{goal}} ግብዎ የአካል ብቃት፣ ምግብ እና የግዛት ዝርዝር ያዘጋጁ",
+    "coversAll": "አንድ ምርጫ የአካል ብቃት፣ የምግብ እቅድ እና የግዛት ዝርዝር በአንድ ላይ ያሟላል",
+    "aiTitle": "AI ምክር",
+    "aiDesc": "ለመገለጫዎ የተበጁ ሙሉ እቅድ ይፍጠሩ",
+    "templateTitle": "አብነት ይጠቀሙ",
+    "templateDesc": "{{workout}} አካል ብቃት + {{meal}} ምግቦች እና ግዛት",
+    "templateDescGeneric": "ለግብዎ የተስማሙ ነባሪ እቅዶች",
+    "manualTitle": "በእራስዎ ይገንቡ",
+    "manualDesc": "ከቅድመ-ተዘጋጅቶች ይምረጡ ወይም የእርስዎን ይፍጠሩ",
+    "phaseExercises": "አካል ብቃት በመፍጠር ላይ…",
+    "phaseMeals": "ምግቦች በመፍጠር ላይ…",
+    "phaseShopping": "የግዛት ዝርዝር በመፍጠር ላይ…",
+    "aiSuccess": "ሙሉ እቅድዎ ዝግጁ ነው!",
+    "templateSuccess": "ለግብዎ ነባሪ እቅዶች ተተገብሩ",
+    "templateFail": "አብነቶች ማተገበር አልተሳካም"
+  },
   "home": {
     "title": "የእኔ የአካል ብቃት እቅድ",
     "subtitle": "ክፍለ ጊዜ ጀምሩ፣ የአካል ብቃት ያጠናቁ እና ሂደትዎን ይከታተሉ",
@@ -459,7 +477,13 @@
     "busy": "AI አሁን ስራ ላይ ነው — ትንሽ ቆይተው እንደገና ይሞክሩ",
     "exerciseLabel": "ለግብዬ የአካል ብቃት ይመክሩ",
     "mealLabel": "የምግብ እቅድ ይመክሩ (ኢትዮጵያ፣ በበጀት)",
-    "shoppingLabel": "የግዛት ዝርዝር ይመክሩ (ኢትዮጵያ)"
+    "shoppingLabel": "የግዛት ዝርዝር ይመክሩ (ኢትዮጵያ)",
+    "generateAll": "AI ምክር",
+    "generateAllDesc": "አካል ብቃት፣ ምግቦች እና ግዛት በአንድ ላይ",
+    "chooseTemplate": "አብነት ይጠቀሙ",
+    "chooseTemplateDesc": "ለግብዎ የተዘጋጁ እቅዶች",
+    "addManually": "በእራስዎ ይገንቡ",
+    "addManuallyDesc": "አካል ብቃት ይምረጡ ወይም ይፍጠሩ"
   },
   "copyright": "© {{year}} ቤረኬት ፍቅሬ። ሁሉም መብቶች የተጠበቁ ናቸው።",
   "meals": {
@@ -561,7 +585,7 @@
     "pageTitle": "ብጁ ልምምዶች",
     "pageSubtitle": "የአካል ብቃት ቤተ-መጽሐፍት እና የሳምንት መርሃግብር ይገንቡ",
     "tabLibrary": "የአካል ብቃት",
-    "tabSchedule": "ቀናት",
+    "tabSchedule": "የልምምድ ቀናት",
     "tabTemplates": "አብነቶች",
     "inLibrary": "{{count}} በቤተ-መጽሐፍት",
     "jsonTemplate": "JSON አብነት",
@@ -905,6 +929,8 @@
     "removeDay": "ቀን አስወግድ",
     "dragReorder": "ለማዘዝ ይጎትቱ",
     "removeFromDay": "ከቀን አስወግድ",
+    "workoutDaysCount": "{{count}} የልምምድ ቀን",
+    "workoutDaysCount_plural": "{{count}} የልምምድ ቀናት",
     "holdExerciseType": "ጊዜ/መያዣ የአካል ብቃት (ለምሳ. 5 ደቂቃ ሩጫ፣ ፕላንክ)",
     "holdExerciseLabel": "ጊዜ/መያዣ የአካል ብቃት (ለምሳ. 5 ደቂቃ ሩጫ፣ ፕላንክ)"
   },

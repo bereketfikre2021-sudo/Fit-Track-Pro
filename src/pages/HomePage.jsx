@@ -1,19 +1,13 @@
-import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Dumbbell, Plus, UtensilsCrossed } from 'lucide-react'
+import { UtensilsCrossed } from 'lucide-react'
 import { toast } from 'sonner'
 import GymFloatingPattern from '../components/GymFloatingPattern'
 import TodayWorkoutCard from '../components/TodayWorkoutCard'
 import WaterTracker from '../components/WaterTracker'
-import AiRecommendButton from '../components/AiRecommendButton'
 import { Card, CardContent } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 import { canStartWorkoutForDay } from '@/lib/calendarDay'
-import { fetchExerciseRecommendation } from '@/lib/aiRecommendations'
-import { applyExerciseImport, IMPORT_MODE } from '@/lib/exerciseImport'
-import { showImportWarnings } from '@/lib/importWarnings'
-import { shouldShowExerciseSetupPrompt } from '@/lib/planEmpty'
 import {
   getTodaySessionForDay,
   skipWorkoutForToday,
@@ -21,15 +15,22 @@ import {
   todayDateString,
 } from '@/lib/workoutSession'
 import { translateWeekday } from '@/lib/i18nHelpers'
-import { getAiToastKey } from '@/lib/aiErrors'
 import { getDayMacroTotals } from '@/lib/mealPlan'
+import { shouldShowExerciseSetupPrompt } from '@/lib/planEmpty'
+import { getPlanSetupMethod } from '@/lib/planSetup'
 
 function HomePage({ state, updateState }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const today = todayDateString()
-  const [aiLoading, setAiLoading] = useState(false)
   const showExerciseSetupPrompt = shouldShowExerciseSetupPrompt(state)
+  const setupMethod = getPlanSetupMethod(state)
+  const getStartedPath =
+    setupMethod === 'manual'
+      ? '/exercises'
+      : setupMethod === 'template'
+        ? '/exercises?tab=templates'
+        : '/workout'
 
   // Today's day name for meal plan lookup (mealPlan is keyed by weekday name)
   const todayDayName = new Date().toLocaleDateString('en-US', { weekday: 'long' })
@@ -63,43 +64,6 @@ function HomePage({ state, updateState }) {
     }
     updateState(skipWorkoutForToday(state, day, reason, today))
     toast.success(t('home.toastSkippedToday'))
-  }
-
-  const handleAiExerciseRecommend = async () => {
-    setAiLoading(true)
-    try {
-      const parsed = await fetchExerciseRecommendation(state)
-      const result = applyExerciseImport(state, parsed, IMPORT_MODE.APPEND)
-      updateState({
-        customExercises: result.customExercises,
-        workoutSchedule: result.workoutSchedule,
-        profile: result.profile,
-      })
-      const { exercisesAdded, scheduleEntriesAdded, warnings } = result.summary
-      const parts = []
-      if (exercisesAdded) parts.push(t('common.exercises', { count: exercisesAdded }))
-      if (scheduleEntriesAdded) {
-        parts.push(
-          t('custom.importScheduleEntries', {
-            count: scheduleEntriesAdded,
-            defaultValue: `${scheduleEntriesAdded} schedule assignment(s)`,
-          })
-        )
-      }
-      toast.success(
-        parts.length
-          ? t('custom.toastAiAdded', {
-              parts: parts.join(` ${t('common.and', { defaultValue: 'and' })} `),
-              defaultValue: `AI added ${parts.join(' and ')}`,
-            })
-          : t('custom.toastAiApplied')
-      )
-      showImportWarnings(warnings, { title: t('custom.aiNotesTitle') })
-    } catch (err) {
-      toast.error(t(getAiToastKey(err)))
-    } finally {
-      setAiLoading(false)
-    }
   }
 
   return (
@@ -158,31 +122,19 @@ function HomePage({ state, updateState }) {
           </Card>
         )}
 
+        {/* New user setup prompt — directs to the Workout tab where all 3 options live */}
         {showExerciseSetupPrompt && (
-          <Card className="border-border/80 bg-card/90 backdrop-blur-sm">
-            <CardContent className="flex flex-col items-center justify-center py-10 px-4">
-              <Dumbbell className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-              <p className="text-lg font-medium mb-2 text-center">
-                {t('home.emptyTitle')}
-              </p>
-              <p className="text-sm text-muted-foreground mb-5 text-center max-w-sm">
-                {t('home.emptyDesc')}
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center w-full max-w-md">
-                <AiRecommendButton
-                  loading={aiLoading}
-                  label={t('ai.exerciseLabel')}
-                  onClick={handleAiExerciseRecommend}
-                  size="default"
-                  className="w-full sm:w-auto"
-                />
-                <Button variant="outline" asChild className="w-full sm:w-auto">
-                  <Link to="/exercises">
-                    <Plus className="h-4 w-4 mr-2" />
-                    {t('workout.addExercises')}
-                  </Link>
-                </Button>
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="py-5 space-y-3">
+              <div>
+                <p className="font-medium">{t('home.emptyTitle')}</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('home.emptyDesc')}</p>
               </div>
+              <Button size="sm" asChild>
+                <Link to={getStartedPath}>
+                  {t('home.getStarted', { defaultValue: 'Get Started' })}
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         )}

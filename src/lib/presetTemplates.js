@@ -10,6 +10,7 @@ export const PRESET_TEMPLATES = [
     name: 'Push / Pull / Legs',
     description: 'Classic 3-day split targeting pushing muscles, pulling muscles, and legs separately.',
     tags: ['Intermediate', '3 days'],
+    goal: 'muscle',
     days: ['Push', 'Pull', 'Legs'],
     payload: {
       version: 2,
@@ -46,6 +47,7 @@ export const PRESET_TEMPLATES = [
     name: 'Upper / Lower',
     description: '4-day split alternating upper and lower body sessions for balanced development.',
     tags: ['Intermediate', '4 days'],
+    goal: 'strength',
     days: ['Upper A', 'Lower A', 'Upper B', 'Lower B'],
     payload: {
       version: 2,
@@ -79,6 +81,7 @@ export const PRESET_TEMPLATES = [
     name: 'Full Body',
     description: '3-day full body program hitting all major muscle groups every session. Great for beginners.',
     tags: ['Beginner', '3 days'],
+    goal: 'strength',
     days: ['Day A', 'Day B', 'Day C'],
     payload: {
       version: 2,
@@ -106,6 +109,7 @@ export const PRESET_TEMPLATES = [
     name: 'Bro Split',
     description: '5-day split dedicating each day to one muscle group. Classic bodybuilding style.',
     tags: ['Intermediate', '5 days'],
+    goal: 'muscle',
     days: ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs'],
     payload: {
       version: 2,
@@ -147,3 +151,51 @@ export const PRESET_TEMPLATES = [
     },
   },
 ]
+
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+export function getPresetTemplateById(id) {
+  return PRESET_TEMPLATES.find((p) => p.id === id) ?? null
+}
+
+/** Pick a default workout preset based on goal and fitness level. */
+export function getRecommendedWorkoutTemplateId(profile = {}) {
+  const goal = profile.goal || 'strength'
+  const level = profile.fitnessLevel || 'beginner'
+  if (level === 'beginner' || goal === 'fat' || goal === 'endurance') return 'full-body'
+  if (goal === 'muscle') return 'push-pull-legs'
+  if (goal === 'strength') return 'upper-lower'
+  return 'full-body'
+}
+
+export function defaultPresetDayMapping(preset, workoutDays = []) {
+  const days = workoutDays.length > 0 ? workoutDays : DAYS_OF_WEEK
+  const splitKeys = Object.keys(preset.scheduleMap)
+  const mapping = {}
+  splitKeys.forEach((key, i) => {
+    mapping[key] = days[i % days.length]
+  })
+  return mapping
+}
+
+/** Build an exercise-import payload with schedule mapped to weekdays. */
+export function buildPresetExercisePayload(preset, mapping) {
+  const splitKeys = Object.keys(preset.scheduleMap)
+  const schedule = {}
+
+  splitKeys.forEach((key) => {
+    const targetDay = mapping[key]
+    if (!targetDay) return
+    const exercises = preset.scheduleMap[key].map((name) => ({ name }))
+    if (!schedule[targetDay]) {
+      schedule[targetDay] = {
+        note: `${preset.name} — ${key.replace(/([A-Z])/g, ' $1').trim()}`,
+        exercises,
+      }
+    } else {
+      schedule[targetDay].exercises.push(...exercises)
+    }
+  })
+
+  return { ...preset.payload, schedule }
+}

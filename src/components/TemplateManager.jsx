@@ -281,7 +281,7 @@ function TemplateCard({
 }
 
 /** Top-level template manager rendered inside the Templates tab. */
-function TemplateManager({ state, updateState }) {
+function TemplateManager({ state, updateState, showPresetTemplates = true }) {
   const { t } = useTranslation()
   const [newName, setNewName] = useState('')
   const [creating, setCreating] = useState(false)
@@ -337,15 +337,23 @@ function TemplateManager({ state, updateState }) {
 
   return (
     <div className="space-y-4">
-      {/* Built-in preset plans */}
-      <PresetTemplatesSection state={state} updateState={updateState} />
+      {showPresetTemplates && (
+        <PresetTemplatesSection state={state} updateState={updateState} />
+      )}
 
-      {/* Divider */}
-      <div className="flex items-center gap-3 py-1">
-        <div className="flex-1 h-px bg-border" />
-        <span className="text-xs text-muted-foreground font-medium">Your Templates</span>
-        <div className="flex-1 h-px bg-border" />
-      </div>
+      {showPresetTemplates && (
+        <div className="flex items-center gap-3 py-1">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-xs text-muted-foreground font-medium">Your Templates</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+      )}
+
+      {!showPresetTemplates && (
+        <div className="flex items-center gap-3 py-1">
+          <span className="text-xs text-muted-foreground font-medium">Your Templates</span>
+        </div>
+      )}
 
       {/* Create new template */}
       {creating ? (

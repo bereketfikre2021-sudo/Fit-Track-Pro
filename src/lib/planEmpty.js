@@ -34,3 +34,9 @@ export function isShoppingListEmpty(shoppingList) {
     (items) => Array.isArray(items) && items.length > 0
   )
 }
+
+/** True when onboarded user still needs the post-onboarding plan setup step. */
+export function needsPlanSetup(state) {
+  if (!state?.onboarded) return false
+  return !state.planSetupComplete
+}

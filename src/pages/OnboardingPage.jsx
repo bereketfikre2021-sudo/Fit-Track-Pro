@@ -126,7 +126,7 @@ function OnboardingPage({ profile, onResume, onComplete }) {
       fitnessLevel,
       workoutDays: [],
     })
-    navigate('/')
+    navigate('/setup')
   }
 
   const handleResume = () => {

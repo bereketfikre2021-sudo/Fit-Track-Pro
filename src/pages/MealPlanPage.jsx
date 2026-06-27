@@ -67,6 +67,7 @@ import {
 } from '../lib/presetShoppingLists'
 import { calculateBmi, getBmiCategory, resolveEffectiveTrainingGoal } from '../lib/profileUtils'
 import { isMealPlanEmpty, isShoppingListEmpty } from '../lib/planEmpty'
+import { allowsAiPlanFeatures, allowsTemplatePlanFeatures, canUseAiOrTemplateForMeals, canUseAiOrTemplateForShopping, getPlanSetupMethod, PLAN_SETUP_METHOD } from '@/lib/planSetup'
 import { searchFoods } from '../lib/ethiopianFoods'
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -103,12 +104,18 @@ function MealPlanPage({ state, updateState }) {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiShoppingLoading, setAiShoppingLoading] = useState(false)
   const [showPresets, setShowPresets] = useState(false)
+  const [showShoppingTemplates, setShowShoppingTemplates] = useState(false)
 
   const mealPlan = state.mealPlan || {}
   const showAiMealRecommend = isMealPlanEmpty(mealPlan)
+  const isManual = getPlanSetupMethod(state) === PLAN_SETUP_METHOD.MANUAL
+  // AI needs exercises first (personalises based on workout) — templates don't
+  const showAiMealFeatures = allowsAiPlanFeatures(state) && canUseAiOrTemplateForMeals(state)
+  const showTemplateFeatures = allowsTemplatePlanFeatures(state)
   const shoppingList = state.shoppingList || {}
-  const showAiShoppingRecommend =
-    !isMealPlanEmpty(mealPlan) && isShoppingListEmpty(shoppingList)
+  // AI needs meal plan first — templates only need meal plan for shopping (to show recommended)
+  const showAiShoppingFeatures = allowsAiPlanFeatures(state) && canUseAiOrTemplateForShopping(state)
+  const showTemplateShoppingFeatures = allowsTemplatePlanFeatures(state)
   const appSettings = getAppSettings(state)
 
   // Detect recommended shopping list from profile
@@ -477,6 +484,7 @@ function MealPlanPage({ state, updateState }) {
         <TabsContent value="meals" className="space-y-4">
           {showAiMealRecommend && (() => {
             const hasExercises = (state.customExercises || []).length > 0
+            const mealGateLocked = isManual && !hasExercises
             return (
               <Card className="border-primary/30 bg-primary/5">
                 <CardContent className="py-5 space-y-4">
@@ -487,39 +495,48 @@ function MealPlanPage({ state, updateState }) {
                     </p>
                   </div>
 
+                  {/* Hint for manual users who haven't added exercises yet */}
+                  {mealGateLocked && (
+                    <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                      <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      <span>Add exercises to your library first — AI and templates use your workout plan to tailor your meal plan.</span>
+                    </div>
+                  )}
+
                   {/* Three action buttons in a row */}
                   <div className="flex flex-wrap gap-2">
-                    {/* AI Recommend */}
-                    <div className="relative group">
-                      <AiRecommendButton
-                        loading={aiLoading}
-                        label={t('ai.mealLabel')}
-                        onClick={handleAiMealRecommend}
-                        disabled={!hasExercises}
-                      />
-                      {!hasExercises && (
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 rounded-md border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                          <Info className="inline h-3 w-3 mr-1 text-muted-foreground" />
-                          Add exercises to your library first — the AI uses your workout plan to tailor meals.
-                        </div>
-                      )}
-                    </div>
+                    {showAiMealFeatures && (
+                      <div className="relative group">
+                        <AiRecommendButton
+                          loading={aiLoading}
+                          label={t('ai.mealLabel')}
+                          onClick={handleAiMealRecommend}
+                          disabled={!hasExercises}
+                        />
+                        {!hasExercises && (
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 rounded-md border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                            <Info className="inline h-3 w-3 mr-1 text-muted-foreground" />
+                            Add exercises to your library first — the AI uses your workout plan to tailor meals.
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                    {/* Use Template */}
-                    <Button
-                      type="button"
-                      variant={showPresets ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setShowPresets((v) => !v)}
-                    >
-                      <LayoutTemplate className="h-4 w-4 mr-2" />
-                      Use Template
-                      {showPresets
-                        ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
-                        : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
-                    </Button>
+                    {showTemplateFeatures && (
+                      <Button
+                        type="button"
+                        variant={showPresets ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setShowPresets((v) => !v)}
+                      >
+                        <LayoutTemplate className="h-4 w-4 mr-2" />
+                        Use Template
+                        {showPresets
+                          ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
+                          : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
+                      </Button>
+                    )}
 
-                    {/* JSON — expands to template / export / import */}
                     <JsonFileActions
                       onTemplate={downloadMealPlanTemplate}
                       onExport={handleExportMeals}
@@ -528,7 +545,7 @@ function MealPlanPage({ state, updateState }) {
                   </div>
 
                   {/* Preset templates reveal */}
-                  {showPresets && (
+                  {showPresets && showTemplateFeatures && (
                     <div className="pt-1">
                       <MealPresetTemplatesSection state={state} updateState={updateState} />
                     </div>
@@ -539,12 +556,34 @@ function MealPlanPage({ state, updateState }) {
           })()}
 
           {!showAiMealRecommend && (
-            <JsonFileActions
-              className="mb-2"
-              onTemplate={downloadMealPlanTemplate}
-              onExport={handleExportMeals}
-              onImportFileSelected={handleImportMealsFileSelected}
-            />
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              {showTemplateFeatures && (
+                <Button
+                  type="button"
+                  variant={showPresets ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setShowPresets((v) => !v)}
+                >
+                  <LayoutTemplate className="h-4 w-4 mr-2" />
+                  Use Template
+                  {showPresets
+                    ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
+                    : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
+                </Button>
+              )}
+              <JsonFileActions
+                onTemplate={downloadMealPlanTemplate}
+                onExport={handleExportMeals}
+                onImportFileSelected={handleImportMealsFileSelected}
+              />
+            </div>
+          )}
+
+          {/* Preset templates reveal when meal plan is already filled */}
+          {showPresets && showTemplateFeatures && !showAiMealRecommend && (
+            <div className="mb-4">
+              <MealPresetTemplatesSection state={state} updateState={updateState} />
+            </div>
           )}
 
           <div className="rounded-lg border border-border/60 bg-card/50 scroll-mt-20" id="meal-reminders">
@@ -794,201 +833,256 @@ function MealPlanPage({ state, updateState }) {
         {/* SHOPPING LIST TAB */}
         <TabsContent value="shopping" className="space-y-4">
 
-          {/* Preset shopping list templates */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {PRESET_SHOPPING_LISTS.map((preset) => {
-              const isRecommended = preset.id === recommendedShoppingId
-              return (
-                <Card
-                  key={preset.id}
-                  className={cn(
-                    'border transition-all',
-                    isRecommended
-                      ? 'border-primary/50 bg-primary/5'
-                      : 'border-border'
-                  )}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold flex items-center gap-1.5">
-                          <span>{preset.emoji}</span>
-                          {preset.name}
-                        </p>
-                        {isRecommended && (
-                          <span className="text-[10px] text-primary font-medium">
-                            ✓ Recommended for your goal
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                      {preset.description}
-                    </p>
-                    <Button
-                      size="sm"
-                      variant={isRecommended ? 'default' : 'outline'}
-                      className="w-full"
-                      onClick={() => {
-                        const items = buildPresetShoppingList(preset.id)
-                        if (!items) return
-                        updateState({ shoppingList: items })
-                        toast.success(`${preset.emoji} ${preset.name} applied`)
-                      }}
-                    >
-                      <LayoutTemplate className="h-3.5 w-3.5 mr-1.5" />
-                      Use this list
-                    </Button>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-
-          {showAiShoppingRecommend && (
+          {/* Setup card — only shown when shopping list is empty */}
+          {isShoppingListEmpty(shoppingList) && (
             <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-5">
+              <CardContent className="py-5 space-y-4">
                 <div>
                   <p className="font-medium">{t('meals.shoppingBuildTitle')}</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {t('meals.shoppingBuildDesc')}
-                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">{t('meals.shoppingBuildDesc')}</p>
                 </div>
-                <AiRecommendButton
-                  loading={aiShoppingLoading}
-                  label={t('ai.shoppingLabel')}
-                  onClick={handleAiShoppingRecommend}
-                  className="shrink-0"
-                />
+
+                {/* Hint for manual users who haven't filled meal plan yet */}
+                {isManual && isMealPlanEmpty(mealPlan) && (
+                  <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                    <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    <span>Fill your meal plan first — AI and templates use your meals to build a tailored shopping list.</span>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  {showAiShoppingFeatures && (
+                    <AiRecommendButton
+                      loading={aiShoppingLoading}
+                      label={t('ai.shoppingLabel')}
+                      onClick={handleAiShoppingRecommend}
+                    />
+                  )}
+                  {showTemplateShoppingFeatures && (
+                    <Button
+                      type="button"
+                      variant={showShoppingTemplates ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setShowShoppingTemplates((v) => !v)}
+                    >
+                      <LayoutTemplate className="h-4 w-4 mr-2" />
+                      Use Template
+                      {showShoppingTemplates
+                        ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
+                        : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
+                    </Button>
+                  )}
+                  <JsonFileActions
+                    onTemplate={downloadShoppingListTemplate}
+                    onExport={handleExportShoppingList}
+                    onImportFileSelected={handleImportShoppingListFileSelected}
+                  />
+                </div>
+
+                {/* Template cards reveal */}
+                {showShoppingTemplates && showTemplateShoppingFeatures && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    {PRESET_SHOPPING_LISTS.map((preset) => {
+                      const isRecommended = preset.id === recommendedShoppingId
+                      return (
+                        <Card
+                          key={preset.id}
+                          className={cn(
+                            'border transition-all',
+                            isRecommended ? 'border-primary/50 bg-primary/5' : 'border-border'
+                          )}
+                        >
+                          <CardContent className="p-4">
+                            <p className="text-sm font-semibold flex items-center gap-1.5 mb-1">
+                              <span>{preset.emoji}</span>
+                              {preset.name}
+                            </p>
+                            {isRecommended && (
+                              <span className="text-[10px] text-primary font-medium block mb-1">
+                                ✓ Recommended for your goal
+                              </span>
+                            )}
+                            <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+                              {preset.description}
+                            </p>
+                            <Button
+                              size="sm"
+                              variant={isRecommended ? 'default' : 'outline'}
+                              className="w-full"
+                              onClick={() => {
+                                const items = buildPresetShoppingList(preset.id)
+                                if (!items) return
+                                updateState({ shoppingList: items })
+                                setShowShoppingTemplates(false)
+                                toast.success(`${preset.emoji} ${preset.name} applied`)
+                              }}
+                            >
+                              <LayoutTemplate className="h-3.5 w-3.5 mr-1.5" />
+                              Use this list
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
 
-          {isMealPlanEmpty(mealPlan) && isShoppingListEmpty(shoppingList) && (
-            <Card className="border-border/80 bg-muted/20">
-              <CardContent className="py-4">
-                <p className="text-sm text-muted-foreground">
-                  {t('meals.shoppingNeedMeals')}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-primary" />
-              {t('meals.shoppingList')}
-            </h2>
-            <div className="flex min-w-0 flex-col gap-2 sm:items-end">
+          {/* Template + JSON bar — shown when shopping list already has items */}
+          {!isShoppingListEmpty(shoppingList) && (
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              {showTemplateShoppingFeatures && (
+                <Button
+                  type="button"
+                  variant={showShoppingTemplates ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setShowShoppingTemplates((v) => !v)}
+                >
+                  <LayoutTemplate className="h-4 w-4 mr-2" />
+                  Use Template
+                  {showShoppingTemplates
+                    ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
+                    : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
+                </Button>
+              )}
               <JsonFileActions
-                className="sm:justify-end"
                 onTemplate={downloadShoppingListTemplate}
                 onExport={handleExportShoppingList}
                 onImportFileSelected={handleImportShoppingListFileSelected}
               />
-              <Button
-                variant="outline"
-                size="sm"
-                className="shrink-0 w-full sm:w-auto"
-                onClick={handleClearCheckedItems}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                {t('meals.clearChecked')}
-              </Button>
             </div>
-          </div>
+          )}
 
-          <div className="grid gap-4 md:grid-cols-2">
-            {SHOPPING_CATEGORIES.map(category => {
-              const items = shoppingList[category] || []
-              const checkedCount = items.filter(i => i.checked).length
-              
-              return (
-                <Card key={category}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-base font-semibold">
-                          {translateShoppingCategory(category)}
-                        </CardTitle>
-                        <CardDescription className="text-xs">
-                          {t('common.items', { count: items.length })}
-                          {checkedCount > 0 &&
-                            ` • ${t('common.checked', { count: checkedCount })}`}
-                        </CardDescription>
-                      </div>
+          {/* Template cards reveal when shopping list is already filled */}
+          {showShoppingTemplates && showTemplateShoppingFeatures && !isShoppingListEmpty(shoppingList) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              {PRESET_SHOPPING_LISTS.map((preset) => {
+                const isRecommended = preset.id === recommendedShoppingId
+                return (
+                  <Card
+                    key={preset.id}
+                    className={cn(
+                      'border transition-all',
+                      isRecommended ? 'border-primary/50 bg-primary/5' : 'border-border'
+                    )}
+                  >
+                    <CardContent className="p-4">
+                      <p className="text-sm font-semibold flex items-center gap-1.5 mb-1">
+                        <span>{preset.emoji}</span>
+                        {preset.name}
+                      </p>
+                      {isRecommended && (
+                        <span className="text-[10px] text-primary font-medium block mb-1">
+                          ✓ Recommended for your goal
+                        </span>
+                      )}
+                      <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+                        {preset.description}
+                      </p>
                       <Button
                         size="sm"
-                        variant="ghost"
+                        variant={isRecommended ? 'default' : 'outline'}
+                        className="w-full"
                         onClick={() => {
-                          setSelectedCategory(category)
-                          setIsAddingShoppingItem(true)
+                          const items = buildPresetShoppingList(preset.id)
+                          if (!items) return
+                          updateState({ shoppingList: items })
+                          setShowShoppingTemplates(false)
+                          toast.success(`${preset.emoji} ${preset.name} applied`)
                         }}
                       >
-                        <Plus className="h-4 w-4" />
+                        <LayoutTemplate className="h-3.5 w-3.5 mr-1.5" />
+                        Use this list
                       </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    {items.length === 0 ? (
-                      <p className="text-sm text-muted-foreground italic py-2">
-                        {t('meals.noItems')}
-                      </p>
-                    ) : (
-                      <div className="space-y-1">
-                        {items.map(item => (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between group py-1.5 px-2 rounded hover:bg-muted/50 transition-colors"
-                          >
-                            <div className="flex items-center gap-2 flex-1">
-                              <button
-                                onClick={() => handleToggleShoppingItem(category, item.id)}
-                                className="text-muted-foreground hover:text-foreground transition-colors"
-                              >
-                                {item.checked ? (
-                                  <CheckSquare className="h-4 w-4 text-primary" />
-                                ) : (
-                                  <Square className="h-4 w-4" />
-                                )}
-                              </button>
-                              <span className={cn(
-                                "text-sm font-medium",
-                                item.checked && "line-through text-muted-foreground"
-                              )}>
-                                {item.name}
-                              </span>
-                            </div>
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6"
-                                onClick={() => {
-                                  setSelectedCategory(category)
-                                  setEditingShoppingItem(item)
-                                }}
-                              >
-                                <Edit2 className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6"
-                                onClick={() => handleDeleteShoppingItem(category, item.id)}
-                              >
-                                <Trash2 className="h-3 w-3 text-destructive" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Shopping list — categories as horizontal tabs */}
+          <Card>
+            <Tabs defaultValue={SHOPPING_CATEGORIES[0]}>
+              <CardHeader className="pb-0">
+                <TabsList className="w-full flex overflow-x-auto h-auto flex-nowrap justify-start gap-1 bg-transparent p-0 border-b border-border/50 rounded-none">
+                  {SHOPPING_CATEGORIES.map((category) => (
+                    <TabsTrigger
+                      key={category}
+                      value={category}
+                      className="shrink-0 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary px-3 py-2 text-xs font-medium"
+                    >
+                      {translateShoppingCategory(category)}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </CardHeader>
+
+              {SHOPPING_CATEGORIES.map((category) => {
+                const items = shoppingList[category] || []
+                return (
+                  <TabsContent key={category} value={category} className="m-0">
+                    <CardContent className="pt-3 pb-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-xs text-muted-foreground">
+                          {t('common.items', { count: items.length })}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => {
+                            setSelectedCategory(category)
+                            setIsAddingShoppingItem(true)
+                          }}
+                        >
+                          <Plus className="h-3.5 w-3.5 mr-1" />
+                          Add
+                        </Button>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
+
+                      {items.length === 0 ? (
+                        <p className="text-sm text-muted-foreground italic py-4 text-center">
+                          {t('meals.noItems')}
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {items.map((item) => (
+                            <div
+                              key={item.id}
+                              className={cn(
+                                'group flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-all cursor-pointer select-none',
+                                item.checked
+                                  ? 'border-primary/30 bg-primary/10 text-primary line-through opacity-60'
+                                  : 'border-border bg-muted/30 hover:border-primary/40'
+                              )}
+                              onClick={() => handleToggleShoppingItem(category, item.id)}
+                            >
+                              {item.checked
+                                ? <CheckSquare className="h-3.5 w-3.5 shrink-0" />
+                                : <Square className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                              }
+                              <span className="font-medium">{item.name}</span>
+                              <button
+                                type="button"
+                                className="ml-0.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+                                onClick={(e) => { e.stopPropagation(); handleDeleteShoppingItem(category, item.id) }}
+                                aria-label="Remove"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </TabsContent>
+                )
+              })}
+            </Tabs>
+          </Card>
         </TabsContent>
       </Tabs>
 

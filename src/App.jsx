@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { toast } from 'sonner'
 import OnboardingPage from './pages/OnboardingPage'
+import PlanSetupPage from './pages/PlanSetupPage'
 import DashboardLayout from './pages/DashboardLayout'
 import HomePage from './pages/HomePage'
 import WorkoutPage from './pages/WorkoutPage'
@@ -27,6 +28,17 @@ import i18n from './i18n'
 import { translateWeekday } from './lib/i18nHelpers'
 import { getAppSettings } from './lib/appSettings'
 import { configureGeminiFromAppSettings } from './lib/gemini'
+import { needsPlanSetup } from './lib/planEmpty'
+
+function RequireOnboarded({ state, children }) {
+  if (!state.onboarded) return <Navigate to="/onboarding" replace />
+  return children
+}
+
+function RequirePlanSetupDone({ state, children }) {
+  if (needsPlanSetup(state)) return <Navigate to="/setup" replace />
+  return children
+}
 
 function App() {
   const [state, setState] = useState(() => {
@@ -58,6 +70,7 @@ function App() {
 
     updateState({
       onboarded: true,
+      planSetupComplete: false,
       schemaVersion: CURRENT_SCHEMA_VERSION,
       profile: {
         ...state.profile,
@@ -176,95 +189,109 @@ function App() {
           }
         />
         <Route
+          path="/setup"
+          element={
+            !state.onboarded ? (
+              <Navigate to="/onboarding" replace />
+            ) : state.planSetupComplete ? (
+              <Navigate to="/" replace />
+            ) : (
+              <PlanSetupPage state={state} updateState={updateState} />
+            )
+          }
+        />
+        <Route
           path="/"
           element={
             !state.onboarded ? (
               <Navigate to="/onboarding" replace />
             ) : (
-              <DashboardLayout state={state} updateState={updateState}>
-                <HomePage state={state} updateState={updateState} />
-              </DashboardLayout>
+              <RequirePlanSetupDone state={state}>
+                <DashboardLayout state={state} updateState={updateState}>
+                  <HomePage state={state} updateState={updateState} />
+                </DashboardLayout>
+              </RequirePlanSetupDone>
             )
           }
         />
         <Route
           path="/workout"
           element={
-            !state.onboarded ? (
-              <Navigate to="/onboarding" replace />
-            ) : (
-              <DashboardLayout state={state} updateState={updateState}>
-                <WorkoutPage state={state} updateState={updateState} />
-              </DashboardLayout>
-            )
+            <RequireOnboarded state={state}>
+              <RequirePlanSetupDone state={state}>
+                <DashboardLayout state={state} updateState={updateState}>
+                  <WorkoutPage state={state} updateState={updateState} />
+                </DashboardLayout>
+              </RequirePlanSetupDone>
+            </RequireOnboarded>
           }
         />
         <Route path="/history" element={<Navigate to="/report" replace />} />
         <Route
           path="/report"
           element={
-            !state.onboarded ? (
-              <Navigate to="/onboarding" replace />
-            ) : (
-              <DashboardLayout state={state} updateState={updateState}>
-                <HistoryPage state={state} updateState={updateState} />
-              </DashboardLayout>
-            )
+            <RequireOnboarded state={state}>
+              <RequirePlanSetupDone state={state}>
+                <DashboardLayout state={state} updateState={updateState}>
+                  <HistoryPage state={state} updateState={updateState} />
+                </DashboardLayout>
+              </RequirePlanSetupDone>
+            </RequireOnboarded>
           }
         />
         <Route path="/custom" element={<Navigate to="/exercises" replace />} />
         <Route
           path="/exercises"
           element={
-            !state.onboarded ? (
-              <Navigate to="/onboarding" replace />
-            ) : (
-              <DashboardLayout state={state} updateState={updateState}>
-                <CustomPage state={state} updateState={updateState} />
-              </DashboardLayout>
-            )
+            <RequireOnboarded state={state}>
+              <RequirePlanSetupDone state={state}>
+                <DashboardLayout state={state} updateState={updateState}>
+                  <CustomPage state={state} updateState={updateState} />
+                </DashboardLayout>
+              </RequirePlanSetupDone>
+            </RequireOnboarded>
           }
         />
         <Route
           path="/meal-plan"
           element={
-            !state.onboarded ? (
-              <Navigate to="/onboarding" replace />
-            ) : (
-              <DashboardLayout state={state} updateState={updateState}>
-                <MealPlanPage state={state} updateState={updateState} />
-              </DashboardLayout>
-            )
+            <RequireOnboarded state={state}>
+              <RequirePlanSetupDone state={state}>
+                <DashboardLayout state={state} updateState={updateState}>
+                  <MealPlanPage state={state} updateState={updateState} />
+                </DashboardLayout>
+              </RequirePlanSetupDone>
+            </RequireOnboarded>
           }
         />
         <Route
           path="/profile"
           element={
-            !state.onboarded ? (
-              <Navigate to="/onboarding" replace />
-            ) : (
-              <DashboardLayout state={state} updateState={updateState}>
-                <ProfilePage state={state} updateState={updateState} />
-              </DashboardLayout>
-            )
+            <RequireOnboarded state={state}>
+              <RequirePlanSetupDone state={state}>
+                <DashboardLayout state={state} updateState={updateState}>
+                  <ProfilePage state={state} updateState={updateState} />
+                </DashboardLayout>
+              </RequirePlanSetupDone>
+            </RequireOnboarded>
           }
         />
         <Route
           path="/profile/settings"
           element={
-            !state.onboarded ? (
-              <Navigate to="/onboarding" replace />
-            ) : (
-              <DashboardLayout state={state} updateState={updateState}>
-                <SettingsPage
-                  state={state}
-                  updateState={updateState}
-                  exportData={exportData}
-                  importData={importData}
-                  clearAllData={clearAllData}
-                />
-              </DashboardLayout>
-            )
+            <RequireOnboarded state={state}>
+              <RequirePlanSetupDone state={state}>
+                <DashboardLayout state={state} updateState={updateState}>
+                  <SettingsPage
+                    state={state}
+                    updateState={updateState}
+                    exportData={exportData}
+                    importData={importData}
+                    clearAllData={clearAllData}
+                  />
+                </DashboardLayout>
+              </RequirePlanSetupDone>
+            </RequireOnboarded>
           }
         />
         <Route path="*" element={<NotFoundPage />} />

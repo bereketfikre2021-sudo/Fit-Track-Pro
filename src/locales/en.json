@@ -349,6 +349,24 @@
     "continueProfile": "Continue with your profile",
     "toastWelcomeBack": "Welcome back, {{name}}!"
   },
+  "setup": {
+    "title": "How do you want to start?",
+    "subtitle": "Set up workouts, meals, and shopping for your {{goal}} goal",
+    "coversAll": "One choice fills exercises, meal plan, and shopping list together",
+    "aiTitle": "AI recommendation",
+    "aiDesc": "Generate a full plan tailored to your profile",
+    "templateTitle": "Use template",
+    "templateDesc": "{{workout}} workout + {{meal}} meals & shopping",
+    "templateDescGeneric": "Default plans matched to your goal",
+    "manualTitle": "Build manually",
+    "manualDesc": "Pick exercises from presets or create your own",
+    "phaseExercises": "Generating exercises…",
+    "phaseMeals": "Generating meals…",
+    "phaseShopping": "Generating shopping list…",
+    "aiSuccess": "Your full plan is ready!",
+    "templateSuccess": "Default plans applied for your goal",
+    "templateFail": "Could not apply templates"
+  },
   "home": {
     "title": "My Workout Plan",
     "subtitle": "Start a session, complete exercises, and track your progress",
@@ -460,7 +478,13 @@
     "busy": "AI is busy right now — please try again in a moment",
     "exerciseLabel": "Recommend exercises for my goal",
     "mealLabel": "Recommend meal plan (Ethiopia, budget)",
-    "shoppingLabel": "Recommend shopping list (Ethiopia)"
+    "shoppingLabel": "Recommend shopping list (Ethiopia)",
+    "generateAll": "AI recommendation",
+    "generateAllDesc": "Exercises, meals, and shopping in one go",
+    "chooseTemplate": "Use template",
+    "chooseTemplateDesc": "Ready-made plans for your goal",
+    "addManually": "Build manually",
+    "addManuallyDesc": "Create or pick exercises yourself"
   },
   "copyright": "© {{year}} Bereket Fikre. All rights reserved.",
   "meals": {
@@ -562,7 +586,7 @@
     "pageTitle": "Custom Exercises",
     "pageSubtitle": "Build your exercise library and weekly schedule",
     "tabLibrary": "Exercises",
-    "tabSchedule": "Days",
+    "tabSchedule": "Workout Days",
     "tabTemplates": "Templates",
     "inLibrary": "{{count}} in your library",
     "jsonTemplate": "JSON template",
@@ -909,6 +933,8 @@
     "removeFromDay": "Remove from day",
     "addWorkoutDay": "Add Workout Day",
     "addDay": "Add Day",
+    "workoutDaysCount": "{{count}} workout day",
+    "workoutDaysCount_plural": "{{count}} workout days",
     "noExercisesOnDay": "No exercises added yet",
     "alreadyAdded": "Already added",
     "selectDayForSchedule": "Select a day to add to your workout schedule",
