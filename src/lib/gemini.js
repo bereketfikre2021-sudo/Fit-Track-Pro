@@ -9,8 +9,8 @@
  * self-hosts or deploys their own instance).
  */
 
-const DEFAULT_MODEL = 'gemini-3.5-flash'
-const MODEL_FALLBACKS = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
+const DEFAULT_MODEL = 'gemini-2.5-flash'
+const MODEL_FALLBACKS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite']
 
 // Populated from Settings → AI Settings (stored in localStorage via appState).
 // Only used as an override — the server key is the default.

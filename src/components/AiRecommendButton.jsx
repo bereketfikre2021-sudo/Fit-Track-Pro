@@ -1,4 +1,5 @@
-import { Sparkles, Loader2, LayoutTemplate, Calendar, Plus } from 'lucide-react'
+import { useState } from 'react'
+import { Sparkles, Loader2, LayoutTemplate, Plus, ChevronDown, ChevronUp } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -6,6 +7,7 @@ import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
 import { cn } from '@/lib/utils'
 import { isGeminiConfigured } from '@/lib/gemini'
+import PresetTemplatesSection from './PresetTemplatesSection'
 
 function AiRecommendButton({
   onClick,
@@ -51,88 +53,70 @@ function AiRecommendButton({
  * Unified "Get Started" card shown to new users with no workout days.
  * Presents setup options filtered by the user's initial plan choice.
  */
-export function NewUserGetStartedCard({ aiLoading, onAiGenerate, setupMethod = null }) {
+export function NewUserGetStartedCard({ aiLoading, onAiGenerate, setupMethod = null, state, updateState }) {
   const { t } = useTranslation()
   const configured = isGeminiConfigured()
-  const showAi = setupMethod === null || setupMethod === 'ai'
-  const showTemplate = setupMethod === null || setupMethod === 'template'
+  const [showTemplates, setShowTemplates] = useState(false)
+
+  const showAi = setupMethod === null || setupMethod === 'ai' || setupMethod === 'manual'
+  const showTemplate = setupMethod === null || setupMethod === 'template' || setupMethod === 'manual'
   const showManual = setupMethod === null || setupMethod === 'manual'
-
-  const options = [
-    showAi && (
-      <button
-        key="ai"
-        type="button"
-        disabled={aiLoading || !configured}
-        onClick={configured ? onAiGenerate : () => toast.error(t('ai.notConfigured'))}
-        className={cn(
-          'flex flex-col items-center gap-2 rounded-xl border-2 px-4 py-5 text-center transition-all',
-          'border-primary/40 bg-primary/5 hover:border-primary hover:bg-primary/10',
-          (aiLoading || !configured) && 'opacity-60 cursor-not-allowed'
-        )}
-        title={configured ? undefined : t('ai.notConfigured')}
-      >
-        {aiLoading ? (
-          <Loader2 className="h-7 w-7 text-primary animate-spin" />
-        ) : (
-          <Sparkles className="h-7 w-7 text-primary" />
-        )}
-        <span className="text-sm font-semibold">
-          {aiLoading ? t('ai.generating') : t('ai.generateAll')}
-        </span>
-        <span className="text-xs text-muted-foreground leading-snug">
-          {t('ai.generateAllDesc')}
-        </span>
-      </button>
-    ),
-    showTemplate && (
-      <Link
-        key="template"
-        to="/exercises?tab=templates"
-        className="flex flex-col items-center gap-2 rounded-xl border-2 border-border px-4 py-5 text-center transition-all hover:border-primary/60 hover:bg-muted/30"
-      >
-        <LayoutTemplate className="h-7 w-7 text-muted-foreground" />
-        <span className="text-sm font-semibold">{t('ai.chooseTemplate')}</span>
-        <span className="text-xs text-muted-foreground leading-snug">
-          {t('ai.chooseTemplateDesc')}
-        </span>
-      </Link>
-    ),
-    showManual && (
-      <Link
-        key="manual"
-        to="/exercises"
-        className="flex flex-col items-center gap-2 rounded-xl border-2 border-border px-4 py-5 text-center transition-all hover:border-primary/60 hover:bg-muted/30"
-      >
-        <Plus className="h-7 w-7 text-muted-foreground" />
-        <span className="text-sm font-semibold">{t('ai.addManually')}</span>
-        <span className="text-xs text-muted-foreground leading-snug">
-          {t('ai.addManuallyDesc')}
-        </span>
-      </Link>
-    ),
-  ].filter(Boolean)
-
-  if (options.length === 0) return null
 
   return (
     <Card className="border-primary/30 bg-primary/5">
-      <CardContent className="py-6 px-4 space-y-5">
-        <div className="text-center">
-          <p className="text-lg font-semibold">{t('home.emptyTitle')}</p>
-          <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-            {t('home.emptyDesc')}
-          </p>
+      <CardContent className="py-5 space-y-4">
+        <div>
+          <p className="font-medium">{t('home.emptyTitle')}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t('home.emptyDesc')}</p>
         </div>
 
-        <div
-          className={cn(
-            'grid gap-3',
-            options.length === 1 ? 'grid-cols-1 max-w-xs mx-auto' : 'grid-cols-1 sm:grid-cols-3'
+        <div className="flex flex-wrap gap-2">
+          {showAi && (
+            <Button
+              type="button"
+              size="sm"
+              disabled={aiLoading || !configured}
+              onClick={configured ? onAiGenerate : () => toast.error(t('ai.notConfigured'))}
+              title={configured ? undefined : t('ai.notConfigured')}
+            >
+              {aiLoading
+                ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                : <Sparkles className="h-4 w-4 mr-2" />}
+              {aiLoading ? t('ai.generating') : t('ai.exerciseOnlyLabel')}
+            </Button>
           )}
-        >
-          {options}
+
+          {showTemplate && (
+            <Button
+              type="button"
+              variant={showTemplates ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowTemplates((v) => !v)}
+            >
+              <LayoutTemplate className="h-4 w-4 mr-2" />
+              {t('ai.chooseTemplate')}
+              {showTemplates
+                ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
+                : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
+            </Button>
+          )}
+
+          {showManual && (
+            <Button type="button" variant="outline" size="sm" asChild>
+              <Link to="/exercises">
+                <Plus className="h-4 w-4 mr-2" />
+                {t('ai.addManually')}
+              </Link>
+            </Button>
+          )}
         </div>
+
+        {/* Inline template browser */}
+        {showTemplates && showTemplate && state && updateState && (
+          <div className="pt-1 border-t border-border/60">
+            <PresetTemplatesSection state={state} updateState={updateState} />
+          </div>
+        )}
       </CardContent>
     </Card>
   )

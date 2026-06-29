@@ -255,8 +255,34 @@ function CustomTab({ state, updateState }) {
   return (
     <div className="p-4 md:p-6 pb-20 md:pb-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">{t('exercises.pageTitle')}</h1>
-        <p className="text-sm text-muted-foreground">{t('exercises.pageSubtitle')}</p>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold mb-2">{t('exercises.pageTitle')}</h1>
+            <p className="text-sm text-muted-foreground">{t('exercises.pageSubtitle')}</p>
+          </div>
+          {/* Regenerate toolbar — visible once exercises exist so users can switch approach */}
+          {customExercises.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-1">
+              {showAiFeatures && (
+                <AiRecommendButton
+                  loading={aiLoading}
+                  label={t('ai.exerciseOnlyLabel')}
+                  onClick={handleAiExerciseRecommend}
+                />
+              )}
+              {showTemplateFeatures && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowTemplatesSection(true)}
+                >
+                  <LayoutTemplate className="h-4 w-4 mr-2" />
+                  {t('ai.chooseTemplate')}
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="space-y-8">

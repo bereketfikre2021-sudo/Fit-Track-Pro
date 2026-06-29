@@ -45,7 +45,7 @@
   "nav": {
     "workout": "ልምምድ",
     "report": "እድገት",
-    "exercises": "ብጁ",
+    "exercises": "ልምምዶች",
     "meals": "ምግብ",
     "mealPlan": "የምግብ እቅድ",
     "profile": "መገለጫ",
@@ -370,7 +370,7 @@
     "title": "የእኔ የአካል ብቃት እቅድ",
     "subtitle": "ክፍለ ጊዜ ጀምሩ፣ የአካል ብቃት ያጠናቁ እና ሂደትዎን ይከታተሉ",
     "emptyTitle": "ገና የአካል ብቃት የለም",
-    "emptyDesc": "AI ከግብዎ የአካል ብቃት ቤተ-መጽሐፍት፣ የልምምድ ቀናት እና የሳምንት እቅድ ይገንባ — ወይም በእጅ ይጨምሩ።",
+    "emptyDesc": "የአካል ብቃት እቅድ ያዘጋጁ — ከዚያ ምግብ እና ግዛት ክፍሎችን ለማጠናቀቅ ይሂዱ።",
     "toastStartOnDay": "ይህን ልምምድ በ{{day}} መጀመር ይቻላል",
     "toastAlreadyDone": "የዛሬው ልምምድ ተጠናቋል",
     "toastFinishSession": "መጀመሪያ የ{{day}} ክፍለ ጊዜዎን አጠናቅቁ",
@@ -480,6 +480,8 @@
     "shoppingLabel": "የግዛት ዝርዝር ይመክሩ (ኢትዮጵያ)",
     "generateAll": "AI ምክር",
     "generateAllDesc": "አካል ብቃት፣ ምግቦች እና ግዛት በአንድ ላይ",
+    "exerciseOnlyLabel": "AI የአካል ብቃት እቅድ",
+    "exerciseOnlyDesc": "ከግቡ የአካል ብቃት ቤተ-መጽሐፍት እና የሳምንት መርሃግብር ይገንቡ",
     "chooseTemplate": "አብነት ይጠቀሙ",
     "chooseTemplateDesc": "ለግብዎ የተዘጋጁ እቅዶች",
     "addManually": "በእራስዎ ይገንቡ",
@@ -582,7 +584,7 @@
     "itemNameRequired": "የንጥል ስም ያስፈልጋል"
   },
   "exercises": {
-    "pageTitle": "ብጁ ልምምዶች",
+    "pageTitle": "ልምምዶች",
     "pageSubtitle": "የአካል ብቃት ቤተ-መጽሐፍት እና የሳምንት መርሃግብር ይገንቡ",
     "tabLibrary": "የአካል ብቃት",
     "tabSchedule": "የልምምድ ቀናት",

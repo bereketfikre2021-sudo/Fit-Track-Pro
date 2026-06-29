@@ -76,6 +76,7 @@ import { applyExerciseImport, IMPORT_MODE } from '@/lib/exerciseImport'
 import { showImportWarnings } from '@/lib/importWarnings'
 import { getAiToastKey } from '@/lib/aiErrors'
 import {
+  allowsAiPlanFeatures,
   allowsTemplatePlanFeatures,
   getPlanSetupMethod,
 } from '@/lib/planSetup'
@@ -84,7 +85,7 @@ import {
 
 const sharedRadius = 'rounded-md'
 
-function WorkoutExerciseEmptyActions({ t, dayLabel, noDays, showTemplateLink, showManualLink }) {
+function WorkoutExerciseEmptyActions({ t, dayLabel, noDays, showTemplateLink, showManualLink, showAiButton, aiLoading, onAiGenerate }) {
   return (
     <Card className="border-primary/30 bg-primary/5 w-full">
       <CardContent className="py-5 space-y-4">
@@ -101,6 +102,13 @@ function WorkoutExerciseEmptyActions({ t, dayLabel, noDays, showTemplateLink, sh
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {showAiButton && (
+            <AiRecommendButton
+              loading={aiLoading}
+              label={t('ai.exerciseLabel')}
+              onClick={onAiGenerate}
+            />
+          )}
           {showTemplateLink && (
             <Button variant="outline" size="sm" asChild>
               <Link to="/exercises?tab=templates">
@@ -237,6 +245,7 @@ function WorkoutTab({ state, updateState }) {
 
   const workoutDays = state.profile?.workoutDays || []
   const setupMethod = getPlanSetupMethod(state)
+  const showAiFeatures = allowsAiPlanFeatures(state)
   const showTemplateFeatures = allowsTemplatePlanFeatures(state)
   const showManualFeatures = setupMethod === null || setupMethod === 'manual'
 
@@ -621,6 +630,8 @@ function WorkoutTab({ state, updateState }) {
           aiLoading={aiLoading}
           onAiGenerate={handleAiExerciseRecommend}
           setupMethod={setupMethod}
+          state={state}
+          updateState={updateState}
         />
 
       </div>
@@ -814,6 +825,9 @@ function WorkoutTab({ state, updateState }) {
                 <WorkoutExerciseEmptyActions
                   dayLabel={customExercises.length > 0 ? translateWeekday(day) : null}
                   t={t}
+                  showAiButton={showAiFeatures}
+                  aiLoading={aiLoading}
+                  onAiGenerate={handleAiExerciseRecommend}
                   showTemplateLink={showTemplateFeatures}
                   showManualLink={showManualFeatures}
                 />

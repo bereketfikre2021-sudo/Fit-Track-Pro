@@ -1,12 +1,11 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { UtensilsCrossed } from 'lucide-react'
 import { toast } from 'sonner'
 import GymFloatingPattern from '../components/GymFloatingPattern'
 import TodayWorkoutCard from '../components/TodayWorkoutCard'
 import WaterTracker from '../components/WaterTracker'
-import { Card, CardContent } from '../components/ui/card'
-import { Button } from '../components/ui/button'
+import { NewUserGetStartedCard } from '../components/AiRecommendButton'
 import { canStartWorkoutForDay } from '@/lib/calendarDay'
 import {
   getTodaySessionForDay,
@@ -15,26 +14,39 @@ import {
   todayDateString,
 } from '@/lib/workoutSession'
 import { translateWeekday } from '@/lib/i18nHelpers'
-import { getDayMacroTotals } from '@/lib/mealPlan'
 import { shouldShowExerciseSetupPrompt } from '@/lib/planEmpty'
 import { getPlanSetupMethod } from '@/lib/planSetup'
+import { fetchExerciseRecommendation } from '@/lib/aiRecommendations'
+import { applyExerciseImport, IMPORT_MODE } from '@/lib/exerciseImport'
+import { showImportWarnings } from '@/lib/importWarnings'
+import { getAiToastKey } from '@/lib/aiErrors'
 
 function HomePage({ state, updateState }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const today = todayDateString()
+  const [aiLoading, setAiLoading] = useState(false)
   const showExerciseSetupPrompt = shouldShowExerciseSetupPrompt(state)
   const setupMethod = getPlanSetupMethod(state)
-  const getStartedPath =
-    setupMethod === 'manual'
-      ? '/exercises'
-      : setupMethod === 'template'
-        ? '/exercises?tab=templates'
-        : '/workout'
 
-  // Today's day name for meal plan lookup (mealPlan is keyed by weekday name)
-  const todayDayName = new Date().toLocaleDateString('en-US', { weekday: 'long' })
-  const todayMacros = getDayMacroTotals(state.mealPlan, todayDayName)
+  const handleAiExerciseRecommend = async () => {
+    setAiLoading(true)
+    try {
+      const parsed = await fetchExerciseRecommendation(state)
+      const result = applyExerciseImport(state, parsed, IMPORT_MODE.APPEND)
+      updateState({
+        customExercises: result.customExercises,
+        workoutSchedule: result.workoutSchedule,
+        profile: result.profile,
+      })
+      showImportWarnings(result.warnings, { title: t('custom.aiNotesTitle') })
+      toast.success(t('custom.toastAiApplied'))
+    } catch (err) {
+      toast.error(t(getAiToastKey(err)))
+    } finally {
+      setAiLoading(false)
+    }
+  }
 
   const handleStartSession = (day) => {
     const workoutDays = state.profile?.workoutDays || []
@@ -93,50 +105,15 @@ function HomePage({ state, updateState }) {
 
         <WaterTracker state={state} updateState={updateState} today={today} />
 
-        {/* Today's macro summary — HIDDEN for now, code kept for future use */}
-        {false && todayMacros.itemCount > 0 && (
-          <Card className="mb-6 border-border/60 bg-card/80">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <UtensilsCrossed className="h-4 w-4 text-primary" />
-                <p className="text-sm font-semibold">Today's nutrition</p>
-                <Link to="/meal-plan" className="ml-auto text-xs text-primary hover:underline">
-                  Edit
-                </Link>
-              </div>
-              <div className="grid grid-cols-4 gap-2 text-center">
-                {[
-                  { label: 'Calories', value: todayMacros.calories > 0 ? `${Math.round(todayMacros.calories)}` : '—', unit: 'kcal' },
-                  { label: 'Protein', value: todayMacros.protein > 0 ? `${Math.round(todayMacros.protein)}` : '—', unit: 'g' },
-                  { label: 'Carbs', value: todayMacros.carbs > 0 ? `${Math.round(todayMacros.carbs)}` : '—', unit: 'g' },
-                  { label: 'Fat', value: todayMacros.fat > 0 ? `${Math.round(todayMacros.fat)}` : '—', unit: 'g' },
-                ].map(({ label, value, unit }) => (
-                  <div key={label} className="rounded-lg bg-muted/40 py-2 px-1">
-                    <p className="text-[10px] text-muted-foreground mb-0.5">{label}</p>
-                    <p className="text-sm font-bold leading-none">{value}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{unit}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* New user setup prompt — directs to the Workout tab where all 3 options live */}
+        {/* New user setup — full 3-option card directly on home page */}
         {showExerciseSetupPrompt && (
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="py-5 space-y-3">
-              <div>
-                <p className="font-medium">{t('home.emptyTitle')}</p>
-                <p className="text-sm text-muted-foreground mt-1">{t('home.emptyDesc')}</p>
-              </div>
-              <Button size="sm" asChild>
-                <Link to={getStartedPath}>
-                  {t('home.getStarted', { defaultValue: 'Get Started' })}
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <NewUserGetStartedCard
+            aiLoading={aiLoading}
+            onAiGenerate={handleAiExerciseRecommend}
+            setupMethod={setupMethod}
+            state={state}
+            updateState={updateState}
+          />
         )}
       </div>
     </div>

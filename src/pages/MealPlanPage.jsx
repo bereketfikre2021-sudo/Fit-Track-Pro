@@ -64,8 +64,8 @@ import {
   getRecommendedShoppingListId,
 } from '../lib/presetShoppingLists'
 import { calculateBmi, getBmiCategory, resolveEffectiveTrainingGoal } from '../lib/profileUtils'
-import { isMealPlanEmpty, isShoppingListEmpty } from '../lib/planEmpty'
-import { allowsAiPlanFeatures, allowsTemplatePlanFeatures, canUseAiOrTemplateForMeals, canUseAiOrTemplateForShopping, getPlanSetupMethod, PLAN_SETUP_METHOD } from '@/lib/planSetup'
+import { hasAnyExercises, isMealPlanEmpty, isShoppingListEmpty } from '../lib/planEmpty'
+import { allowsAiPlanFeatures, allowsTemplatePlanFeatures } from '@/lib/planSetup'
 import { searchFoods } from '../lib/ethiopianFoods'
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -106,13 +106,8 @@ function MealPlanPage({ state, updateState }) {
 
   const mealPlan = state.mealPlan || {}
   const showAiMealRecommend = isMealPlanEmpty(mealPlan)
-  const isManual = getPlanSetupMethod(state) === PLAN_SETUP_METHOD.MANUAL
-  // AI needs exercises first (personalises based on workout) — templates don't
-  const showAiMealFeatures = allowsAiPlanFeatures(state) && canUseAiOrTemplateForMeals(state)
   const showTemplateFeatures = allowsTemplatePlanFeatures(state)
   const shoppingList = state.shoppingList || {}
-  // AI needs meal plan first — templates only need meal plan for shopping (to show recommended)
-  const showAiShoppingFeatures = allowsAiPlanFeatures(state) && canUseAiOrTemplateForShopping(state)
   const showTemplateShoppingFeatures = allowsTemplatePlanFeatures(state)
   const appSettings = getAppSettings(state)
 
@@ -179,6 +174,10 @@ function MealPlanPage({ state, updateState }) {
   }
 
   const handleAiMealRecommend = async () => {
+    if (!hasAnyExercises(state)) {
+      toast.error('Add exercises to your library first — AI uses your workout plan to tailor meals.')
+      return
+    }
     setAiLoading(true)
     try {
       const parsed = await fetchMealPlanRecommendation(state)
@@ -193,6 +192,10 @@ function MealPlanPage({ state, updateState }) {
   }
 
   const handleAiShoppingRecommend = async () => {
+    if (isMealPlanEmpty(mealPlan)) {
+      toast.error('Fill your meal plan first — AI uses your meals to build a tailored shopping list.')
+      return
+    }
     setAiShoppingLoading(true)
     try {
       const parsed = await fetchShoppingListRecommendation(state)
@@ -446,8 +449,7 @@ function MealPlanPage({ state, updateState }) {
         {/* MEALS TAB */}
         <TabsContent value="meals" className="space-y-4">
           {showAiMealRecommend && (() => {
-            const hasExercises = (state.customExercises || []).length > 0
-            const mealGateLocked = isManual && !hasExercises
+            const hasExercises = hasAnyExercises(state)
             return (
               <Card className="border-primary/30 bg-primary/5">
                 <CardContent className="py-5 space-y-4">
@@ -458,31 +460,22 @@ function MealPlanPage({ state, updateState }) {
                     </p>
                   </div>
 
-                  {/* Hint for manual users who haven't added exercises yet */}
-                  {mealGateLocked && (
+                  {/* Hint when exercises haven't been added yet */}
+                  {!hasExercises && (
                     <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
                       <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                      <span>Add exercises to your library first — AI and templates use your workout plan to tailor your meal plan.</span>
+                      <span>Add exercises to your library first — AI uses your workout plan to tailor your meal plan.</span>
                     </div>
                   )}
 
-                  {/* Three action buttons in a row */}
+                  {/* Action buttons */}
                   <div className="flex flex-wrap gap-2">
-                    {showAiMealFeatures && (
-                      <div className="relative group">
-                        <AiRecommendButton
-                          loading={aiLoading}
-                          label={t('ai.mealLabel')}
-                          onClick={handleAiMealRecommend}
-                          disabled={!hasExercises}
-                        />
-                        {!hasExercises && (
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 rounded-md border border-border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                            <Info className="inline h-3 w-3 mr-1 text-muted-foreground" />
-                            Add exercises to your library first — the AI uses your workout plan to tailor meals.
-                          </div>
-                        )}
-                      </div>
+                    {allowsAiPlanFeatures(state) && hasExercises && (
+                      <AiRecommendButton
+                        loading={aiLoading}
+                        label={t('ai.mealLabel')}
+                        onClick={handleAiMealRecommend}
+                      />
                     )}
 
                     {showTemplateFeatures && (
@@ -782,16 +775,16 @@ function MealPlanPage({ state, updateState }) {
                   <p className="text-sm text-muted-foreground mt-1">{t('meals.shoppingBuildDesc')}</p>
                 </div>
 
-                {/* Hint for manual users who haven't filled meal plan yet */}
-                {isManual && isMealPlanEmpty(mealPlan) && (
+                {/* Hint when meal plan hasn't been filled yet */}
+                {isMealPlanEmpty(mealPlan) && (
                   <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
                     <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                    <span>Fill your meal plan first — AI and templates use your meals to build a tailored shopping list.</span>
+                    <span>Fill your meal plan first — AI uses your meals to build a tailored shopping list.</span>
                   </div>
                 )}
 
                 <div className="flex flex-wrap gap-2">
-                  {showAiShoppingFeatures && (
+                  {allowsAiPlanFeatures(state) && !isMealPlanEmpty(mealPlan) && (
                     <AiRecommendButton
                       loading={aiShoppingLoading}
                       label={t('ai.shoppingLabel')}

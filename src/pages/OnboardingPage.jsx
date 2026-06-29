@@ -30,12 +30,14 @@ const FITNESS_LEVELS = [
   { value: 'intermediate', label: '⚡ Intermediate' },
   { value: 'advanced', label: '🔥 Advanced' },
 ]
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const DAY_ABBREV = { Monday: 'Mon', Tuesday: 'Tue', Wednesday: 'Wed', Thursday: 'Thu', Friday: 'Fri', Saturday: 'Sat', Sunday: 'Sun' }
+
 // Single-select groups — each option expands to the equipment values it covers
 const EQUIPMENT_OPTIONS = [
-  { id: 'gym',         label: '🏋️ Full gym',          values: ['Gym', 'Barbell', 'Dumbbell', 'Machine', 'Cable'] },
-  { id: 'freeweights', label: '🥇 Free weights',       values: ['Barbell', 'Dumbbell'] },
-  { id: 'machines',    label: '⚙️ Machines & Cables',  values: ['Machine', 'Cable'] },
-  { id: 'bodyweight',  label: '🤸 Bodyweight only',    values: ['Bodyweight'] },
+  { id: 'gym',         label: '🏋️ Full gym equipment',  values: ['Gym', 'Barbell', 'Dumbbell', 'Machine', 'Cable'] },
+  { id: 'freeweights', label: '🥇 Free weights',         values: ['Barbell', 'Dumbbell'] },
+  { id: 'bodyweight',  label: '🤸 Bodyweight only',      values: ['Bodyweight'] },
 ]
 
 function OnboardingPage({ profile, onResume, onComplete }) {
@@ -48,8 +50,15 @@ function OnboardingPage({ profile, onResume, onComplete }) {
   const [height, setHeight] = useState('')
   const [goal, setGoal] = useState('muscle')
   const [goalTouched, setGoalTouched] = useState(false)
-  const [equipmentId, setEquipmentId] = useState('gym') // single-select id
+  const [equipmentId, setEquipmentId] = useState('gym')
   const [fitnessLevel, setFitnessLevel] = useState('beginner')
+  const [workoutDays, setWorkoutDays] = useState(['Monday', 'Wednesday', 'Friday'])
+
+  const toggleDay = (day) => {
+    setWorkoutDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    )
+  }
 
   const bmi = useMemo(
     () => calculateBmi(currentWeight, height),
@@ -124,7 +133,7 @@ function OnboardingPage({ profile, onResume, onComplete }) {
       focusArea: 'full-body',
       equipment: EQUIPMENT_OPTIONS.find((o) => o.id === equipmentId)?.values || ['Gym'],
       fitnessLevel,
-      workoutDays: [],
+      workoutDays: workoutDays.length > 0 ? workoutDays : ['Monday', 'Wednesday', 'Friday'],
     })
     navigate('/setup')
   }
@@ -367,7 +376,7 @@ function OnboardingPage({ profile, onResume, onComplete }) {
                 <p className="text-[10px] text-muted-foreground mt-0.5 mb-1.5">
                   Choose what you have access to
                 </p>
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="grid grid-cols-3 gap-1.5">
                   {EQUIPMENT_OPTIONS.map(({ id, label }) => (
                     <button
                       key={id}
@@ -385,12 +394,52 @@ function OnboardingPage({ profile, onResume, onComplete }) {
                   ))}
                 </div>
               </div>
+
+              <div>
+                <span className="text-sm font-medium">Workout days</span>
+                <p className="text-[10px] text-muted-foreground mt-0.5 mb-1.5">
+                  Tap to select — Mon/Wed/Fri selected by default
+                </p>
+                <div className="grid grid-cols-7 gap-1">
+                  {DAYS_OF_WEEK.map((day) => {
+                    const active = workoutDays.includes(day)
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => toggleDay(day)}
+                        className={cn(
+                          'flex flex-col items-center justify-center rounded-lg border py-2 gap-0.5 transition-all',
+                          active
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50'
+                        )}
+                      >
+                        <span className="text-[10px] font-semibold leading-none">
+                          {DAY_ABBREV[day]}
+                        </span>
+                        <span
+                          className={cn(
+                            'w-1.5 h-1.5 rounded-full mt-0.5',
+                            active ? 'bg-primary' : 'bg-transparent'
+                          )}
+                        />
+                      </button>
+                    )
+                  })}
+                </div>
+                {workoutDays.length === 0 && (
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
+                    Select at least one day
+                  </p>
+                )}
+              </div>
             </div>
 
             <Button
               className="w-full mt-4 h-9"
               onClick={handleComplete}
-              disabled={!name.trim()}
+              disabled={!name.trim() || workoutDays.length === 0}
             >
               {t('onboarding.getStarted')}
             </Button>
