@@ -101,6 +101,7 @@ function CustomTab({ state, updateState }) {
   const [aiLoading, setAiLoading] = useState(false)
   const [historyExercise, setHistoryExercise] = useState(null)
   const [showTemplatesSection, setShowTemplatesSection] = useState(false)
+  const [libraryOpen, setLibraryOpen] = useState(false)
 
   const customExercises = state.customExercises || []
   const showExerciseSetupPrompt = shouldShowExerciseSetupPrompt(state)
@@ -260,99 +261,19 @@ function CustomTab({ state, updateState }) {
 
       <div className="space-y-8">
 
-        {/* ── EXERCISE LIBRARY ─────────────────────────── */}
-        <div className="space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-base font-semibold flex items-center gap-2">
-                <Dumbbell className="h-4 w-4 text-primary" />
-                {t('exercises.tabLibrary')}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {t('exercises.inLibrary', { count: customExercises.length })}
-              </p>
-            </div>
-            <Button size="sm" className="shrink-0 self-start sm:self-auto" onClick={() => setAddTypeOpen(true)}>
-              <Plus className="h-4 w-4 mr-1" />
-              {t('exercises.addExercise')}
-            </Button>
-          </div>
-
-          {/* Phase filter */}
-          <Tabs value={exercisePhaseFilter} onValueChange={setExercisePhaseFilter} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 h-auto gap-1 bg-muted/50 p-1">
-              {EXERCISE_PHASE_OPTIONS.map((option) => (
-                <TabsTrigger
-                  key={option.value}
-                  value={option.value}
-                  className="text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  {getExercisePhaseLabel(option.value)}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-
-          {customExercises.length === 0 ? (
-            <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="py-5 space-y-4">
-                <div>
-                  <p className="font-medium">{t('exercises.emptyTitle')}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{t('exercises.emptyDesc')}</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {showAiFeatures && (
-                    <AiRecommendButton
-                      loading={aiLoading}
-                      label={t('ai.exerciseLabel')}
-                      onClick={handleAiExerciseRecommend}
-                    />
-                  )}
-                  {showTemplateFeatures && (
-                    <Button size="sm" variant="outline" onClick={() => setShowTemplatesSection(true)}>
-                      <LayoutTemplate className="h-4 w-4 mr-2" />
-                      {t('exercises.tabTemplates')}
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ) : filteredExercises.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-10">
-                <p className="text-sm text-muted-foreground text-center">
-                  {t('exercises.noPhase', { phase: getExercisePhaseLabel(exercisePhaseFilter) })}
-                </p>
-                <Button className="mt-4" size="sm" variant="outline" onClick={() => openAddExercise(exercisePhaseFilter)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  {t('exercises.addPhase', { phase: getExercisePhaseLabel(exercisePhaseFilter) })}
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {filteredExercises.map((exercise) => (
-                <ExerciseLibraryCard
-                  key={exercise.id}
-                  exercise={exercise}
-                  personalRecord={getPersonalRecord(completedExercises, exercise.id)?.label}
-                  onEdit={() => setEditingExercise(exercise)}
-                  onDelete={() => handleDeleteExercise(exercise.id)}
-                  onHistory={() => setHistoryExercise(exercise)}
-                  onUploadImage={async (file) => {
-                    if (file.size > 5 * 1024 * 1024) { toast.error(t('custom.toastImageSize')); return }
-                    try {
-                      const dataUrl = await compressImageFile(file, { maxWidth: 400, maxHeight: 400, quality: 0.75 })
-                      updateState({ customExercises: customExercises.map((ex) => ex.id === exercise.id ? { ...ex, imageUrl: dataUrl, updatedAt: Date.now() } : ex) })
-                      toast.success(t('custom.toastImageUpdated'))
-                    } catch (err) {
-                      toast.error(err instanceof Error ? err.message : t('custom.toastImageFail'))
-                    }
-                  }}
-                />
-              ))}
-            </div>
-          )}
+        {/* ── WORKOUT DAYS & SCHEDULE ───────────────────── */}
+        <div id="schedule-section" className="space-y-4">
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-primary" />
+            {t('exercises.tabSchedule')}
+          </h2>
+          <ScheduleManager
+            workoutDays={workoutDays}
+            workoutSchedule={workoutSchedule}
+            customExercises={customExercises}
+            state={state}
+            updateState={updateState}
+          />
         </div>
 
         {/* ── TEMPLATES (collapsible) ───────────────────── */}
@@ -381,19 +302,114 @@ function CustomTab({ state, updateState }) {
           </div>
         )}
 
-        {/* ── WORKOUT DAYS & SCHEDULE ───────────────────── */}
-        <div id="schedule-section" className="space-y-4">
-          <h2 className="text-base font-semibold flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-primary" />
-            {t('exercises.tabSchedule')}
-          </h2>
-          <ScheduleManager
-            workoutDays={workoutDays}
-            workoutSchedule={workoutSchedule}
-            customExercises={customExercises}
-            state={state}
-            updateState={updateState}
-          />
+        {/* ── EXERCISE LIBRARY (collapsible) ───────────── */}
+        <div className="space-y-3">
+          <button
+            type="button"
+            className="w-full flex items-center justify-between gap-2 rounded-lg border border-border px-4 py-3 text-sm font-semibold hover:bg-muted/30 transition-colors"
+            onClick={() => setLibraryOpen((v) => !v)}
+          >
+            <span className="flex items-center gap-2">
+              <Dumbbell className="h-4 w-4 text-primary" />
+              <span>{t('exercises.tabLibrary')}</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                ({customExercises.length})
+              </span>
+            </span>
+            <span className="flex items-center gap-2">
+              <Button
+                size="sm"
+                className="h-7 px-2.5 text-xs"
+                onClick={(e) => { e.stopPropagation(); setAddTypeOpen(true) }}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                {t('exercises.addExercise')}
+              </Button>
+              {libraryOpen
+                ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+                : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+            </span>
+          </button>
+
+          {libraryOpen && (
+            <div className="space-y-4">
+              {/* Phase filter */}
+              <Tabs value={exercisePhaseFilter} onValueChange={setExercisePhaseFilter} className="w-full">
+                <TabsList className="grid w-full grid-cols-3 h-auto gap-1 bg-muted/50 p-1">
+                  {EXERCISE_PHASE_OPTIONS.map((option) => (
+                    <TabsTrigger
+                      key={option.value}
+                      value={option.value}
+                      className="text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    >
+                      {getExercisePhaseLabel(option.value)}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+
+              {customExercises.length === 0 ? (
+                <Card className="border-primary/30 bg-primary/5">
+                  <CardContent className="py-5 space-y-4">
+                    <div>
+                      <p className="font-medium">{t('exercises.emptyTitle')}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{t('exercises.emptyDesc')}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {showAiFeatures && (
+                        <AiRecommendButton
+                          loading={aiLoading}
+                          label={t('ai.exerciseLabel')}
+                          onClick={handleAiExerciseRecommend}
+                        />
+                      )}
+                      {showTemplateFeatures && (
+                        <Button size="sm" variant="outline" onClick={() => setShowTemplatesSection(true)}>
+                          <LayoutTemplate className="h-4 w-4 mr-2" />
+                          {t('exercises.tabTemplates')}
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : filteredExercises.length === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-10">
+                    <p className="text-sm text-muted-foreground text-center">
+                      {t('exercises.noPhase', { phase: getExercisePhaseLabel(exercisePhaseFilter) })}
+                    </p>
+                    <Button className="mt-4" size="sm" variant="outline" onClick={() => openAddExercise(exercisePhaseFilter)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      {t('exercises.addPhase', { phase: getExercisePhaseLabel(exercisePhaseFilter) })}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {filteredExercises.map((exercise) => (
+                    <ExerciseLibraryCard
+                      key={exercise.id}
+                      exercise={exercise}
+                      personalRecord={getPersonalRecord(completedExercises, exercise.id)?.label}
+                      onEdit={() => setEditingExercise(exercise)}
+                      onDelete={() => handleDeleteExercise(exercise.id)}
+                      onHistory={() => setHistoryExercise(exercise)}
+                      onUploadImage={async (file) => {
+                        if (file.size > 5 * 1024 * 1024) { toast.error(t('custom.toastImageSize')); return }
+                        try {
+                          const dataUrl = await compressImageFile(file, { maxWidth: 400, maxHeight: 400, quality: 0.75 })
+                          updateState({ customExercises: customExercises.map((ex) => ex.id === exercise.id ? { ...ex, imageUrl: dataUrl, updatedAt: Date.now() } : ex) })
+                          toast.success(t('custom.toastImageUpdated'))
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : t('custom.toastImageFail'))
+                        }
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
       </div>

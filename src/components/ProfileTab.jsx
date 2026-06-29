@@ -332,7 +332,7 @@ function ProfileTab({ state, updateState }) {
       <AccordionCard
         icon={Target}
         title={t('profile.trainingFocus')}
-        summary={`${goalMeta.emoji} ${translateGoal(formData.goal)} · ${translateFocusArea(formData.focusArea)}`}
+        summary={`${goalMeta.emoji} ${translateGoal(formData.goal)}`}
       >
         <div className="space-y-4 pt-3">
           <div>
