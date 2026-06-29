@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Play, ChevronDown, ChevronUp, Dumbbell, X, Check } from 'lucide-react'
+import { Play, ChevronDown, ChevronUp, Dumbbell, X, Check, Star } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card'
 import { Button } from './ui/button'
@@ -7,9 +7,10 @@ import { Badge } from './ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { PRESET_TEMPLATES } from '@/lib/presetTemplates'
+import { PRESET_TEMPLATES, getRecommendedWorkoutTemplateId } from '@/lib/presetTemplates'
 import { applyExerciseImport, IMPORT_MODE } from '@/lib/exerciseImport'
 import { translateWeekday } from '@/lib/i18nHelpers'
+import { resolveEffectiveTrainingGoal } from '@/lib/profileUtils'
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -112,7 +113,7 @@ function PresetLoadDialog({ preset, workoutDays, onClose, onConfirm }) {
 }
 
 /** Single preset card */
-function PresetCard({ preset, workoutDays, onApply }) {
+function PresetCard({ preset, workoutDays, onApply, recommended = false }) {
   const [expanded, setExpanded] = useState(false)
   const [loadOpen, setLoadOpen] = useState(false)
 
@@ -120,12 +121,18 @@ function PresetCard({ preset, workoutDays, onApply }) {
 
   return (
     <>
-      <Card className="overflow-hidden">
+      <Card className={cn('overflow-hidden transition-all', recommended && 'border-primary/50 bg-primary/5')}>
         <CardHeader className="pb-2 pt-3 px-4">
           <div className="flex items-start gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <CardTitle className="text-sm">{preset.name}</CardTitle>
+                {recommended && (
+                  <Badge className="text-[10px] px-1.5 py-0 h-4 gap-0.5">
+                    <Star className="h-2.5 w-2.5" />
+                    Recommended
+                  </Badge>
+                )}
                 {preset.tags.map((tag) => (
                   <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
                     {tag}
@@ -196,12 +203,19 @@ function PresetCard({ preset, workoutDays, onApply }) {
   )
 }
 
+const GOAL_GROUPS = [
+  { goal: 'fat', label: '🔥 Weight Loss', description: 'High-rep circuits and cardio-strength combos to maximise calorie burn.' },
+  { goal: 'muscle', label: '💪 Muscle Gain', description: 'Volume-focused splits designed to build size and strength.' },
+  { goal: 'strength', label: '🏋️ Strength', description: 'Compound-heavy programs for building raw power.' },
+  { goal: null, label: '⚡ General Fitness', description: 'Balanced programs suitable for all goals.' },
+]
+
 /** Section rendered at the top of the Templates tab */
 function PresetTemplatesSection({ state, updateState }) {
   const workoutDays = state.profile?.workoutDays || []
+  const recommendedId = getRecommendedWorkoutTemplateId(state.profile || {})
 
   const handleApply = (preset, mapping, mode) => {
-    // Build a full import payload with the schedule mapped to real days
     const splitKeys = Object.keys(preset.scheduleMap)
     const schedule = {}
 
@@ -209,7 +223,6 @@ function PresetTemplatesSection({ state, updateState }) {
       const targetDay = mapping[key]
       if (!targetDay) return
       const exercises = preset.scheduleMap[key].map((name) => ({ name }))
-      // merge if multiple split days map to the same weekday
       if (!schedule[targetDay]) {
         schedule[targetDay] = { note: `${preset.name} — ${key.replace(/([A-Z])/g, ' $1').trim()}`, exercises }
       } else {
@@ -236,25 +249,60 @@ function PresetTemplatesSection({ state, updateState }) {
     }
   }
 
+  // Group templates: recommended first in its group, then by goal
+  const userGoal = resolveEffectiveTrainingGoal(state.profile || {})
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 mb-1">
-        <p className="text-sm font-semibold">Preset Plans</p>
-        <Badge variant="secondary" className="text-[10px]">{PRESET_TEMPLATES.length}</Badge>
+    <div className="space-y-6">
+      <div>
+        <p className="text-sm font-semibold mb-0.5">Preset Plans</p>
+        <p className="text-xs text-muted-foreground">
+          Ready-made programs with well-known exercises. Map each day to your schedule and apply instantly.
+        </p>
       </div>
-      <p className="text-xs text-muted-foreground -mt-1">
-        Ready-made programs with well-known exercises. Map each day to your schedule and apply instantly.
-      </p>
-      <div className="space-y-3">
-        {PRESET_TEMPLATES.map((preset) => (
-          <PresetCard
-            key={preset.id}
-            preset={preset}
-            workoutDays={workoutDays}
-            onApply={handleApply}
-          />
-        ))}
-      </div>
+
+      {GOAL_GROUPS.map(({ goal, label, description }) => {
+        const templates = PRESET_TEMPLATES.filter((p) =>
+          goal === null ? !p.goal || p.goal === 'strength' : p.goal === goal
+        )
+        if (templates.length === 0) return null
+
+        const isUserGoalGroup =
+          goal === userGoal ||
+          (goal === null && (userGoal === 'strength' || !userGoal))
+
+        // Sort: recommended first
+        const sorted = [...templates].sort((a, b) => {
+          if (a.id === recommendedId) return -1
+          if (b.id === recommendedId) return 1
+          return 0
+        })
+
+        return (
+          <div key={goal ?? 'general'} className="space-y-3">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold">{label}</p>
+              {isUserGoalGroup && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                  Your goal
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground -mt-1">{description}</p>
+            <div className="space-y-3">
+              {sorted.map((preset) => (
+                <PresetCard
+                  key={preset.id}
+                  preset={preset}
+                  workoutDays={workoutDays}
+                  onApply={handleApply}
+                  recommended={preset.id === recommendedId}
+                />
+              ))}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

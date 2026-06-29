@@ -150,6 +150,83 @@ export const PRESET_TEMPLATES = [
       legs: ['Back Squat', 'Hack Squat', 'Leg Extension', 'Lying Leg Curl', 'Seated Calf Raise'],
     },
   },
+
+  // ─── Weight-loss focused templates ───────────────────────────────────────
+  {
+    id: 'fat-burn-circuit',
+    name: 'Fat Burn Circuit',
+    description: '3-day full-body circuit with high reps, short rest, and cardio bursts. Designed to maximise calorie burn for beginners targeting weight loss.',
+    tags: ['Beginner', '3 days', 'Weight Loss'],
+    goal: 'fat',
+    days: ['Circuit A', 'Circuit B', 'Circuit C'],
+    payload: {
+      version: 2,
+      exercises: [
+        // Warmup
+        { name: 'Jumping Jacks', exercisePhase: 'warmup', sets: '2', reps: '1', restTime: '15', isTimeBased: true, duration: '45', durationUnit: 'seconds', equipment: 'Bodyweight', muscleGroups: ['Full Body'], category: 'Cardio', difficulty: 'Beginner' },
+        { name: 'High Knees', exercisePhase: 'warmup', sets: '2', reps: '1', restTime: '15', isTimeBased: true, duration: '30', durationUnit: 'seconds', equipment: 'Bodyweight', muscleGroups: ['Core', 'Quads'], category: 'Cardio', difficulty: 'Beginner' },
+        // Main
+        { name: 'Bodyweight Squat', exercisePhase: 'main', sets: '3', reps: '20', restTime: '30', equipment: 'Bodyweight', muscleGroups: ['Quads', 'Glutes'], category: 'Strength', difficulty: 'Beginner' },
+        { name: 'Push-Up', exercisePhase: 'main', sets: '3', reps: '15', restTime: '30', equipment: 'Bodyweight', muscleGroups: ['Chest', 'Triceps'], category: 'Strength', difficulty: 'Beginner' },
+        { name: 'Reverse Lunge', exercisePhase: 'main', sets: '3', reps: '12', restTime: '30', equipment: 'Bodyweight', muscleGroups: ['Quads', 'Glutes', 'Hamstrings'], category: 'Strength', difficulty: 'Beginner' },
+        { name: 'Dumbbell Row', exercisePhase: 'main', sets: '3', reps: '15', restTime: '30', equipment: 'Dumbbell', muscleGroups: ['Back', 'Biceps'], category: 'Strength', difficulty: 'Beginner' },
+        { name: 'Mountain Climbers', exercisePhase: 'main', sets: '3', reps: '1', restTime: '30', isTimeBased: true, duration: '30', durationUnit: 'seconds', equipment: 'Bodyweight', muscleGroups: ['Core', 'Shoulders'], category: 'Cardio', difficulty: 'Beginner' },
+        { name: 'Glute Bridge', exercisePhase: 'main', sets: '3', reps: '20', restTime: '30', equipment: 'Bodyweight', muscleGroups: ['Glutes', 'Hamstrings'], category: 'Strength', difficulty: 'Beginner' },
+        { name: 'Dumbbell Shoulder Press', exercisePhase: 'main', sets: '3', reps: '15', restTime: '30', equipment: 'Dumbbell', muscleGroups: ['Shoulders'], category: 'Strength', difficulty: 'Beginner' },
+        { name: 'Plank', exercisePhase: 'main', sets: '3', reps: '1', restTime: '30', isTimeBased: true, duration: '30', durationUnit: 'seconds', equipment: 'Bodyweight', muscleGroups: ['Core'], category: 'Strength', difficulty: 'Beginner' },
+        { name: 'Burpee', exercisePhase: 'main', sets: '3', reps: '10', restTime: '45', equipment: 'Bodyweight', muscleGroups: ['Full Body'], category: 'Cardio', difficulty: 'Beginner' },
+        // Cooldown
+        { name: 'Standing Quad Stretch', exercisePhase: 'cooldown', sets: '1', reps: '1', restTime: '0', isTimeBased: true, duration: '30', durationUnit: 'seconds', equipment: 'Bodyweight', muscleGroups: ['Quads'], category: 'Flexibility', difficulty: 'Beginner' },
+        { name: 'Hip Flexor Stretch', exercisePhase: 'cooldown', sets: '1', reps: '1', restTime: '0', isTimeBased: true, duration: '30', durationUnit: 'seconds', equipment: 'Bodyweight', muscleGroups: ['Hip Flexors'], category: 'Flexibility', difficulty: 'Beginner' },
+      ],
+    },
+    scheduleMap: {
+      circuitA: ['Jumping Jacks', 'High Knees', 'Bodyweight Squat', 'Push-Up', 'Mountain Climbers', 'Plank', 'Standing Quad Stretch'],
+      circuitB: ['Jumping Jacks', 'High Knees', 'Reverse Lunge', 'Dumbbell Row', 'Glute Bridge', 'Burpee', 'Hip Flexor Stretch'],
+      circuitC: ['Jumping Jacks', 'High Knees', 'Bodyweight Squat', 'Dumbbell Shoulder Press', 'Mountain Climbers', 'Plank', 'Burpee'],
+    },
+  },
+  {
+    id: 'metabolic-conditioning',
+    name: 'Metabolic Conditioning',
+    description: '4-day program combining compound strength moves with cardio finishers. Builds lean muscle while burning fat for intermediate trainees.',
+    tags: ['Intermediate', '4 days', 'Weight Loss'],
+    goal: 'fat',
+    days: ['Lower Power', 'Upper Power', 'Lower Cardio', 'Upper Cardio'],
+    payload: {
+      version: 2,
+      exercises: [
+        // Warmup
+        { name: 'Jump Rope', exercisePhase: 'warmup', sets: '2', reps: '1', restTime: '20', isTimeBased: true, duration: '60', durationUnit: 'seconds', equipment: 'Bodyweight', muscleGroups: ['Full Body'], category: 'Cardio', difficulty: 'Beginner' },
+        // Lower Power
+        { name: 'Goblet Squat', exercisePhase: 'main', sets: '4', reps: '15', restTime: '45', equipment: 'Dumbbell', muscleGroups: ['Quads', 'Glutes'], category: 'Strength', difficulty: 'Beginner' },
+        { name: 'Romanian Deadlift', exercisePhase: 'main', sets: '4', reps: '12', restTime: '60', equipment: 'Dumbbell', muscleGroups: ['Hamstrings', 'Glutes'], category: 'Strength', difficulty: 'Intermediate' },
+        { name: 'Walking Lunge', exercisePhase: 'main', sets: '3', reps: '12', restTime: '45', equipment: 'Dumbbell', muscleGroups: ['Quads', 'Glutes'], category: 'Strength', difficulty: 'Beginner' },
+        { name: 'Box Jump', exercisePhase: 'main', sets: '3', reps: '10', restTime: '60', equipment: 'Bodyweight', muscleGroups: ['Quads', 'Glutes', 'Calves'], category: 'Cardio', difficulty: 'Intermediate' },
+        { name: 'Step-Up', exercisePhase: 'main', sets: '3', reps: '12', restTime: '45', equipment: 'Bodyweight', muscleGroups: ['Quads', 'Glutes'], category: 'Strength', difficulty: 'Beginner' },
+        // Upper Power
+        { name: 'Dumbbell Bench Press', exercisePhase: 'main', sets: '4', reps: '12', restTime: '45', equipment: 'Dumbbell', muscleGroups: ['Chest', 'Triceps'], category: 'Strength', difficulty: 'Beginner' },
+        { name: 'Dumbbell Row', exercisePhase: 'main', sets: '4', reps: '12', restTime: '45', equipment: 'Dumbbell', muscleGroups: ['Back', 'Biceps'], category: 'Strength', difficulty: 'Beginner' },
+        { name: 'Dumbbell Lateral Raise', exercisePhase: 'main', sets: '3', reps: '15', restTime: '30', equipment: 'Dumbbell', muscleGroups: ['Shoulders'], category: 'Strength', difficulty: 'Beginner' },
+        { name: 'Renegade Row', exercisePhase: 'main', sets: '3', reps: '10', restTime: '45', equipment: 'Dumbbell', muscleGroups: ['Back', 'Core', 'Shoulders'], category: 'Strength', difficulty: 'Intermediate' },
+        { name: 'Push-Up to T-Rotation', exercisePhase: 'main', sets: '3', reps: '10', restTime: '45', equipment: 'Bodyweight', muscleGroups: ['Chest', 'Core', 'Shoulders'], category: 'Strength', difficulty: 'Intermediate' },
+        // Cardio finishers
+        { name: 'Kettlebell Swing', exercisePhase: 'main', sets: '4', reps: '20', restTime: '30', equipment: 'Dumbbell', muscleGroups: ['Glutes', 'Hamstrings', 'Core'], category: 'Cardio', difficulty: 'Intermediate' },
+        { name: 'Battle Rope Waves', exercisePhase: 'main', sets: '3', reps: '1', restTime: '30', isTimeBased: true, duration: '30', durationUnit: 'seconds', equipment: 'Other', muscleGroups: ['Shoulders', 'Core'], category: 'Cardio', difficulty: 'Intermediate' },
+        { name: 'Sled Push', exercisePhase: 'main', sets: '4', reps: '1', restTime: '60', isTimeBased: true, duration: '20', durationUnit: 'seconds', equipment: 'Other', muscleGroups: ['Full Body'], category: 'Cardio', difficulty: 'Intermediate' },
+        { name: 'Jump Squat', exercisePhase: 'main', sets: '3', reps: '15', restTime: '30', equipment: 'Bodyweight', muscleGroups: ['Quads', 'Glutes'], category: 'Cardio', difficulty: 'Beginner' },
+        // Cooldown
+        { name: 'Child\'s Pose', exercisePhase: 'cooldown', sets: '1', reps: '1', restTime: '0', isTimeBased: true, duration: '45', durationUnit: 'seconds', equipment: 'Bodyweight', muscleGroups: ['Back', 'Hips'], category: 'Flexibility', difficulty: 'Beginner' },
+        { name: 'Pigeon Pose', exercisePhase: 'cooldown', sets: '1', reps: '1', restTime: '0', isTimeBased: true, duration: '45', durationUnit: 'seconds', equipment: 'Bodyweight', muscleGroups: ['Hip Flexors', 'Glutes'], category: 'Flexibility', difficulty: 'Beginner' },
+      ],
+    },
+    scheduleMap: {
+      lowerPower: ['Jump Rope', 'Goblet Squat', 'Romanian Deadlift', 'Walking Lunge', 'Step-Up', 'Child\'s Pose'],
+      upperPower: ['Jump Rope', 'Dumbbell Bench Press', 'Dumbbell Row', 'Renegade Row', 'Dumbbell Lateral Raise', 'Child\'s Pose'],
+      lowerCardio: ['Jump Rope', 'Goblet Squat', 'Box Jump', 'Walking Lunge', 'Kettlebell Swing', 'Jump Squat', 'Pigeon Pose'],
+      upperCardio: ['Jump Rope', 'Push-Up to T-Rotation', 'Dumbbell Row', 'Battle Rope Waves', 'Sled Push', 'Child\'s Pose'],
+    },
+  },
 ]
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -162,7 +239,10 @@ export function getPresetTemplateById(id) {
 export function getRecommendedWorkoutTemplateId(profile = {}) {
   const goal = profile.goal || 'strength'
   const level = profile.fitnessLevel || 'beginner'
-  if (level === 'beginner' || goal === 'fat' || goal === 'endurance') return 'full-body'
+  if (goal === 'fat' || goal === 'endurance') {
+    return level === 'beginner' ? 'fat-burn-circuit' : 'metabolic-conditioning'
+  }
+  if (level === 'beginner') return 'full-body'
   if (goal === 'muscle') return 'push-pull-legs'
   if (goal === 'strength') return 'upper-lower'
   return 'full-body'

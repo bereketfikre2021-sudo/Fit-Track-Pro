@@ -1439,6 +1439,7 @@ function ScheduleManager({
   const { t } = useTranslation()
   const [selectedDay, setSelectedDay] = useState(workoutDays[0] || null)
   const [isAddingDay, setIsAddingDay] = useState(false)
+  const [isAddingExerciseToDay, setIsAddingExerciseToDay] = useState(false)
   const [copyDialogOpen, setCopyDialogOpen] = useState(false)
 
   const handleAddDays = (days) => {
@@ -1687,16 +1688,28 @@ function ScheduleManager({
               <CardTitle>
                 {t('common.dayWorkout', { day: translateWeekday(selectedDay) })}
               </CardTitle>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={() => handleRemoveDay(selectedDay)}
-              >
-                <Trash2 className="h-4 w-4 mr-1.5" />
-                {t('custom.removeDay')}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                {(workoutSchedule[selectedDay]?.exercises?.length ?? 0) > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setCopyDialogOpen(true)}
+                  >
+                    <Copy className="h-4 w-4 mr-1.5" />
+                    {t('custom.copyDay')}
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => handleRemoveDay(selectedDay)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1.5" />
+                  {t('custom.removeDay')}
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1714,18 +1727,15 @@ function ScheduleManager({
             <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <label className="text-sm font-medium">{t('exercises.tabLibrary')}</label>
-                <div className="flex flex-wrap gap-2">
-                  {(workoutSchedule[selectedDay]?.exercises?.length ?? 0) > 0 && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setCopyDialogOpen(true)}
-                    >
-                      <Copy className="h-4 w-4 mr-1" />
-                      {t('custom.copyDay')}
-                    </Button>
-                  )}
-                </div>
+                {customExercises.length > 0 && (
+                  <Button
+                    size="sm"
+                    onClick={() => setIsAddingExerciseToDay(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-1.5" />
+                    {t('exercises.addExercise')}
+                  </Button>
+                )}
               </div>
 
               {workoutSchedule[selectedDay]?.exercises.length === 0 ? (
@@ -1757,6 +1767,18 @@ function ScheduleManager({
         exerciseCount={workoutSchedule[selectedDay]?.exercises?.length ?? 0}
         onCopy={handleCopyDay}
       />
+
+      {isAddingExerciseToDay && selectedDay && (
+        <AddExerciseToDayDialog
+          day={selectedDay}
+          customExercises={customExercises}
+          onClose={() => setIsAddingExerciseToDay(false)}
+          onAdd={(exerciseId, details) => {
+            handleAddExerciseToDay(selectedDay, exerciseId, details)
+            setIsAddingExerciseToDay(false)
+          }}
+        />
+      )}
 
       {addDayDialog}
     </div>

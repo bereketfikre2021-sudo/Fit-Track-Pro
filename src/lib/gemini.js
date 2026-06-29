@@ -29,12 +29,12 @@ export function getGeminiModel() {
 }
 
 /**
- * The app is always "configured" because the server holds the key.
- * If the user also supplied their own key in Settings, we pass it along;
- * the proxy will use it if present, otherwise falls back to the server key.
+ * In production the server holds the key — always configured.
+ * In dev mode we need either a real VITE_GEMINI_API_KEY or a user-supplied key in Settings.
  */
 export function isGeminiConfigured() {
-  return true
+  if (!IS_DEV) return true
+  return !!(DEV_API_KEY || settingsApiKey)
 }
 
 export function isRetryableGeminiError(status, message = '') {
@@ -79,12 +79,17 @@ function sleep(ms) {
  * In production we always go through the /api/gemini proxy so the key
  * stays server-side.
  */
-const DEV_API_KEY = import.meta.env.VITE_GEMINI_API_KEY?.trim() || ''
+const DEV_API_KEY_RAW = import.meta.env.VITE_GEMINI_API_KEY?.trim() || ''
+// Ignore the placeholder value from the .env.example / default .env
+const DEV_API_KEY =
+  DEV_API_KEY_RAW && DEV_API_KEY_RAW !== 'your_gemini_api_key_here'
+    ? DEV_API_KEY_RAW
+    : ''
 const IS_DEV = import.meta.env.DEV
 
 const GOOGLE_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
-async function callGeminiDirect({ model, systemInstruction, userPrompt, temperature }) {
+async function callGeminiDirect({ model, systemInstruction, userPrompt, temperature, apiKey }) {
   const url = `${GOOGLE_API_BASE}/${encodeURIComponent(model)}:generateContent`
 
   const geminiBody = {
@@ -99,7 +104,7 @@ async function callGeminiDirect({ model, systemInstruction, userPrompt, temperat
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-goog-api-key': DEV_API_KEY,
+      'x-goog-api-key': apiKey || DEV_API_KEY,
     },
     body: JSON.stringify(geminiBody),
   })
@@ -130,9 +135,10 @@ async function callGeminiDirect({ model, systemInstruction, userPrompt, temperat
  * the proxy will prefer the server-side key if none is provided.
  */
 async function callGeminiOnce({ model, systemInstruction, userPrompt, temperature }) {
-  // In dev mode with a local key set, bypass the proxy and call Google directly.
-  if (IS_DEV && DEV_API_KEY) {
-    return callGeminiDirect({ model, systemInstruction, userPrompt, temperature })
+  // In dev mode with a real key set (env or settings), call Google directly.
+  const devKey = DEV_API_KEY || (IS_DEV ? settingsApiKey : '')
+  if (IS_DEV && devKey) {
+    return callGeminiDirect({ model, systemInstruction, userPrompt, temperature, apiKey: devKey })
   }
 
   const body = { model, userPrompt, temperature }
