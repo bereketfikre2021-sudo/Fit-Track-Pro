@@ -11,7 +11,11 @@ describe('gemini', () => {
     configureGeminiFromAppSettings({ geminiApiKey: '', geminiModel: '' })
   })
 
-  it('is always configured (key lives on the server)', () => {
+  it('is configured when a settings key is provided', () => {
+    // With no key and in dev/test env, returns false
+    expect(isGeminiConfigured()).toBe(false)
+    // With a user-supplied key, returns true
+    configureGeminiFromAppSettings({ geminiApiKey: 'test-key', geminiModel: '' })
     expect(isGeminiConfigured()).toBe(true)
   })
 

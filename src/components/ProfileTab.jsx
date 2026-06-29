@@ -27,13 +27,10 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { readAvatarFromFile } from '@/lib/avatarUpload'
 import { calculateAgeFromBirthDate, calculateBmi, formatMemberSinceDate } from '@/lib/profileUtils'
-import { FOCUS_AREAS } from '@/lib/profileOptions'
 import {
-  translateFocusArea,
   translateFitnessLevel,
   translateGoal,
 } from '@/lib/i18nHelpers'
-
 import BodyWeightTracker from './BodyWeightTracker'
 
 const GOALS = [
@@ -358,30 +355,6 @@ function ProfileTab({ state, updateState }) {
                 >
                   <span className="text-lg leading-none">{g.emoji}</span>
                   <span className="font-medium block mt-1">{translateGoal(g.value)}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-xs text-muted-foreground mb-2">{t('profile.targetMuscles')}</p>
-            <div className="grid grid-cols-2 gap-2">
-              {FOCUS_AREAS.map((area) => (
-                <button key={area.value} type="button"
-                  onClick={() => {
-                    const next = { ...formData, focusArea: area.value }
-                    setFormData(next)
-                    updateState({ profile: next })
-                    toast.success(t('profile.toastFocus'))
-                  }}
-                  className={cn(
-                    'rounded-lg border px-3 py-2 text-sm font-medium transition-all',
-                    formData.focusArea === area.value
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border hover:border-primary/40'
-                  )}
-                >
-                  {translateFocusArea(area.value)}
                 </button>
               ))}
             </div>

@@ -17,6 +17,8 @@ import {
   Library,
   Clipboard,
   LayoutTemplate,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
@@ -88,8 +90,6 @@ const DIFFICULTY_KEYS = ['beginner', 'intermediate', 'advanced']
 function CustomTab({ state, updateState }) {
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
-  const [activeTab, setActiveTab] = useState('exercises')
-
   const [isAddingExercise, setIsAddingExercise] = useState(false)
   const [newExercisePhase, setNewExercisePhase] = useState(EXERCISE_PHASE.MAIN)
   const [exercisePhaseFilter, setExercisePhaseFilter] = useState(EXERCISE_PHASE.MAIN)
@@ -100,25 +100,26 @@ function CustomTab({ state, updateState }) {
   const [addTypeOpen, setAddTypeOpen] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [historyExercise, setHistoryExercise] = useState(null)
+  const [showTemplatesSection, setShowTemplatesSection] = useState(false)
 
   const customExercises = state.customExercises || []
   const showExerciseSetupPrompt = shouldShowExerciseSetupPrompt(state)
   const setupMethod = getPlanSetupMethod(state)
   const showAiFeatures = allowsAiPlanFeatures(state)
   const showTemplateFeatures = allowsTemplatePlanFeatures(state)
-  const showTemplatesTab = showTemplateFeatures
   const completedExercises = state.completedExercises || {}
 
   useEffect(() => {
     const tab = searchParams.get('tab')
-    if (tab === 'schedule' || tab === 'exercises') {
-      setActiveTab(tab)
-    } else if (tab === 'templates' && showTemplatesTab) {
-      setActiveTab('templates')
-    } else if (tab === 'templates' && !showTemplatesTab) {
-      setActiveTab('exercises')
+    if (tab === 'schedule') {
+      // scroll to schedule section after render
+      setTimeout(() => {
+        document.getElementById('schedule-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+    } else if (tab === 'templates' && showTemplateFeatures) {
+      setShowTemplatesSection(true)
     }
-  }, [searchParams, showTemplatesTab])
+  }, [searchParams, showTemplateFeatures])
 
   const filteredExercises = useMemo(
     () =>
@@ -257,71 +258,47 @@ function CustomTab({ state, updateState }) {
         <p className="text-sm text-muted-foreground">{t('exercises.pageSubtitle')}</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={cn('grid w-full mb-6', showTemplatesTab ? 'grid-cols-3' : 'grid-cols-2')}>
-          <TabsTrigger value="exercises">
-            <Dumbbell className="h-4 w-4 mr-2" />
-            {t('exercises.tabLibrary')}
-          </TabsTrigger>
-          <TabsTrigger value="schedule">
-            <Calendar className="h-4 w-4 mr-2" />
-            {t('exercises.tabSchedule')}
-          </TabsTrigger>
-          {showTemplatesTab && (
-            <TabsTrigger value="templates">
-              <LayoutTemplate className="h-4 w-4 mr-2" />
-              {t('exercises.tabTemplates')}
-            </TabsTrigger>
-          )}
-        </TabsList>
+      <div className="space-y-8">
 
-        {/* EXERCISES TAB */}
-        <TabsContent value="exercises" className="space-y-4">
-          <div className="space-y-3">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        {/* ── EXERCISE LIBRARY ─────────────────────────── */}
+        <div className="space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold flex items-center gap-2">
+                <Dumbbell className="h-4 w-4 text-primary" />
+                {t('exercises.tabLibrary')}
+              </h2>
               <p className="text-sm text-muted-foreground">
                 {t('exercises.inLibrary', { count: customExercises.length })}
               </p>
-              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                <JsonFileActions
-                  onTemplate={handleDownloadTemplate}
-                  onExport={handleExportExercises}
-                  onImportFileSelected={handleImportFileSelected}
-                />
-                <Button size="sm" className="shrink-0" onClick={() => setAddTypeOpen(true)}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  {t('exercises.addExercise')}
-                </Button>
-              </div>
             </div>
-
-            <Tabs
-              value={exercisePhaseFilter}
-              onValueChange={setExercisePhaseFilter}
-              className="w-full"
-            >
-              <TabsList className="grid w-full grid-cols-3 h-auto gap-1 bg-muted/50 p-1">
-                {EXERCISE_PHASE_OPTIONS.map((option) => (
-                  <TabsTrigger
-                    key={option.value}
-                    value={option.value}
-                    className="text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    {getExercisePhaseLabel(option.value)}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+            <Button size="sm" className="shrink-0 self-start sm:self-auto" onClick={() => setAddTypeOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" />
+              {t('exercises.addExercise')}
+            </Button>
           </div>
+
+          {/* Phase filter */}
+          <Tabs value={exercisePhaseFilter} onValueChange={setExercisePhaseFilter} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 h-auto gap-1 bg-muted/50 p-1">
+              {EXERCISE_PHASE_OPTIONS.map((option) => (
+                <TabsTrigger
+                  key={option.value}
+                  value={option.value}
+                  className="text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  {getExercisePhaseLabel(option.value)}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
 
           {customExercises.length === 0 ? (
             <Card className="border-primary/30 bg-primary/5">
               <CardContent className="py-5 space-y-4">
                 <div>
                   <p className="font-medium">{t('exercises.emptyTitle')}</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {t('exercises.emptyDesc')}
-                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">{t('exercises.emptyDesc')}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {showAiFeatures && (
@@ -332,7 +309,7 @@ function CustomTab({ state, updateState }) {
                     />
                   )}
                   {showTemplateFeatures && (
-                    <Button size="sm" variant="outline" onClick={() => setActiveTab('templates')}>
+                    <Button size="sm" variant="outline" onClick={() => setShowTemplatesSection(true)}>
                       <LayoutTemplate className="h-4 w-4 mr-2" />
                       {t('exercises.tabTemplates')}
                     </Button>
@@ -344,20 +321,11 @@ function CustomTab({ state, updateState }) {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-10">
                 <p className="text-sm text-muted-foreground text-center">
-                  {t('exercises.noPhase', {
-                    phase: getExercisePhaseLabel(exercisePhaseFilter),
-                  })}
+                  {t('exercises.noPhase', { phase: getExercisePhaseLabel(exercisePhaseFilter) })}
                 </p>
-                <Button
-                  className="mt-4"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => openAddExercise(exercisePhaseFilter)}
-                >
+                <Button className="mt-4" size="sm" variant="outline" onClick={() => openAddExercise(exercisePhaseFilter)}>
                   <Plus className="h-4 w-4 mr-2" />
-                  {t('exercises.addPhase', {
-                    phase: getExercisePhaseLabel(exercisePhaseFilter),
-                  })}
+                  {t('exercises.addPhase', { phase: getExercisePhaseLabel(exercisePhaseFilter) })}
                 </Button>
               </CardContent>
             </Card>
@@ -372,36 +340,53 @@ function CustomTab({ state, updateState }) {
                   onDelete={() => handleDeleteExercise(exercise.id)}
                   onHistory={() => setHistoryExercise(exercise)}
                   onUploadImage={async (file) => {
-                    if (file.size > 5 * 1024 * 1024) {
-                      toast.error(t('custom.toastImageSize'))
-                      return
-                    }
+                    if (file.size > 5 * 1024 * 1024) { toast.error(t('custom.toastImageSize')); return }
                     try {
-                      const dataUrl = await compressImageFile(file, {
-                        maxWidth: 400,
-                        maxHeight: 400,
-                        quality: 0.75,
-                      })
-                      updateState({
-                        customExercises: customExercises.map((ex) =>
-                          ex.id === exercise.id ? { ...ex, imageUrl: dataUrl, updatedAt: Date.now() } : ex
-                        ),
-                      })
+                      const dataUrl = await compressImageFile(file, { maxWidth: 400, maxHeight: 400, quality: 0.75 })
+                      updateState({ customExercises: customExercises.map((ex) => ex.id === exercise.id ? { ...ex, imageUrl: dataUrl, updatedAt: Date.now() } : ex) })
                       toast.success(t('custom.toastImageUpdated'))
                     } catch (err) {
-                      toast.error(
-                        err instanceof Error ? err.message : t('custom.toastImageFail')
-                      )
+                      toast.error(err instanceof Error ? err.message : t('custom.toastImageFail'))
                     }
                   }}
                 />
               ))}
             </div>
           )}
-        </TabsContent>
+        </div>
 
-        {/* SCHEDULE TAB */}
-        <TabsContent value="schedule" className="space-y-4">
+        {/* ── TEMPLATES (collapsible) ───────────────────── */}
+        {showTemplateFeatures && (
+          <div className="space-y-3">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between gap-2 rounded-lg border border-border px-4 py-3 text-sm font-semibold hover:bg-muted/30 transition-colors"
+              onClick={() => setShowTemplatesSection((v) => !v)}
+            >
+              <span className="flex items-center gap-2">
+                <LayoutTemplate className="h-4 w-4 text-primary" />
+                {t('exercises.tabTemplates')}
+              </span>
+              {showTemplatesSection
+                ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+            {showTemplatesSection && (
+              <TemplateManager
+                state={state}
+                updateState={updateState}
+                showPresetTemplates={showTemplateFeatures}
+              />
+            )}
+          </div>
+        )}
+
+        {/* ── WORKOUT DAYS & SCHEDULE ───────────────────── */}
+        <div id="schedule-section" className="space-y-4">
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-primary" />
+            {t('exercises.tabSchedule')}
+          </h2>
           <ScheduleManager
             workoutDays={workoutDays}
             workoutSchedule={workoutSchedule}
@@ -409,18 +394,9 @@ function CustomTab({ state, updateState }) {
             state={state}
             updateState={updateState}
           />
-        </TabsContent>
+        </div>
 
-        {showTemplatesTab && (
-          <TabsContent value="templates" className="space-y-4">
-            <TemplateManager
-              state={state}
-              updateState={updateState}
-              showPresetTemplates={showTemplateFeatures}
-            />
-          </TabsContent>
-        )}
-      </Tabs>
+      </div>
 
       <PresetExerciseBrowser
         open={presetBrowserOpen}

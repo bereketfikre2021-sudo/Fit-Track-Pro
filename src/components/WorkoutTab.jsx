@@ -16,7 +16,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import WorkoutSessionBar from './WorkoutSessionBar'
 import RestTimer from './RestTimer'
 import HoldTimer from './HoldTimer'
-import SkipExerciseDialog from './SkipExerciseDialog'
 import SkipDayDialog from './SkipDayDialog'
 import { ExerciseWorkoutCard } from './ExerciseCard'
 import { parseRestSeconds } from '@/lib/restTimer'
@@ -229,7 +228,6 @@ function WorkoutTab({ state, updateState }) {
   const [restTimer, setRestTimer] = useState(null)
   const [restNextExercise, setRestNextExercise] = useState(null)
   const [holdTimer, setHoldTimer] = useState(null)
-  const [skipTarget, setSkipTarget] = useState(null)
   const [skipDayOpen, setSkipDayOpen] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [celebrating, setCelebrating] = useState(false)
@@ -494,54 +492,6 @@ function WorkoutTab({ state, updateState }) {
     }
 
     updateState({ completedExercises: newCompleted })
-  }
-
-  const handleSkipExercise = (day, scheduleExerciseId, reason) => {
-    if (day !== todayCtx.calendarToday) {
-      toast.error(t('workout.toastOnlyToday', { day: translateWeekday(todayCtx.calendarToday) }))
-      return
-    }
-    if (isSessionFinishedForDay(day)) {
-      toast.error(t('workout.toastSessionLocked'))
-      return
-    }
-    const key = completionKey(today, day, scheduleExerciseId)
-    const scheduled = workoutSchedule[day]?.exercises?.find((e) => e.id === scheduleExerciseId)
-    const library = scheduled?.exerciseId
-      ? customExercises.find((c) => c.id === scheduled.exerciseId)
-      : null
-
-    updateState({
-      completedExercises: {
-        ...completedExercises,
-        [key]: {
-          date: today,
-          day,
-          exerciseId: scheduleExerciseId,
-          skipped: true,
-          skipReason: reason,
-          skippedAt: Date.now(),
-          libraryExerciseId: library?.id,
-        },
-      },
-    })
-    toast.success(t('workout.toastSkipped'))
-  }
-
-  const handleUnskipExercise = (day, scheduleExerciseId) => {
-    if (day !== todayCtx.calendarToday) {
-      toast.error(t('workout.toastOnlyToday', { day: translateWeekday(todayCtx.calendarToday) }))
-      return
-    }
-    if (isSessionFinishedForDay(day)) {
-      toast.error(t('workout.toastSessionLocked'))
-      return
-    }
-    const key = completionKey(today, day, scheduleExerciseId)
-    const newCompleted = { ...completedExercises }
-    delete newCompleted[key]
-    updateState({ completedExercises: newCompleted })
-    toast.success(t('workout.toastSkipRemoved'))
   }
 
   const handleSkipToday = (day, reason) => {
@@ -906,8 +856,6 @@ function WorkoutTab({ state, updateState }) {
                                   readOnly={workoutLocked}
                                   onSaveEntry={workoutLocked ? undefined : (patch) => saveCompletionEntry(day, ex.id, patch)}
                                   onToggleComplete={workoutLocked ? undefined : () => toggleExerciseCompletion(day, ex.id)}
-                                  onSkip={workoutLocked ? undefined : () => setSkipTarget({ day, scheduleExerciseId: ex.id, name: ex.name })}
-                                  onUnskip={workoutLocked ? undefined : () => handleUnskipExercise(day, ex.id)}
                                   onStartRest={workoutLocked ? undefined : (seconds, label) => startRestTimer(seconds, label)}
                                   onStartHold={workoutLocked ? undefined : (seconds, label) => startHoldTimer(seconds, label)}
                                 />
@@ -935,8 +883,6 @@ function WorkoutTab({ state, updateState }) {
                                 readOnly={true}
                                 onSaveEntry={undefined}
                                 onToggleComplete={undefined}
-                                onSkip={undefined}
-                                onUnskip={undefined}
                                 onStartRest={undefined}
                                 onStartHold={undefined}
                               />
@@ -975,18 +921,6 @@ function WorkoutTab({ state, updateState }) {
         onStop={() => setHoldTimer(null)}
         playSound={appSettings.restTimerSound}
         vibrate={appSettings.restTimerVibrate}
-      />
-
-      <SkipExerciseDialog
-        open={!!skipTarget}
-        onOpenChange={(open) => !open && setSkipTarget(null)}
-        exerciseName={skipTarget?.name || ''}
-        onConfirm={(reason) => {
-          if (skipTarget) {
-            handleSkipExercise(skipTarget.day, skipTarget.scheduleExerciseId, reason)
-          }
-          setSkipTarget(null)
-        }}
       />
 
       <SkipDayDialog

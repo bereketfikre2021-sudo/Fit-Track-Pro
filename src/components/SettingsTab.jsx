@@ -45,6 +45,7 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
   }
   const [showAccountData, setShowAccountData] = useState(false)
   const [showPreferences, setShowPreferences] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
   const [hasExportedBackup, setHasExportedBackup] = useState(false)
   const [confirmedBackup, setConfirmedBackup] = useState(false)
@@ -383,40 +384,57 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
           </div>
 
           <div className="space-y-3 border-t border-border/60 pt-4">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary shrink-0" />
-              <p className="text-sm font-medium">{t('settings.ai.title')}</p>
-            </div>
-            <p className="text-xs text-muted-foreground">{t('settings.ai.description')}</p>
-            <div className="space-y-2">
-              <label htmlFor="gemini-api-key" className="text-sm font-medium">
-                {t('settings.ai.apiKeyLabel')}
-              </label>
-              <Input
-                id="gemini-api-key"
-                type="password"
-                autoComplete="off"
-                placeholder={t('settings.ai.apiKeyPlaceholder')}
-                value={appSettings.geminiApiKey}
-                onChange={(e) => patchSettings({ geminiApiKey: e.target.value })}
-              />
-              <p className="text-xs text-muted-foreground">
-                {t('settings.ai.apiKeyHint')}{' '}
-                <a
-                  href="https://aistudio.google.com/apikey"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  {t('settings.ai.getKeyLink')}
-                </a>
-              </p>
-              {isGeminiConfigured() ? (
-                <p className="text-xs text-primary font-medium">{t('settings.ai.configured')}</p>
-              ) : (
-                <p className="text-xs text-muted-foreground">{t('settings.ai.notConfigured')}</p>
-              )}
-            </div>
+            <button
+              type="button"
+              className="w-full flex items-center justify-between gap-2 text-sm font-medium hover:text-primary transition-colors"
+              onClick={() => setShowAdvanced((v) => !v)}
+            >
+              <span className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />
+                Advanced
+              </span>
+              {showAdvanced
+                ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+            {showAdvanced && (
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                  <p className="text-sm font-medium">{t('settings.ai.title')}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">{t('settings.ai.description')}</p>
+                <div className="space-y-2">
+                  <label htmlFor="gemini-api-key" className="text-sm font-medium">
+                    {t('settings.ai.apiKeyLabel')}
+                  </label>
+                  <Input
+                    id="gemini-api-key"
+                    type="password"
+                    autoComplete="off"
+                    placeholder={t('settings.ai.apiKeyPlaceholder')}
+                    value={appSettings.geminiApiKey}
+                    onChange={(e) => patchSettings({ geminiApiKey: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t('settings.ai.apiKeyHint')}{' '}
+                    <a
+                      href="https://aistudio.google.com/apikey"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      {t('settings.ai.getKeyLink')}
+                    </a>
+                  </p>
+                  {isGeminiConfigured() ? (
+                    <p className="text-xs text-primary font-medium">{t('settings.ai.configured')}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">{t('settings.ai.notConfigured')}</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2 border-t border-border/60 pt-4">

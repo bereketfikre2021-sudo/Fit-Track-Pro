@@ -13,7 +13,6 @@ import {
   Square,
   ListPlus,
   Download,
-  Bell,
   CalendarClock,
   CheckCircle2,
   ChevronDown,
@@ -54,7 +53,6 @@ import {
   downloadShoppingListTemplate,
 } from '../lib/shoppingListImport'
 import AiRecommendButton from '../components/AiRecommendButton'
-import JsonFileActions from '../components/JsonFileActions'
 import MealPresetTemplatesSection from '../components/MealPresetTemplatesSection'
 import {
   fetchMealPlanRecommendation,
@@ -236,41 +234,6 @@ function MealPlanPage({ state, updateState }) {
         app: t(`meals.calendarPlatforms.${calendarPlatform}.app`),
       })
     )
-  }
-
-  const handleToggleInAppReminders = async () => {
-    const nextEnabled = !appSettings.mealRemindersEnabled
-    if (!nextEnabled) {
-      patchSettings({ mealRemindersEnabled: false })
-      toast.success(t('mealToasts.inAppOff'))
-      return
-    }
-    if (typeof Notification === 'undefined') {
-      toast.error(t('mealToasts.notificationsUnsupported'))
-      return
-    }
-    try {
-      if (Notification.permission === 'default') {
-        const perm = await Notification.requestPermission()
-        if (perm !== 'granted') {
-          toast.error(t('mealToasts.notificationsDenied'))
-          return
-        }
-      } else if (Notification.permission !== 'granted') {
-        toast.error(t('mealToasts.notificationsBlocked'))
-        return
-      }
-    } catch {
-      toast.error(t('mealToasts.notificationsRequestFail'))
-      return
-    }
-    patchSettings({
-      mealReminderMethod: MEAL_REMINDER_METHOD.IN_APP,
-      mealRemindersEnabled: true,
-    })
-    toast.info(t('mealToasts.inAppHint'), {
-      duration: 6000,
-    })
   }
 
   const usingCalendarReminders =
@@ -537,13 +500,7 @@ function MealPlanPage({ state, updateState }) {
                       </Button>
                     )}
 
-                    <JsonFileActions
-                      onTemplate={downloadMealPlanTemplate}
-                      onExport={handleExportMeals}
-                      onImportFileSelected={handleImportMealsFileSelected}
-                    />
                   </div>
-
                   {/* Preset templates reveal */}
                   {showPresets && showTemplateFeatures && (
                     <div className="pt-1">
@@ -571,11 +528,6 @@ function MealPlanPage({ state, updateState }) {
                     : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
                 </Button>
               )}
-              <JsonFileActions
-                onTemplate={downloadMealPlanTemplate}
-                onExport={handleExportMeals}
-                onImportFileSelected={handleImportMealsFileSelected}
-              />
             </div>
           )}
 
@@ -655,18 +607,6 @@ function MealPlanPage({ state, updateState }) {
                       {t('meals.confirmCalendar')}
                     </Button>
                   )}
-                  {/* In-app toggle inline */}
-                  <Button
-                    variant={appSettings.mealRemindersEnabled ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={handleToggleInAppReminders}
-                    title={t('meals.inAppNotRecommended')}
-                  >
-                    <Bell className="h-4 w-4 mr-2" />
-                    {appSettings.mealRemindersEnabled
-                      ? t('mealToasts.inAppOn')
-                      : t('mealToasts.inAppTurnOn')}
-                  </Button>
                 </div>
 
                 {/* Setup steps */}
@@ -872,11 +812,6 @@ function MealPlanPage({ state, updateState }) {
                         : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
                     </Button>
                   )}
-                  <JsonFileActions
-                    onTemplate={downloadShoppingListTemplate}
-                    onExport={handleExportShoppingList}
-                    onImportFileSelected={handleImportShoppingListFileSelected}
-                  />
                 </div>
 
                 {/* Template cards reveal */}
@@ -947,11 +882,6 @@ function MealPlanPage({ state, updateState }) {
                     : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
                 </Button>
               )}
-              <JsonFileActions
-                onTemplate={downloadShoppingListTemplate}
-                onExport={handleExportShoppingList}
-                onImportFileSelected={handleImportShoppingListFileSelected}
-              />
             </div>
           )}
 
