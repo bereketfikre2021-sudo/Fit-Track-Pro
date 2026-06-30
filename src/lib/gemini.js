@@ -38,9 +38,10 @@ export function isGeminiConfigured() {
 }
 
 export function isRetryableGeminiError(status, message = '') {
-  if (status === 429 || status === 503) return true
+  if (status === 408 || status === 429 || status === 503) return true
   const lower = message.toLowerCase()
   return (
+    lower.includes('timed out') ||
     lower.includes('high demand') ||
     lower.includes('overloaded') ||
     lower.includes('resource exhausted') ||
@@ -89,25 +90,46 @@ const IS_DEV = import.meta.env.DEV
 
 const GOOGLE_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
+const REQUEST_TIMEOUT_MS = 25000 // 25s — fits within Netlify's 26s function limit
+
+function fetchWithTimeout(url, options, timeoutMs = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  return fetch(url, { ...options, signal: controller.signal }).finally(() =>
+    clearTimeout(timer)
+  )
+}
+
 async function callGeminiDirect({ model, systemInstruction, userPrompt, temperature, apiKey }) {
   const url = `${GOOGLE_API_BASE}/${encodeURIComponent(model)}:generateContent`
 
   const geminiBody = {
     contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-    generationConfig: { temperature },
+    generationConfig: {
+      temperature,
+      thinkingConfig: { thinkingBudget: 0 }, // disable extended thinking for speed
+    },
   }
   if (systemInstruction) {
     geminiBody.systemInstruction = { parts: [{ text: systemInstruction }] }
   }
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': apiKey || DEV_API_KEY,
-    },
-    body: JSON.stringify(geminiBody),
-  })
+  let res
+  try {
+    res = await fetchWithTimeout(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey || DEV_API_KEY,
+      },
+      body: JSON.stringify(geminiBody),
+    })
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw createGeminiError('Request timed out — Gemini took too long. Try again.', { status: 408 })
+    }
+    throw err
+  }
 
   const data = await res.json().catch(() => ({}))
 
@@ -143,15 +165,21 @@ async function callGeminiOnce({ model, systemInstruction, userPrompt, temperatur
 
   const body = { model, userPrompt, temperature }
   if (systemInstruction) body.systemInstruction = systemInstruction
-  // Optionally forward the user-supplied key — proxy ignores it when the
-  // server key is already set, but it allows self-hosted use.
   if (settingsApiKey) body.userApiKey = settingsApiKey
 
-  const res = await fetch('/api/gemini', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+  let res
+  try {
+    res = await fetchWithTimeout('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw createGeminiError('Request timed out — Gemini took too long. Try again.', { status: 408 })
+    }
+    throw err
+  }
 
   const data = await res.json().catch(() => ({}))
 

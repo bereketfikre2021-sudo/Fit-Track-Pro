@@ -35,9 +35,9 @@ const DAY_ABBREV = { Monday: 'Mon', Tuesday: 'Tue', Wednesday: 'Wed', Thursday: 
 
 // Single-select groups — each option expands to the equipment values it covers
 const EQUIPMENT_OPTIONS = [
-  { id: 'gym',         label: '🏋️ Full gym equipment',  values: ['Gym', 'Barbell', 'Dumbbell', 'Machine', 'Cable'] },
-  { id: 'freeweights', label: '🥇 Free weights',         values: ['Barbell', 'Dumbbell'] },
-  { id: 'bodyweight',  label: '🤸 Bodyweight only',      values: ['Bodyweight'] },
+  { id: 'gym',         label: '🏋️ Full gym',         values: ['Gym', 'Barbell', 'Dumbbell', 'Machine', 'Cable'] },
+  { id: 'freeweights', label: '🥇 Free weights',      values: ['Barbell', 'Dumbbell'] },
+  { id: 'bodyweight',  label: '🤸 Bodyweight only',   values: ['Bodyweight'] },
 ]
 
 function OnboardingPage({ profile, onResume, onComplete }) {
@@ -55,9 +55,11 @@ function OnboardingPage({ profile, onResume, onComplete }) {
   const [workoutDays, setWorkoutDays] = useState(['Monday', 'Wednesday', 'Friday'])
 
   const toggleDay = (day) => {
-    setWorkoutDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
-    )
+    setWorkoutDays((prev) => {
+      const next = prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+      // always keep in Mon→Sun order
+      return DAYS_OF_WEEK.filter((d) => next.includes(d))
+    })
   }
 
   const bmi = useMemo(
@@ -200,10 +202,10 @@ function OnboardingPage({ profile, onResume, onComplete }) {
             />
           </div>
 
-          <Card className="w-full max-w-md p-4 md:p-5 bg-card border-border/50 shadow-lg shrink-0">
-            <div className="space-y-3">
+          <Card className="w-full max-w-md p-3 md:p-4 bg-card border-border/50 shadow-lg shrink-0">
+            <div className="space-y-2">
               <div>
-                <label htmlFor="onboarding-name" className="text-sm font-medium">
+                <label htmlFor="onboarding-name" className="text-xs font-medium">
                   {t('onboarding.yourName')}
                 </label>
                 <Input
@@ -212,19 +214,19 @@ function OnboardingPage({ profile, onResume, onComplete }) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   autoFocus
-                  className="h-8 mt-1 text-sm"
+                  className="h-7 mt-0.5 text-sm"
                 />
               </div>
 
               <div>
-                <span className="text-sm font-medium">{t('onboarding.gender')}</span>
-                <div className="grid grid-cols-2 gap-1.5 mt-1.5">
+                <span className="text-xs font-medium">{t('onboarding.gender')}</span>
+                <div className="grid grid-cols-2 gap-1 mt-1">
                   {GENDER_VALUES.map((value) => (
                     <button
                       key={value}
                       type="button"
                       className={cn(
-                        'rounded-md border px-2 py-2 text-[11px] font-medium transition-colors text-center',
+                        'rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors text-center',
                         gender === value
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50'
@@ -238,15 +240,12 @@ function OnboardingPage({ profile, onResume, onComplete }) {
               </div>
 
               <div>
-                <p className="text-[11px] text-muted-foreground leading-snug mb-1.5">
+                <p className="text-[10px] text-muted-foreground leading-snug mb-1">
                   {t('onboarding.bodyMetricsHint')}
                 </p>
-                <div className="grid grid-cols-3 gap-1.5 items-end">
+                <div className="grid grid-cols-3 gap-1 items-end">
                   <div className="min-w-0">
-                    <label
-                      htmlFor="onboarding-weight"
-                      className="text-[10px] font-medium text-muted-foreground"
-                    >
+                    <label htmlFor="onboarding-weight" className="text-[10px] font-medium text-muted-foreground">
                       {t('onboarding.weightShort')}
                     </label>
                     <Input
@@ -258,15 +257,12 @@ function OnboardingPage({ profile, onResume, onComplete }) {
                       placeholder="70"
                       value={currentWeight}
                       onChange={(e) => setCurrentWeight(e.target.value)}
-                      className="h-8 mt-0.5 text-sm px-2"
+                      className="h-7 mt-0.5 text-sm px-2"
                       aria-label={t('onboarding.weight')}
                     />
                   </div>
                   <div className="min-w-0">
-                    <label
-                      htmlFor="onboarding-height"
-                      className="text-[10px] font-medium text-muted-foreground"
-                    >
+                    <label htmlFor="onboarding-height" className="text-[10px] font-medium text-muted-foreground">
                       {t('onboarding.heightShort')}
                     </label>
                     <Input
@@ -278,16 +274,14 @@ function OnboardingPage({ profile, onResume, onComplete }) {
                       placeholder="175"
                       value={height}
                       onChange={(e) => setHeight(e.target.value)}
-                      className="h-8 mt-0.5 text-sm px-2"
+                      className="h-7 mt-0.5 text-sm px-2"
                       aria-label={t('onboarding.height')}
                     />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-[10px] font-medium text-muted-foreground">
-                      {t('profile.bmi')}
-                    </span>
+                    <span className="text-[10px] font-medium text-muted-foreground">{t('profile.bmi')}</span>
                     <div
-                      className="h-8 mt-0.5 flex items-center justify-center rounded-md border border-input bg-muted/25 text-sm font-semibold tabular-nums text-foreground"
+                      className="h-7 mt-0.5 flex items-center justify-center rounded-md border border-input bg-muted/25 text-sm font-semibold tabular-nums text-foreground"
                       aria-live="polite"
                       aria-label={t('profile.bmi')}
                     >
@@ -296,15 +290,13 @@ function OnboardingPage({ profile, onResume, onComplete }) {
                   </div>
                 </div>
                 {bmi != null && suggestedTargetWeight != null && (
-                  <div className="mt-2 rounded-md border border-primary/25 bg-primary/5 px-2.5 py-2">
-                    <p className="text-[11px] font-medium text-foreground">
+                  <div className="mt-1.5 rounded-md border border-primary/25 bg-primary/5 px-2 py-1.5">
+                    <p className="text-[10px] font-medium text-foreground">
                       {t('onboarding.suggestedTarget', { weight: suggestedTargetWeight })}
+                      {bmiCategory && (
+                        <span className="text-muted-foreground font-normal"> · {t(`onboarding.bmiCategory.${bmiCategory}`)}</span>
+                      )}
                     </p>
-                    {bmiCategory && (
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {t(`onboarding.bmiCategory.${bmiCategory}`)}
-                      </p>
-                    )}
                     {weightChange && weightChange.direction !== 'maintain' && (
                       <p className="text-[10px] text-primary mt-0.5">
                         {weightChange.direction === 'gain'
@@ -312,37 +304,29 @@ function OnboardingPage({ profile, onResume, onComplete }) {
                           : t('onboarding.weightLossHint', { amount: weightChange.absDelta })}
                       </p>
                     )}
-                    {weightChange?.direction === 'maintain' && (
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {t('onboarding.weightMaintainHint')}
-                      </p>
-                    )}
                   </div>
                 )}
               </div>
 
               <div>
-                <span className="text-sm font-medium">{t('onboarding.primaryGoal')}</span>
+                <span className="text-xs font-medium">{t('onboarding.primaryGoal')}</span>
                 {suggestedGoal != null && !goalTouched && (
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    {t('onboarding.goalSuggested', { goal: translateGoal(suggestedGoal) })}
-                  </p>
+                  <span className="text-[10px] text-muted-foreground ml-1.5">
+                    · {t('onboarding.goalSuggested', { goal: translateGoal(suggestedGoal) })}
+                  </span>
                 )}
-                <div className="grid grid-cols-4 gap-1.5 mt-1.5">
+                <div className="grid grid-cols-4 gap-1 mt-1">
                   {GOAL_VALUES.map((value) => (
                     <button
                       key={value}
                       type="button"
                       className={cn(
-                        'rounded-md border px-1 py-2 text-[11px] font-medium transition-colors',
+                        'rounded-md border px-1 py-1.5 text-[11px] font-medium transition-colors text-center',
                         goal === value
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50'
                       )}
-                      onClick={() => {
-                        setGoalTouched(true)
-                        setGoal(value)
-                      }}
+                      onClick={() => { setGoalTouched(true); setGoal(value) }}
                     >
                       {translateGoal(value)}
                     </button>
@@ -351,14 +335,14 @@ function OnboardingPage({ profile, onResume, onComplete }) {
               </div>
 
               <div>
-                <span className="text-sm font-medium">Experience level</span>
-                <div className="grid grid-cols-3 gap-1.5 mt-1.5">
+                <span className="text-xs font-medium">Experience level</span>
+                <div className="grid grid-cols-3 gap-1 mt-1">
                   {FITNESS_LEVELS.map(({ value, label }) => (
                     <button
                       key={value}
                       type="button"
                       className={cn(
-                        'rounded-md border px-1 py-2 text-[11px] font-medium transition-colors text-center',
+                        'rounded-md border px-1 py-1.5 text-[11px] font-medium transition-colors text-center',
                         fitnessLevel === value
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50'
@@ -372,17 +356,14 @@ function OnboardingPage({ profile, onResume, onComplete }) {
               </div>
 
               <div>
-                <span className="text-sm font-medium">Available equipment</span>
-                <p className="text-[10px] text-muted-foreground mt-0.5 mb-1.5">
-                  Choose what you have access to
-                </p>
-                <div className="grid grid-cols-3 gap-1.5">
+                <span className="text-xs font-medium">Equipment</span>
+                <div className="grid grid-cols-3 gap-1 mt-1">
                   {EQUIPMENT_OPTIONS.map(({ id, label }) => (
                     <button
                       key={id}
                       type="button"
                       className={cn(
-                        'rounded-md border px-2 py-2 text-[11px] font-medium transition-colors text-left',
+                        'rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors text-center',
                         equipmentId === id
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50'
@@ -396,11 +377,8 @@ function OnboardingPage({ profile, onResume, onComplete }) {
               </div>
 
               <div>
-                <span className="text-sm font-medium">Workout days</span>
-                <p className="text-[10px] text-muted-foreground mt-0.5 mb-1.5">
-                  Tap to select — Mon/Wed/Fri selected by default
-                </p>
-                <div className="grid grid-cols-7 gap-1">
+                <span className="text-xs font-medium">Workout days</span>
+                <div className="flex flex-wrap gap-1 mt-1">
                   {DAYS_OF_WEEK.map((day) => {
                     const active = workoutDays.includes(day)
                     return (
@@ -409,21 +387,13 @@ function OnboardingPage({ profile, onResume, onComplete }) {
                         type="button"
                         onClick={() => toggleDay(day)}
                         className={cn(
-                          'flex flex-col items-center justify-center rounded-lg border py-2 gap-0.5 transition-all',
+                          'rounded-md border px-2 py-1 text-[11px] font-medium transition-colors',
                           active
                             ? 'border-primary bg-primary/10 text-primary'
                             : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50'
                         )}
                       >
-                        <span className="text-[10px] font-semibold leading-none">
-                          {DAY_ABBREV[day]}
-                        </span>
-                        <span
-                          className={cn(
-                            'w-1.5 h-1.5 rounded-full mt-0.5',
-                            active ? 'bg-primary' : 'bg-transparent'
-                          )}
-                        />
+                        {DAY_ABBREV[day]}
                       </button>
                     )
                   })}
@@ -437,7 +407,7 @@ function OnboardingPage({ profile, onResume, onComplete }) {
             </div>
 
             <Button
-              className="w-full mt-4 h-9"
+              className="w-full mt-3 h-8 text-sm"
               onClick={handleComplete}
               disabled={!name.trim() || workoutDays.length === 0}
             >

@@ -475,6 +475,7 @@
     "notConfigured": "AI ለማንቃት በቅንብሮች ውስጥ Gemini API ቁልፍ ያስገቡ",
     "unavailable": "የ AI ምክሮች አይገኙም",
     "busy": "AI አሁን ስራ ላይ ነው — ትንሽ ቆይተው እንደገና ይሞክሩ",
+    "timeout": "AI ምላሽ ለመስጠት ረጅም ጊዜ ወሰደ — እንደገና ይሞክሩ",
     "exerciseLabel": "ለግብዬ የአካል ብቃት ይመክሩ",
     "mealLabel": "የምግብ እቅድ ይመክሩ (ኢትዮጵያ፣ በበጀት)",
     "shoppingLabel": "የግዛት ዝርዝር ይመክሩ (ኢትዮጵያ)",

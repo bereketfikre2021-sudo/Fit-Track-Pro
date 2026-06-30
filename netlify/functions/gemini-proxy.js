@@ -54,6 +54,7 @@ export default async function handler(req) {
     contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
     generationConfig: {
       temperature,
+      thinkingConfig: { thinkingBudget: 0 }, // disable extended thinking for speed
     },
   }
 

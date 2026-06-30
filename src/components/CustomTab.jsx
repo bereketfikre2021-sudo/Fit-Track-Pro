@@ -69,7 +69,7 @@ import { EXERCISE_CATEGORIES } from '@/lib/presetExercises'
 import { displayCategory } from '@/lib/exerciseFilterDisplay'
 import { fetchExerciseRecommendation } from '@/lib/aiRecommendations'
 import { getAiToastKey } from '@/lib/aiErrors'
-import { shouldShowExerciseSetupPrompt } from '@/lib/planEmpty'
+import { shouldShowExerciseSetupPrompt, hasAnyExercises, isMealPlanEmpty, isShoppingListEmpty } from '@/lib/planEmpty'
 import {
   allowsAiPlanFeatures,
   allowsTemplatePlanFeatures,
@@ -260,8 +260,8 @@ function CustomTab({ state, updateState }) {
             <h1 className="text-2xl font-bold mb-2">{t('exercises.pageTitle')}</h1>
             <p className="text-sm text-muted-foreground">{t('exercises.pageSubtitle')}</p>
           </div>
-          {/* Regenerate toolbar — visible once exercises exist so users can switch approach */}
-          {customExercises.length > 0 && (
+          {/* Regenerate toolbar — visible once exercises exist, hidden when everything is already set up */}
+          {customExercises.length > 0 && (isMealPlanEmpty(state.mealPlan) || isShoppingListEmpty(state.shoppingList)) && (
             <div className="flex flex-wrap gap-2 mt-1">
               {showAiFeatures && (
                 <AiRecommendButton

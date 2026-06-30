@@ -476,6 +476,7 @@
     "notConfigured": "Add your Gemini API key in Settings to enable AI",
     "unavailable": "AI recommendations unavailable",
     "busy": "AI is busy right now — please try again in a moment",
+    "timeout": "AI took too long to respond — please try again",
     "exerciseLabel": "Recommend exercises for my goal",
     "mealLabel": "Recommend meal plan (Ethiopia, budget)",
     "shoppingLabel": "Recommend shopping list (Ethiopia)",
