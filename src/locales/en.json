@@ -451,7 +451,12 @@
       "vibrateEnd": "Vibrate when rest ends",
       "vibrateHint": "On supported phones.",
       "waterGoal": "Daily water goal (cups)",
-      "waterGoalHint": "1 cup ≈ 250 ml. Shown as a tracker on the home page."
+      "waterGoalHint": "1 cup ≈ 250 ml. Shown as a tracker on the home page.",
+      "workoutReminderTitle": "Workout reminder",
+      "workoutReminderLabel": "Daily workout reminder",
+      "workoutReminderHint": "Sends a notification at your chosen time each day",
+      "workoutReminderTime": "Reminder time",
+      "workoutReminderTimeHint": "Requires notification permission. Works while the app is open — for locked-screen alerts, use the calendar reminder option."
     },
     "about": {
       "title": "About",

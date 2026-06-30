@@ -350,7 +350,7 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
           <div className="space-y-3 border-t border-border/60 pt-4">
             <div className="flex items-center gap-2">
               <Bell className="h-4 w-4 text-primary shrink-0" />
-              <p className="text-sm font-medium">Workout reminder</p>
+              <p className="text-sm font-medium">{t('settings.workoutPrefs.workoutReminderTitle')}</p>
             </div>
             <label className="flex items-start gap-3 cursor-pointer rounded-md border border-border p-3">
               <input
@@ -360,15 +360,15 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
                 className="mt-1 h-4 w-4 rounded border-input accent-primary"
               />
               <span className="text-sm">
-                <span className="font-medium block">Daily workout reminder</span>
+                <span className="font-medium block">{t('settings.workoutPrefs.workoutReminderLabel')}</span>
                 <span className="text-muted-foreground text-xs">
-                  Sends a notification at your chosen time each day
+                  {t('settings.workoutPrefs.workoutReminderHint')}
                 </span>
               </span>
             </label>
             {appSettings.workoutReminderEnabled && (
               <div className="space-y-1">
-                <label className="text-sm font-medium">Reminder time</label>
+                <label className="text-sm font-medium">{t('settings.workoutPrefs.workoutReminderTime')}</label>
                 <input
                   type="time"
                   value={appSettings.workoutReminderTime}
@@ -376,7 +376,7 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
                   className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-w-[140px]"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Requires notification permission. Works while the app is open — for locked-screen alerts, use the calendar reminder option.
+                  {t('settings.workoutPrefs.workoutReminderTimeHint')}
                 </p>
               </div>
             )}
