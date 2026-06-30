@@ -12,6 +12,48 @@ import { translateWeekday } from '@/lib/i18nHelpers'
 import { getSkipReasonLabel } from '@/lib/exerciseSkip'
 import SkipDayDialog from './SkipDayDialog'
 
+/** Shows a compact history bar for a specific day (e.g. "Monday").
+ *  Looks back through completedSessions and renders dots for the last N occurrences. */
+function DayHistoryBar({ completedSessions, day, today, maxDots = 10 }) {
+  // Gather all past sessions (not today) for this exact day name, newest first
+  const past = (completedSessions || [])
+    .filter((s) => s.day === day && s.date !== today && s.endedAt)
+    .sort((a, b) => b.endedAt - a.endedAt)
+    .slice(0, maxDots)
+
+  if (past.length === 0) return null
+
+  const doneCount = past.filter((s) => !s.skipped).length
+  const skippedCount = past.filter((s) => s.skipped).length
+
+  // Reverse so oldest → newest left to right
+  const dots = [...past].reverse()
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border/60 space-y-1.5">
+      <p className="text-[11px] font-medium text-muted-foreground">Past {dots.length} {translateWeekday(day)} sessions</p>
+      <div className="flex items-center gap-1 flex-wrap">
+        {dots.map((s) => (
+          <div
+            key={s.id}
+            title={s.skipped ? `${s.date} — skipped` : `${s.date} — completed`}
+            className={cn(
+              'h-2.5 w-2.5 rounded-full shrink-0',
+              s.skipped ? 'bg-destructive/70' : 'bg-primary'
+            )}
+          />
+        ))}
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        <span className="text-primary font-semibold">{doneCount} done</span>
+        {skippedCount > 0 && (
+          <> · <span className="text-destructive/80 font-semibold">{skippedCount} skipped</span></>
+        )}
+      </p>
+    </div>
+  )
+}
+
 function TodayWorkoutCard({
   workoutDays,
   workoutSchedule,
@@ -110,6 +152,13 @@ function TodayWorkoutCard({
             {schedule.note}
           </p>
         )}
+
+        <DayHistoryBar
+          completedSessions={completedSessions}
+          day={focusDay}
+          today={today}
+        />
+
         {total > 0 && !sessionActive && isToday && (
           <div className="mt-3 pt-3 border-t border-border/60 flex flex-wrap gap-2">
             <Button
