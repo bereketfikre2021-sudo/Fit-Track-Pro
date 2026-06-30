@@ -48,7 +48,7 @@ function WaterTracker({ state, updateState, today }) {
 
   return (
     <Card className={cn(
-      'mb-6 border transition-colors',
+      'mb-3 border transition-colors',
       done ? 'border-blue-500/40 bg-blue-500/5' : 'border-border'
     )}>
       <CardContent className="p-4">

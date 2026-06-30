@@ -13,41 +13,54 @@ import { getSkipReasonLabel } from '@/lib/exerciseSkip'
 import SkipDayDialog from './SkipDayDialog'
 
 /** Shows a compact history bar for a specific day (e.g. "Monday").
- *  Looks back through completedSessions and renders dots for the last N occurrences. */
-function DayHistoryBar({ completedSessions, day, today, maxDots = 10 }) {
-  // Gather all past sessions (not today) for this exact day name, newest first
+ *  Renders pill-style session entries with date and status — works on mobile too. */
+function DayHistoryBar({ completedSessions, day, today }) {
+  // Two months back from today
+  const twoMonthsAgo = new Date(today)
+  twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2)
+  const cutoff = twoMonthsAgo.toISOString().slice(0, 10)
+
   const past = (completedSessions || [])
-    .filter((s) => s.day === day && s.date !== today && s.endedAt)
-    .sort((a, b) => b.endedAt - a.endedAt)
-    .slice(0, maxDots)
+    .filter((s) => s.day === day && s.date !== today && s.endedAt && s.date >= cutoff)
+    .sort((a, b) => a.date.localeCompare(b.date)) // oldest → newest
 
   if (past.length === 0) return null
 
   const doneCount = past.filter((s) => !s.skipped).length
   const skippedCount = past.filter((s) => s.skipped).length
 
-  // Reverse so oldest → newest left to right
-  const dots = [...past].reverse()
+  const formatDate = (dateStr) => {
+    if (!dateStr) return ''
+    const [, month, dayNum] = dateStr.split('-')
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    return `${parseInt(dayNum)} ${monthNames[parseInt(month) - 1]}`
+  }
 
   return (
     <div className="mt-3 pt-3 border-t border-border/60 space-y-1.5">
-      <p className="text-[11px] font-medium text-muted-foreground">Past {dots.length} {translateWeekday(day)} sessions</p>
-      <div className="flex items-center gap-1 flex-wrap">
-        {dots.map((s) => (
+      <p className="text-[11px] font-medium text-muted-foreground">
+        Past {past.length} {translateWeekday(day)} sessions
+      </p>
+      <div className="flex flex-wrap gap-1">
+        {past.map((s) => (
           <div
             key={s.id}
-            title={s.skipped ? `${s.date} — skipped` : `${s.date} — completed`}
             className={cn(
-              'h-2.5 w-2.5 rounded-full shrink-0',
-              s.skipped ? 'bg-destructive/70' : 'bg-primary'
+              'flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
+              s.skipped
+                ? 'border-destructive/40 bg-destructive/10 text-destructive/80'
+                : 'border-primary/40 bg-primary/10 text-primary'
             )}
-          />
+          >
+            <span>{formatDate(s.date)}</span>
+            <span className="font-bold">{s.skipped ? ' ✕' : ' ✓'}</span>
+          </div>
         ))}
       </div>
       <p className="text-[11px] text-muted-foreground">
-        <span className="text-primary font-semibold">{doneCount} done</span>
+        <span className="text-primary font-semibold">{doneCount} ✓</span>
         {skippedCount > 0 && (
-          <> · <span className="text-destructive/80 font-semibold">{skippedCount} skipped</span></>
+          <> · <span className="text-destructive/80 font-semibold">{skippedCount} ✕</span></>
         )}
       </p>
     </div>
@@ -106,7 +119,7 @@ function TodayWorkoutCard({
   return (
     <Card
       className={cn(
-        'mb-6 border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card',
+        'mb-3 border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card',
         className
       )}
     >

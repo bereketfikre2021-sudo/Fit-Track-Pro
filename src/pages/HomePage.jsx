@@ -24,11 +24,11 @@ import { getDailyMotivation } from '@/lib/dailyMotivation'
 
 function MotivationQuote({ lines }) {
   return (
-    <div className="mb-7 pl-4 border-l-4 border-primary">
+    <div className="mb-4 pl-3 border-l-4 border-primary">
       {lines.map((line, index) => (
         <p
           key={index}
-          className="text-2xl font-display font-extrabold tracking-tight leading-tight text-foreground"
+          className="text-3xl font-display font-extrabold tracking-tight leading-tight text-foreground"
         >
           {line.before}
           <span className="text-primary">{line.highlight}</span>
@@ -98,7 +98,7 @@ function HomePage({ state, updateState }) {
   }
 
   return (
-    <div className="relative p-4 md:p-6 pb-20 md:pb-6 min-h-[calc(100vh-12rem)] pt-10 md:pt-12">
+    <div className="relative p-4 md:p-6 pb-20 md:pb-6 min-h-[calc(100vh-12rem)] pt-4 md:pt-6">
       <GymFloatingPattern />
       <div className="relative z-10">
         <MotivationQuote lines={motivationLines} />
