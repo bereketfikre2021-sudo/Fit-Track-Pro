@@ -1456,19 +1456,69 @@ function ScheduleManager({
 }) {
   const { t } = useTranslation()
   const [selectedDay, setSelectedDay] = useState(workoutDays[0] || null)
-  const [isAddingDay, setIsAddingDay] = useState(false)
   const [isAddingExerciseToDay, setIsAddingExerciseToDay] = useState(false)
   const [copyDialogOpen, setCopyDialogOpen] = useState(false)
 
-  const handleAddDays = (days) => {
-    if (!days.length) return
+  // Keep selectedDay in sync when workoutDays changes
+  useEffect(() => {
+    if (selectedDay && workoutDays.includes(selectedDay)) return
+    setSelectedDay(workoutDays[0] || null)
+  }, [workoutDays])
 
+  const handleToggleDay = (day) => {
     const currentWorkoutDays = state.profile?.workoutDays || []
     const currentSchedule = state.workoutSchedule || {}
+    const isActive = currentWorkoutDays.includes(day)
 
+    if (!isActive) {
+      // Add the day
+      const newSchedule = {
+        ...currentSchedule,
+        [day]: { note: i18n.t('common.dayWorkout', { day, lng: 'en' }), exercises: [] },
+      }
+      updateState({
+        profile: { ...state.profile, workoutDays: [...currentWorkoutDays, day] },
+        workoutSchedule: newSchedule,
+      })
+      toast.success(t('custom.scheduleDayAdded', { day: translateWeekday(day) }))
+      setSelectedDay(day)
+    } else {
+      // Remove — check if the day has exercises
+      const hasExercises = (currentSchedule[day]?.exercises?.length || 0) > 0
+      const doRemove = () => {
+        const newSchedule = { ...currentSchedule }
+        delete newSchedule[day]
+        updateState({
+          profile: { ...state.profile, workoutDays: currentWorkoutDays.filter(d => d !== day) },
+          workoutSchedule: newSchedule,
+        })
+        toast.success(t('custom.scheduleDayRemoved', { day: translateWeekday(day) }))
+        if (selectedDay === day) {
+          const remaining = currentWorkoutDays.filter(d => d !== day)
+          setSelectedDay(remaining[0] || null)
+        }
+      }
+
+      if (hasExercises) {
+        toast(
+          i18n.t('custom.scheduleConfirmRemove', { day: translateWeekday(day) }),
+          {
+            action: { label: t('common.delete'), onClick: doRemove },
+            cancel: { label: t('common.cancel'), onClick: () => {} },
+          }
+        )
+      } else {
+        doRemove()
+      }
+    }
+  }
+
+  const handleAddDays = (days) => {
+    if (!days.length) return
+    const currentWorkoutDays = state.profile?.workoutDays || []
+    const currentSchedule = state.workoutSchedule || {}
     const newSchedule = { ...currentSchedule }
     const addedDayNames = []
-
     days.forEach((day) => {
       if (currentWorkoutDays.includes(day)) return
       newSchedule[day] = {
@@ -1477,17 +1527,11 @@ function ScheduleManager({
       }
       addedDayNames.push(day)
     })
-
     if (!addedDayNames.length) return
-
     updateState({
-      profile: {
-        ...state.profile,
-        workoutDays: [...currentWorkoutDays, ...addedDayNames],
-      },
+      profile: { ...state.profile, workoutDays: [...currentWorkoutDays, ...addedDayNames] },
       workoutSchedule: newSchedule,
     })
-
     if (addedDayNames.length === 1) {
       toast.success(t('custom.scheduleDayAdded', { day: translateWeekday(addedDayNames[0]) }))
     } else {
@@ -1498,36 +1542,7 @@ function ScheduleManager({
         })
       )
     }
-
     setSelectedDay(addedDayNames[addedDayNames.length - 1])
-  }
-
-  const handleRemoveDay = (day) => {
-    if (
-      !confirm(
-        i18n.t('custom.scheduleConfirmRemove', { day: translateWeekday(day) })
-      )
-    )
-      return
-
-    const currentWorkoutDays = state.profile?.workoutDays || []
-    const currentSchedule = state.workoutSchedule || {}
-
-    const newSchedule = { ...currentSchedule }
-    delete newSchedule[day]
-
-    updateState({
-      profile: {
-        ...state.profile,
-        workoutDays: currentWorkoutDays.filter(d => d !== day),
-      },
-      workoutSchedule: newSchedule,
-    })
-
-    toast.success(t('custom.scheduleDayRemoved', { day: translateWeekday(day) }))
-    if (selectedDay === day) {
-      setSelectedDay(currentWorkoutDays.filter(d => d !== day)[0] || null)
-    }
   }
 
   const handleUpdateDayNote = (day, note) => {
@@ -1631,72 +1646,70 @@ function ScheduleManager({
     )
   }
 
-  const addDayDialog = (
-    <AddDaysDialog
-      open={isAddingDay}
-      onOpenChange={setIsAddingDay}
-      workoutDays={workoutDays}
-      onAdd={handleAddDays}
-    />
+  const dayPickerRow = (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">{t('report.workoutDays')}</CardTitle>
+        <CardDescription className="text-xs">
+          {workoutDays.length === 0
+            ? t('custom.addDayHint')
+            : t('custom.workoutDaysCount', { count: workoutDays.length })}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-2">
+          {DAYS_OF_WEEK.map((day) => {
+            const active = workoutDays.includes(day)
+            return (
+              <button
+                key={day}
+                type="button"
+                onClick={() => {
+                  if (active) {
+                    // If already active: select it for editing on first tap,
+                    // toggle off only if it's already selected
+                    if (selectedDay === day) {
+                      handleToggleDay(day)
+                    } else {
+                      setSelectedDay(day)
+                    }
+                  } else {
+                    handleToggleDay(day)
+                  }
+                }}
+                className={cn(
+                  'rounded-md border px-3 py-1.5 text-sm font-medium transition-all',
+                  active && selectedDay === day
+                    ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
+                    : active
+                      ? 'border-primary/50 bg-primary/5 text-primary hover:bg-primary/10'
+                      : 'border-border bg-background text-muted-foreground hover:border-primary/50 hover:bg-muted/30'
+                )}
+              >
+                {translateWeekday(day).slice(0, 3)}
+              </button>
+            )
+          })}
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-2">
+          Tap a day to add or remove it from your schedule
+        </p>
+      </CardContent>
+    </Card>
   )
 
   if (workoutDays.length === 0) {
     return (
       <>
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Calendar className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-            <p className="text-lg font-medium mb-2">{t('custom.noWorkoutDays')}</p>
-            <p className="text-sm text-muted-foreground mb-4 text-center">{t('custom.addDayHint')}</p>
-            <Button onClick={() => setIsAddingDay(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              {t('custom.addWorkoutDay', { defaultValue: 'Add Workout Day' })}
-            </Button>
-          </CardContent>
-        </Card>
-        {addDayDialog}
+        {dayPickerRow}
       </>
     )
   }
 
   return (
     <div className="space-y-4">
-      {/* Day Management */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>{t('report.workoutDays')}</CardTitle>
-              <CardDescription>
-                {t('custom.workoutDaysCount', { count: workoutDays.length })}
-              </CardDescription>
-            </div>
-            <Button variant="outline" onClick={() => setIsAddingDay(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              {t('custom.addDay', { defaultValue: 'Add Day' })}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {workoutDays.map(day => (
-              <button
-                key={day}
-                type="button"
-                className={cn(
-                  'rounded-lg border px-3 py-2 text-sm font-medium transition-all',
-                  selectedDay === day
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border bg-background text-foreground hover:border-primary/50 hover:bg-muted/30'
-                )}
-                onClick={() => setSelectedDay(day)}
-              >
-                {translateWeekday(day)}
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Day picker — toggle row */}
+      {dayPickerRow}
 
       {/* Day Details */}
       {selectedDay && (
@@ -1717,16 +1730,6 @@ function ScheduleManager({
                     {t('custom.copyDay')}
                   </Button>
                 )}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => handleRemoveDay(selectedDay)}
-                >
-                  <Trash2 className="h-4 w-4 mr-1.5" />
-                  {t('custom.removeDay')}
-                </Button>
               </div>
             </div>
           </CardHeader>
@@ -1810,7 +1813,6 @@ function ScheduleManager({
         />
       )}
 
-      {addDayDialog}
     </div>
   )
 }

@@ -23,6 +23,7 @@ import { createHoldTimer } from '@/lib/holdTimer'
 import { getAppSettings } from '@/lib/appSettings'
 import { buildDefaultSets, migrateCompletionEntry } from '@/lib/setLogging'
 import { isCompletedEntry } from '@/lib/exerciseSkip'
+import { isNewPersonalRecord } from '@/lib/personalRecords'
 
 import { cn } from '@/lib/utils'
 
@@ -241,6 +242,7 @@ function WorkoutTab({ state, updateState }) {
   const [aiLoading, setAiLoading] = useState(false)
   const [celebrating, setCelebrating] = useState(false)
   const sessionStartedAtRef = useRef(null)
+  const completionInFlightRef = useRef(false)
 
   const workoutSchedule = state.workoutSchedule || {}
 
@@ -388,6 +390,10 @@ function WorkoutTab({ state, updateState }) {
       toast.error(t('workout.toastOnlyToday', { day: translateWeekday(todayCtx.calendarToday) }))
       return
     }
+    // Prevent double-tap: if a completion write is already in progress, ignore
+    if (completionInFlightRef.current) return
+    completionInFlightRef.current = true
+    try {
     const key = completionKey(today, day, scheduleExerciseId)
     const newCompleted = { ...completedExercises }
     const existing = newCompleted[key]
@@ -422,7 +428,22 @@ function WorkoutTab({ state, updateState }) {
         scheduled,
         library
       )
-      toast.success(t('workout.toastComplete'))
+
+      // Check for personal record on the just-written entry
+      const newEntry = newCompleted[key]
+      const libraryId = library?.id || existing?.libraryExerciseId
+      const isPr =
+        libraryId &&
+        newEntry?.sets?.length > 0 &&
+        isNewPersonalRecord(completedExercises, libraryId, newEntry.sets, key)
+
+      if (isPr) {
+        toast.success(`🏆 New PR — ${scheduled?.name || library?.name || 'Exercise'}!`, {
+          description: t('workout.toastComplete'),
+        })
+      } else {
+        toast.success(t('workout.toastComplete'))
+      }
       const allExercises = getAllExercisesForDay(
         { workoutSchedule, customExercises },
         day
@@ -504,6 +525,11 @@ function WorkoutTab({ state, updateState }) {
     }
 
     updateState({ completedExercises: newCompleted })
+    } finally {
+      // Release the lock after React's next microtask so the state update
+      // has been enqueued before another tap can proceed
+      Promise.resolve().then(() => { completionInFlightRef.current = false })
+    }
   }
 
   const handleSkipToday = (day, reason) => {
@@ -569,21 +595,21 @@ function WorkoutTab({ state, updateState }) {
 
 
   const handleStartSession = (day) => {
-
     if (activeSession?.date === today) {
-
       toast.error(t('workout.toastFinishFirst', { day: translateWeekday(activeSession.day) }))
-
       return
-
     }
+
+    // Clear any running timers from a previous session context
+    setRestTimer(null)
+    setRestNextExercise(null)
+    setHoldTimer(null)
+    setHoldExerciseContext(null)
 
     updateState({ activeWorkoutSession: startWorkoutSession(day, today) })
     const exercises = workoutSchedule[day]?.exercises || []
     setPhaseFilter(getDefaultPhase(enrichScheduleExercises(exercises, customExercises)))
-
     toast.success(t('workout.toastStarted', { day: translateWeekday(day) }))
-
   }
 
   const handleAiExerciseRecommend = async () => {
@@ -752,42 +778,21 @@ function WorkoutTab({ state, updateState }) {
                     onValueChange={(next) => tryChangePhase(day, next, enrichedDayExercises, readOnly)}
                   >
                     <TabsList className="h-auto">
-                      <TabsTrigger value={EXERCISE_PHASE.WARMUP}>
-                        <span className="mr-1" aria-hidden="true">🔥</span>
-                        {t('exercisePhase.warmup.short')}
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value={EXERCISE_PHASE.MAIN}
-                        disabled={
-                          !readOnly &&
-                          !canAccessWorkoutPhase(
-                            EXERCISE_PHASE.MAIN,
-                            enrichedDayExercises,
-                            completedExercises,
-                            day,
-                            today
-                          )
-                        }
-                      >
-                        <span className="mr-1" aria-hidden="true">💪</span>
-                        {t('exercisePhase.main.short')}
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value={EXERCISE_PHASE.COOLDOWN}
-                        disabled={
-                          !readOnly &&
-                          !canAccessWorkoutPhase(
-                            EXERCISE_PHASE.COOLDOWN,
-                            enrichedDayExercises,
-                            completedExercises,
-                            day,
-                            today
-                          )
-                        }
-                      >
-                        <span className="mr-1" aria-hidden="true">❄️</span>
-                        {t('exercisePhase.cooldown.short')}
-                      </TabsTrigger>
+                      {WORKOUT_PHASE_ORDER.filter((phase) =>
+                        enrichedDayExercises.some((ex) => ex.exercisePhase === phase)
+                      ).map((phase) => (
+                        <TabsTrigger
+                          key={phase}
+                          value={phase}
+                          disabled={
+                            !readOnly &&
+                            !canAccessWorkoutPhase(phase, enrichedDayExercises, completedExercises, day, today)
+                          }
+                        >
+                          <span className="mr-1" aria-hidden="true">{getPhaseIcon(phase)}</span>
+                          {getPhaseFilterLabel(phase, t)}
+                        </TabsTrigger>
+                      ))}
                     </TabsList>
                   </Tabs>
                   <p className="text-xs text-muted-foreground px-1">

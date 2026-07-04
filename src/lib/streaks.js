@@ -23,11 +23,11 @@ function daysBetween(a, b) {
   return Math.round(ms / 86400000)
 }
 
-/** Unique YYYY-MM-DD dates with at least one completed exercise. */
+/** Unique YYYY-MM-DD dates with at least one completed (non-skipped) exercise. */
 export function getActiveWorkoutDates(completedExercises) {
   const dates = new Set()
   Object.values(completedExercises || {}).forEach((entry) => {
-    if (entry?.date) dates.add(entry.date)
+    if (entry?.date && !entry.skipped) dates.add(entry.date)
   })
   return [...dates].sort()
 }

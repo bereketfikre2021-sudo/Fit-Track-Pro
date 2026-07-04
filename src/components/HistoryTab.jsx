@@ -12,6 +12,7 @@ import WorkoutInsightsReport from './WorkoutInsightsReport'
 import AchievementsCard from './AchievementsCard'
 import PersonalRecordsCard from './PersonalRecordsCard'
 import CustomChallengesCard from './CustomChallengesCard'
+import ProgressiveOverloadCard from './ProgressiveOverloadCard'
 import { translateWeekday } from '@/lib/i18nHelpers'
 import { getSessionHistory } from '@/lib/sessionHistory'
 
@@ -169,6 +170,8 @@ function HistoryTab({ state, updateState }) {
         stats={{ totalWorkouts, totalExercises, uniqueExercises, mostActiveDay }}
       />
 
+      <ProgressiveOverloadCard state={state} />
+
       {/* 12-week activity heatmap — HIDDEN for now, code kept for future use */}
       {false && (
         <Card className="mb-6">
@@ -183,8 +186,7 @@ function HistoryTab({ state, updateState }) {
 
       <AchievementsCard state={state} />
 
-      {/* PersonalRecordsCard — HIDDEN for now, code kept for future use */}
-      {false && <PersonalRecordsCard state={state} />}
+      <PersonalRecordsCard state={state} />
 
       <CustomChallengesCard state={state} updateState={updateState} />
 

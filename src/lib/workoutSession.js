@@ -223,7 +223,7 @@ export function skipWorkoutForToday(state, day, reason, date = todayDateString()
     startedAt: now,
     endedAt: now,
     completedCount: 0,
-    totalCount: mainExercises.length,
+    totalCount: exercises.length,
     skipped: true,
     skipReason: reason,
   }

@@ -117,9 +117,19 @@ function BodyWeightTracker({ state, updateState }) {
   }
 
   const handleDelete = (id) => {
-    if (!confirm(t('bodyWeight.confirmDelete'))) return
-    updateState({ bodyLogs: removeBodyLog(bodyLogs, id) })
-    toast.success(t('bodyWeight.toastRemoved'))
+    toast(t('bodyWeight.confirmDelete'), {
+      action: {
+        label: t('common.delete'),
+        onClick: () => {
+          updateState({ bodyLogs: removeBodyLog(bodyLogs, id) })
+          toast.success(t('bodyWeight.toastRemoved'))
+        },
+      },
+      cancel: {
+        label: t('common.cancel'),
+        onClick: () => {},
+      },
+    })
   }
 
   return (

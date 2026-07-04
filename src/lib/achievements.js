@@ -59,7 +59,7 @@ function hasCompletedFullWeek(state) {
 
 /** True if the user has logged body weight on at least 7 distinct dates. */
 function hasLoggedWeightSevenDays(state) {
-  const logs = state.bodyWeightLogs || []
+  const logs = state.bodyLogs || []
   const dates = new Set(logs.map((l) => l.date).filter(Boolean))
   return dates.size >= 7
 }
