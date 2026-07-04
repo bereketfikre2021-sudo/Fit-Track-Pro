@@ -128,12 +128,19 @@ function TemplateCard({
     setEditingName(false)
   }
 
-  const handleAddExercise = (exerciseId, details) => {
-    const updated = addExerciseToTemplate(template, customExercises, exerciseId, details)
-    if (!updated) return
+  const handleAddExercise = (entries) => {
+    let updated = template
+    for (const { exerciseId, details } of entries) {
+      const next = addExerciseToTemplate(updated, customExercises, exerciseId, details)
+      if (next) updated = next
+    }
+    if (updated === template) return
     onUpdate(updated)
-    setAddingExercise(false)
-    toast.success(t('templates.toastExerciseAdded'))
+    if (entries.length === 1) {
+      toast.success(t('templates.toastExerciseAdded'))
+    } else {
+      toast.success(t('dialogs.addToDay.addedCount', { count: entries.length, defaultValue: `Added ${entries.length} exercises` }))
+    }
   }
 
   const handleRemoveExercise = (entryId) => {

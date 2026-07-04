@@ -258,7 +258,7 @@ export function ExerciseWorkoutCard({
 
   const migrated =
     migrateCompletionEntry(completionEntry, exercise, fullExercise) ||
-    (enableSetLogging && onSaveEntry
+    (onSaveEntry
       ? migrateCompletionEntry(
           { notes: '', sets: buildDefaultSets(exercise, fullExercise) },
           exercise,
@@ -281,6 +281,12 @@ export function ExerciseWorkoutCard({
   const holdSeconds = parseHoldSeconds(merged)
   const targetLabel = formatExerciseTarget(merged)
   const setsSummary = formatSetsSummary(sets)
+
+  // Show the weight tracker if:
+  //  a) the full set-logging setting is on, OR
+  //  b) the exercise was added with a weightKg preset (progressive overload tracking)
+  const hasPresetWeight = sets.some((s) => s.weightKg?.trim())
+  const showWeightTracker = (enableSetLogging || hasPresetWeight) && onSaveEntry && !readOnly && sets.length > 0
   const showSetLogging = enableSetLogging && onSaveEntry && !readOnly
 
   return (
@@ -429,24 +435,26 @@ export function ExerciseWorkoutCard({
             </div>
           </div>
 
-          {showSetLogging && (
+          {showWeightTracker && (
             <div className="mt-3 pt-3 border-t border-border space-y-3">
               <SetLogEditor
                 sets={sets}
                 onChange={(nextSets) => onSaveEntry({ sets: nextSets })}
               />
-              <div className="space-y-1">
-                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
-                  {t('exerciseCard.sessionNotes')}
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder={t('exerciseCard.sessionNotesPlaceholder')}
-                  value={migrated?.notes ?? ''}
-                  onChange={(e) => onSaveEntry({ notes: e.target.value })}
-                  className="flex w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
-                />
-              </div>
+              {showSetLogging && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                    {t('exerciseCard.sessionNotes')}
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder={t('exerciseCard.sessionNotesPlaceholder')}
+                    value={migrated?.notes ?? ''}
+                    onChange={(e) => onSaveEntry({ notes: e.target.value })}
+                    className="flex w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

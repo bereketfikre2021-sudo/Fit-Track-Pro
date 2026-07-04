@@ -9,6 +9,7 @@ export function addExerciseToDay(workoutSchedule, day, customExercises, exercise
   const reps = details.reps ?? exercise.reps ?? ''
   const duration = details.duration ?? exercise.duration ?? '30'
   const durationUnit = details.durationUnit ?? exercise.durationUnit ?? 'seconds'
+  const weightKg = details.weightKg ?? ''
 
   const daySchedule = workoutSchedule[day] || { note: '', exercises: [] }
 
@@ -25,6 +26,8 @@ export function addExerciseToDay(workoutSchedule, day, customExercises, exercise
     muscleGroups: exercise.muscleGroups,
     target: buildExerciseTarget({ isTimeBased, sets, reps, duration, durationUnit }),
   }
+
+  if (weightKg) entry.weightKg = weightKg
 
   if (isTimeBased) {
     entry.duration = duration
@@ -115,6 +118,7 @@ export function addExerciseToTemplate(template, customExercises, exerciseId, det
   const reps = details.reps ?? exercise.reps ?? ''
   const duration = details.duration ?? exercise.duration ?? '30'
   const durationUnit = details.durationUnit ?? exercise.durationUnit ?? 'seconds'
+  const weightKg = details.weightKg ?? ''
 
   const entry = {
     id: `tpl-${exercise.id}-${Date.now()}`,
@@ -129,6 +133,8 @@ export function addExerciseToTemplate(template, customExercises, exerciseId, det
     muscleGroups: exercise.muscleGroups,
     target: buildExerciseTarget({ isTimeBased, sets, reps, duration, durationUnit }),
   }
+
+  if (weightKg) entry.weightKg = weightKg
 
   if (isTimeBased) {
     entry.duration = duration

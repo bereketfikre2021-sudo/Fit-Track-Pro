@@ -15,11 +15,12 @@ export function buildDefaultSets(exercise, libraryExercise = null) {
 
   const count = parseSetCount(merged)
   const defaultReps = String(merged.reps ?? '10').trim()
+  const defaultWeightKg = merged.weightKg ? String(merged.weightKg) : ''
 
   return Array.from({ length: count }, (_, i) => ({
     setNumber: i + 1,
     reps: defaultReps,
-    weightKg: '',
+    weightKg: defaultWeightKg,
   }))
 }
 

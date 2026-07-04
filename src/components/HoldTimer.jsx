@@ -13,7 +13,7 @@ import {
 } from '@/lib/holdTimer'
 import { toast } from 'sonner'
 
-function HoldTimer({ timer, onStop, playSound = true, vibrate = true }) {
+function HoldTimer({ timer, onStop, onComplete, playSound = true, vibrate = true }) {
   const { t } = useTranslation()
   const [phase, setPhase] = useState('ready')
   const [displaySeconds, setDisplaySeconds] = useState(0)
@@ -56,6 +56,7 @@ function HoldTimer({ timer, onStop, playSound = true, vibrate = true }) {
         playRestCompleteFeedback({ sound: playSound, vibrate })
         toast.success(t('holdTimer.complete'))
         onStop()
+        onComplete?.()
       }
     }
 

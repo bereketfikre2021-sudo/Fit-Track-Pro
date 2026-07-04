@@ -236,6 +236,7 @@ function WorkoutTab({ state, updateState }) {
   const [restTimer, setRestTimer] = useState(null)
   const [restNextExercise, setRestNextExercise] = useState(null)
   const [holdTimer, setHoldTimer] = useState(null)
+  const [holdExerciseContext, setHoldExerciseContext] = useState(null)
   const [skipDayOpen, setSkipDayOpen] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [celebrating, setCelebrating] = useState(false)
@@ -363,8 +364,9 @@ function WorkoutTab({ state, updateState }) {
     setRestNextExercise(nextEx)
   }
 
-  const startHoldTimer = (seconds, label) => {
+  const startHoldTimer = (seconds, label, exerciseContext = null) => {
     setRestTimer(null)
+    setHoldExerciseContext(exerciseContext)
     setHoldTimer(createHoldTimer(seconds, label))
   }
 
@@ -473,6 +475,7 @@ function WorkoutTab({ state, updateState }) {
         setRestTimer(null)
         setRestNextExercise(null)
         setHoldTimer(null)
+        setHoldExerciseContext(null)
 
         const sessionToFinish =
           activeSession?.day === day && activeSession?.date === today
@@ -871,7 +874,7 @@ function WorkoutTab({ state, updateState }) {
                                   onSaveEntry={workoutLocked ? undefined : (patch) => saveCompletionEntry(day, ex.id, patch)}
                                   onToggleComplete={workoutLocked ? undefined : () => toggleExerciseCompletion(day, ex.id)}
                                   onStartRest={workoutLocked ? undefined : (seconds, label) => startRestTimer(seconds, label)}
-                                  onStartHold={workoutLocked ? undefined : (seconds, label) => startHoldTimer(seconds, label)}
+                                  onStartHold={workoutLocked ? undefined : (seconds, label) => startHoldTimer(seconds, label, { day, exerciseId: ex.id })}
                                 />
                               ))}
                             </div>
@@ -932,7 +935,13 @@ function WorkoutTab({ state, updateState }) {
 
       <HoldTimer
         timer={holdTimer}
-        onStop={() => setHoldTimer(null)}
+        onStop={() => { setHoldTimer(null); setHoldExerciseContext(null) }}
+        onComplete={() => {
+          if (holdExerciseContext && !workoutLocked) {
+            toggleExerciseCompletion(holdExerciseContext.day, holdExerciseContext.exerciseId)
+          }
+          setHoldExerciseContext(null)
+        }}
         playSound={appSettings.restTimerSound}
         vibrate={appSettings.restTimerVibrate}
       />

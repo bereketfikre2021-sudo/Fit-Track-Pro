@@ -1791,9 +1791,21 @@ function ScheduleManager({
           day={selectedDay}
           customExercises={customExercises}
           onClose={() => setIsAddingExerciseToDay(false)}
-          onAdd={(exerciseId, details) => {
-            handleAddExerciseToDay(selectedDay, exerciseId, details)
-            setIsAddingExerciseToDay(false)
+          onAdd={(entries) => {
+            let schedule = workoutSchedule
+            for (const { exerciseId, details } of entries) {
+              const newSchedule = addExerciseToDay(schedule, selectedDay, customExercises, exerciseId, details)
+              if (newSchedule) schedule = newSchedule
+            }
+            updateState({ workoutSchedule: schedule })
+            const names = entries
+              .map(({ exerciseId }) => customExercises.find((ex) => ex.id === exerciseId)?.name)
+              .filter(Boolean)
+            if (names.length === 1) {
+              toast.success(t('custom.scheduleAddedToDay', { name: names[0], day: translateWeekday(selectedDay) }))
+            } else if (names.length > 1) {
+              toast.success(t('dialogs.addToDay.addedCount', { count: names.length, defaultValue: `Added ${names.length} exercises to ${translateWeekday(selectedDay)}` }))
+            }
           }}
         />
       )}
