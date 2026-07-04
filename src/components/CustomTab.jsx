@@ -1458,6 +1458,7 @@ function ScheduleManager({
   const [selectedDay, setSelectedDay] = useState(workoutDays[0] || null)
   const [isAddingExerciseToDay, setIsAddingExerciseToDay] = useState(false)
   const [copyDialogOpen, setCopyDialogOpen] = useState(false)
+  const [removeConfirmDay, setRemoveConfirmDay] = useState(null)
 
   // Keep selectedDay in sync when workoutDays changes
   useEffect(() => {
@@ -1471,7 +1472,6 @@ function ScheduleManager({
     const isActive = currentWorkoutDays.includes(day)
 
     if (!isActive) {
-      // Add the day
       const newSchedule = {
         ...currentSchedule,
         [day]: { note: i18n.t('common.dayWorkout', { day, lng: 'en' }), exercises: [] },
@@ -1482,35 +1482,23 @@ function ScheduleManager({
       })
       toast.success(t('custom.scheduleDayAdded', { day: translateWeekday(day) }))
       setSelectedDay(day)
-    } else {
-      // Remove — check if the day has exercises
-      const hasExercises = (currentSchedule[day]?.exercises?.length || 0) > 0
-      const doRemove = () => {
-        const newSchedule = { ...currentSchedule }
-        delete newSchedule[day]
-        updateState({
-          profile: { ...state.profile, workoutDays: currentWorkoutDays.filter(d => d !== day) },
-          workoutSchedule: newSchedule,
-        })
-        toast.success(t('custom.scheduleDayRemoved', { day: translateWeekday(day) }))
-        if (selectedDay === day) {
-          const remaining = currentWorkoutDays.filter(d => d !== day)
-          setSelectedDay(remaining[0] || null)
-        }
-      }
-
-      if (hasExercises) {
-        toast(
-          i18n.t('custom.scheduleConfirmRemove', { day: translateWeekday(day) }),
-          {
-            action: { label: t('common.delete'), onClick: doRemove },
-            cancel: { label: t('common.cancel'), onClick: () => {} },
-          }
-        )
-      } else {
-        doRemove()
-      }
     }
+  }
+
+  const handleRemoveDay = (day) => {
+    const currentWorkoutDays = state.profile?.workoutDays || []
+    const currentSchedule = state.workoutSchedule || {}
+    const newSchedule = { ...currentSchedule }
+    delete newSchedule[day]
+    updateState({
+      profile: { ...state.profile, workoutDays: currentWorkoutDays.filter(d => d !== day) },
+      workoutSchedule: newSchedule,
+    })
+    toast.success(t('custom.scheduleDayRemoved', { day: translateWeekday(day) }))
+    if (selectedDay === day) {
+      setSelectedDay(currentWorkoutDays.filter(d => d !== day)[0] || null)
+    }
+    setRemoveConfirmDay(null)
   }
 
   const handleAddDays = (days) => {
@@ -1667,40 +1655,27 @@ function ScheduleManager({
                 type="button"
                 onClick={() => {
                   if (active) {
-                    if (isSelected) {
-                      // Second tap on selected active day → trigger remove
-                      handleToggleDay(day)
-                    } else {
-                      // First tap on active day → select it to view/edit
-                      setSelectedDay(day)
-                    }
+                    setSelectedDay(day)
                   } else {
-                    // Inactive day → add it
                     handleToggleDay(day)
                   }
                 }}
                 className={cn(
-                  'relative rounded-md border px-3 py-1.5 text-sm font-medium transition-all',
+                  'rounded-md border px-3 py-1.5 text-sm font-medium transition-all',
                   active && isSelected
                     ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
                     : active
                       ? 'border-primary/50 bg-primary/5 text-primary hover:bg-primary/10'
                       : 'border-border bg-background text-muted-foreground hover:border-primary/50 hover:bg-muted/30'
                 )}
-                title={active ? (isSelected ? `Tap again to remove ${translateWeekday(day)}` : `Select ${translateWeekday(day)}`) : `Add ${translateWeekday(day)}`}
               >
                 {translateWeekday(day).slice(0, 3)}
-                {active && isSelected && (
-                  <span className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-destructive text-white flex items-center justify-center text-[8px] leading-none font-bold pointer-events-none">
-                    ✕
-                  </span>
-                )}
               </button>
             )
           })}
         </div>
         <p className="text-[10px] text-muted-foreground mt-2">
-          Tap inactive day to add · tap active day to select · tap selected day to remove
+          Tap a day to select it · tap an unselected day to add it
         </p>
       </CardContent>
     </Card>
@@ -1738,6 +1713,15 @@ function ScheduleManager({
                     {t('custom.copyDay')}
                   </Button>
                 )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                  onClick={() => setRemoveConfirmDay(selectedDay)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1.5" />
+                  {t('custom.removeDay')}
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -1820,6 +1804,42 @@ function ScheduleManager({
           }}
         />
       )}
+
+      {/* Remove day confirmation dialog */}
+      <Dialog open={!!removeConfirmDay} onOpenChange={(open) => { if (!open) setRemoveConfirmDay(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {i18n.t('custom.scheduleConfirmRemoveTitle', {
+                day: translateWeekday(removeConfirmDay || ''),
+                defaultValue: `Remove ${translateWeekday(removeConfirmDay || '')}?`,
+              })}
+            </DialogTitle>
+            <DialogDescription>
+              {i18n.t('custom.scheduleConfirmRemoveDesc', {
+                defaultValue: 'This will remove the day and all its exercises from your schedule. This cannot be undone.',
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setRemoveConfirmDay(null)}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onClick={() => handleRemoveDay(removeConfirmDay)}
+            >
+              <Trash2 className="h-4 w-4 mr-1.5" />
+              {t('custom.removeDay')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   )
