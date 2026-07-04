@@ -273,23 +273,10 @@ function ProfileTab({ state, updateState }) {
         summary={eqLabel}
       >
         <div className="pt-3 space-y-2">
-          <div className="grid grid-cols-3 gap-2">
-            {EQUIPMENT_OPTIONS.map(({ id, label }) => {
-              const selected = equipmentToId(profile.equipment || []) === id
-              return (
-                <div
-                  key={id}
-                  className={cn(
-                    'rounded-lg border px-3 py-2.5 text-sm font-medium text-left',
-                    selected
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border text-muted-foreground opacity-50'
-                  )}
-                >
-                  {label}
-                </div>
-              )
-            })}
+          <div className="flex items-center justify-center rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+            <span className="text-sm font-semibold text-primary">
+              {eqLabel}
+            </span>
           </div>
           <div className="flex items-center gap-1.5 rounded-md border border-border/40 bg-muted/20 px-3 py-2">
             <Info className="h-3.5 w-3.5 text-muted-foreground shrink-0" />

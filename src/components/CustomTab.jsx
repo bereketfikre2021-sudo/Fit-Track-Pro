@@ -1660,39 +1660,47 @@ function ScheduleManager({
         <div className="flex flex-wrap gap-2">
           {DAYS_OF_WEEK.map((day) => {
             const active = workoutDays.includes(day)
+            const isSelected = selectedDay === day
             return (
               <button
                 key={day}
                 type="button"
                 onClick={() => {
                   if (active) {
-                    // If already active: select it for editing on first tap,
-                    // toggle off only if it's already selected
-                    if (selectedDay === day) {
+                    if (isSelected) {
+                      // Second tap on selected active day → trigger remove
                       handleToggleDay(day)
                     } else {
+                      // First tap on active day → select it to view/edit
                       setSelectedDay(day)
                     }
                   } else {
+                    // Inactive day → add it
                     handleToggleDay(day)
                   }
                 }}
                 className={cn(
-                  'rounded-md border px-3 py-1.5 text-sm font-medium transition-all',
-                  active && selectedDay === day
+                  'relative rounded-md border px-3 py-1.5 text-sm font-medium transition-all',
+                  active && isSelected
                     ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
                     : active
                       ? 'border-primary/50 bg-primary/5 text-primary hover:bg-primary/10'
                       : 'border-border bg-background text-muted-foreground hover:border-primary/50 hover:bg-muted/30'
                 )}
+                title={active ? (isSelected ? `Tap again to remove ${translateWeekday(day)}` : `Select ${translateWeekday(day)}`) : `Add ${translateWeekday(day)}`}
               >
                 {translateWeekday(day).slice(0, 3)}
+                {active && isSelected && (
+                  <span className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-destructive text-white flex items-center justify-center text-[8px] leading-none font-bold pointer-events-none">
+                    ✕
+                  </span>
+                )}
               </button>
             )
           })}
         </div>
         <p className="text-[10px] text-muted-foreground mt-2">
-          Tap a day to add or remove it from your schedule
+          Tap inactive day to add · tap active day to select · tap selected day to remove
         </p>
       </CardContent>
     </Card>
