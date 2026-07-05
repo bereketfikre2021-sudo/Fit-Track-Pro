@@ -235,41 +235,49 @@ function ProfileTab({ state, updateState }) {
             {/* Birth date — editable (not asked in onboarding) */}
             <div
               className={cn(
-                'flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2.5 transition-all',
-                !editingBirthDate && 'cursor-pointer hover:border-primary/40 hover:bg-primary/5',
-                editingBirthDate && 'ring-2 ring-primary border-primary/50'
+                'rounded-lg border border-border bg-muted/20 px-3 transition-all',
+                !editingBirthDate && 'py-2.5 cursor-pointer hover:border-primary/40 hover:bg-primary/5',
+                editingBirthDate && 'py-2.5 ring-2 ring-primary border-primary/50'
               )}
               onClick={!editingBirthDate ? () => { setBirthDateDraft(profile.birthDate || ''); setEditingBirthDate(true) } : undefined}
               role={!editingBirthDate ? 'button' : undefined}
               tabIndex={!editingBirthDate ? 0 : undefined}
               onKeyDown={!editingBirthDate ? (e) => { if (e.key === 'Enter' || e.key === ' ') { setBirthDateDraft(profile.birthDate || ''); setEditingBirthDate(true) } } : undefined}
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <User className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span className="text-xs text-muted-foreground">{t('profile.birthDate')}</span>
+              {/* Label row */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <User className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="text-xs text-muted-foreground">{t('profile.birthDate')}</span>
+                </div>
+                {!editingBirthDate && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold">
+                      {age ? t('profile.years', { age }) : t('profile.addBirthDate')}
+                    </span>
+                    <Edit2 className="h-3 w-3 text-muted-foreground/50" />
+                  </div>
+                )}
               </div>
-              {editingBirthDate ? (
-                <div className="flex items-center gap-1.5 ml-2">
+
+              {/* Editing state — full-width dropdowns below label */}
+              {editingBirthDate && (
+                <div className="mt-2 space-y-2" onClick={(e) => e.stopPropagation()}>
                   <DateInput
                     value={birthDateDraft}
                     onChange={(e) => setBirthDateDraft(e.target.value)}
-                    className="h-8 flex-1"
-                    onClick={(e) => e.stopPropagation()}
                     autoFocus
                   />
-                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); saveBirthDate() }}>
-                    <Check className="h-3.5 w-3.5 text-green-500" />
-                  </Button>
-                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); cancelBirthDate() }}>
-                    <X className="h-3.5 w-3.5 text-destructive" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold">
-                    {age ? t('profile.years', { age }) : t('profile.addBirthDate')}
-                  </span>
-                  <Edit2 className="h-3 w-3 text-muted-foreground/50" />
+                  <div className="flex gap-2">
+                    <Button type="button" size="sm" className="flex-1 h-8" onClick={saveBirthDate}>
+                      <Check className="h-3.5 w-3.5 mr-1.5 text-green-500" />
+                      {t('common.save')}
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" className="flex-1 h-8" onClick={cancelBirthDate}>
+                      <X className="h-3.5 w-3.5 mr-1.5" />
+                      {t('common.cancel')}
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
