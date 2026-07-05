@@ -448,84 +448,39 @@ function MealPlanPage({ state, updateState }) {
 
         {/* MEALS TAB */}
         <TabsContent value="meals" className="space-y-4">
-          {showAiMealRecommend && (() => {
-            const hasExercises = hasAnyExercises(state)
-            return (
-              <Card className="border-primary/30 bg-primary/5">
-                <CardContent className="py-5 space-y-4">
-                  <div>
-                    <p className="font-medium">{t('meals.emptyMealTitle')}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {t('meals.emptyMealDesc')}
-                    </p>
-                  </div>
+          {/* Always-visible update row for meal plan */}
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            {allowsAiPlanFeatures(state) && (
+              <AiRecommendButton
+                loading={aiLoading}
+                label={t('ai.mealLabel')}
+                onClick={handleAiMealRecommend}
+                disabled={!hasAnyExercises(state)}
+              />
+            )}
+            {showTemplateFeatures && (
+              <Button
+                type="button"
+                variant={showPresets ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowPresets((v) => !v)}
+              >
+                <LayoutTemplate className="h-4 w-4 mr-2" />
+                Preset plans
+                {showPresets
+                  ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
+                  : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
+              </Button>
+            )}
+            {!hasAnyExercises(state) && (
+              <p className="text-xs text-muted-foreground w-full">
+                Add exercises to your Library first — AI uses your workout plan to tailor meals.
+              </p>
+            )}
+          </div>
 
-                  {/* Hint when exercises haven't been added yet */}
-                  {!hasExercises && (
-                    <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-                      <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                      <span>Add exercises to your library first — AI uses your workout plan to tailor your meal plan.</span>
-                    </div>
-                  )}
-
-                  {/* Action buttons */}
-                  <div className="flex flex-wrap gap-2">
-                    {allowsAiPlanFeatures(state) && hasExercises && (
-                      <AiRecommendButton
-                        loading={aiLoading}
-                        label={t('ai.mealLabel')}
-                        onClick={handleAiMealRecommend}
-                      />
-                    )}
-
-                    {showTemplateFeatures && (
-                      <Button
-                        type="button"
-                        variant={showPresets ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setShowPresets((v) => !v)}
-                      >
-                        <LayoutTemplate className="h-4 w-4 mr-2" />
-                        Use Template
-                        {showPresets
-                          ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
-                          : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
-                      </Button>
-                    )}
-
-                  </div>
-                  {/* Preset templates reveal */}
-                  {showPresets && showTemplateFeatures && (
-                    <div className="pt-1">
-                      <MealPresetTemplatesSection state={state} updateState={updateState} />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )
-          })()}
-
-          {!showAiMealRecommend && (
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              {showTemplateFeatures && (
-                <Button
-                  type="button"
-                  variant={showPresets ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setShowPresets((v) => !v)}
-                >
-                  <LayoutTemplate className="h-4 w-4 mr-2" />
-                  Use Template
-                  {showPresets
-                    ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
-                    : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
-                </Button>
-              )}
-            </div>
-          )}
-
-          {/* Preset templates reveal when meal plan is already filled */}
-          {showPresets && showTemplateFeatures && !showAiMealRecommend && (
+          {/* Preset templates reveal */}
+          {showPresets && showTemplateFeatures && (
             <div className="mb-4">
               <MealPresetTemplatesSection state={state} updateState={updateState} />
             </div>
@@ -784,13 +739,12 @@ function MealPlanPage({ state, updateState }) {
                 )}
 
                 <div className="flex flex-wrap gap-2">
-                  {allowsAiPlanFeatures(state) && !isMealPlanEmpty(mealPlan) && (
-                    <AiRecommendButton
-                      loading={aiShoppingLoading}
-                      label={t('ai.shoppingLabel')}
-                      onClick={handleAiShoppingRecommend}
-                    />
-                  )}
+                  <AiRecommendButton
+                    loading={aiShoppingLoading}
+                    label={t('ai.shoppingLabel')}
+                    onClick={handleAiShoppingRecommend}
+                    disabled={isMealPlanEmpty(mealPlan)}
+                  />
                   {showTemplateShoppingFeatures && (
                     <Button
                       type="button"
@@ -799,7 +753,7 @@ function MealPlanPage({ state, updateState }) {
                       onClick={() => setShowShoppingTemplates((v) => !v)}
                     >
                       <LayoutTemplate className="h-4 w-4 mr-2" />
-                      Use Template
+                      Preset plans
                       {showShoppingTemplates
                         ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
                         : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}

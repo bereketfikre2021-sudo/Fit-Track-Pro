@@ -1,11 +1,9 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import GymFloatingPattern from '../components/GymFloatingPattern'
 import TodayWorkoutCard from '../components/TodayWorkoutCard'
 import WaterTracker from '../components/WaterTracker'
-import { NewUserGetStartedCard } from '../components/AiRecommendButton'
 import { canStartWorkoutForDay } from '@/lib/calendarDay'
 import {
   getTodaySessionForDay,
@@ -14,17 +12,11 @@ import {
   todayDateString,
 } from '@/lib/workoutSession'
 import { translateWeekday } from '@/lib/i18nHelpers'
-import { shouldShowExerciseSetupPrompt } from '@/lib/planEmpty'
-import { getPlanSetupMethod } from '@/lib/planSetup'
-import { fetchExerciseRecommendation } from '@/lib/aiRecommendations'
-import { applyExerciseImport, IMPORT_MODE } from '@/lib/exerciseImport'
-import { showImportWarnings } from '@/lib/importWarnings'
-import { getAiToastKey } from '@/lib/aiErrors'
 import { getDailyMotivation } from '@/lib/dailyMotivation'
 
 function MotivationQuote({ lines }) {
   return (
-    <div className="mb-4 pl-3 border-l-4 border-primary">
+    <div className="mb-2 pl-3 border-l-4 border-primary">
       {lines.map((line, index) => (
         <p
           key={index}
@@ -43,29 +35,7 @@ function HomePage({ state, updateState }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const today = todayDateString()
-  const [aiLoading, setAiLoading] = useState(false)
-  const showExerciseSetupPrompt = shouldShowExerciseSetupPrompt(state)
-  const setupMethod = getPlanSetupMethod(state)
   const motivationLines = getDailyMotivation()
-
-  const handleAiExerciseRecommend = async () => {
-    setAiLoading(true)
-    try {
-      const parsed = await fetchExerciseRecommendation(state)
-      const result = applyExerciseImport(state, parsed, IMPORT_MODE.APPEND)
-      updateState({
-        customExercises: result.customExercises,
-        workoutSchedule: result.workoutSchedule,
-        profile: result.profile,
-      })
-      showImportWarnings(result.warnings, { title: t('custom.aiNotesTitle') })
-      toast.success(t('custom.toastAiApplied'))
-    } catch (err) {
-      toast.error(t(getAiToastKey(err)))
-    } finally {
-      setAiLoading(false)
-    }
-  }
 
   const handleStartSession = (day) => {
     const workoutDays = state.profile?.workoutDays || []
@@ -98,9 +68,9 @@ function HomePage({ state, updateState }) {
   }
 
   return (
-    <div className="relative p-4 md:p-6 pb-20 md:pb-6 min-h-[calc(100vh-12rem)] pt-4 md:pt-6">
+    <div className="relative -mt-10 px-3 pb-20 md:pb-6 md:px-6 md:mt-0">
       <GymFloatingPattern />
-      <div className="relative z-10">
+      <div className="relative z-10 flex flex-col gap-2">
         <MotivationQuote lines={motivationLines} />
 
         <TodayWorkoutCard
@@ -115,17 +85,6 @@ function HomePage({ state, updateState }) {
         />
 
         <WaterTracker state={state} updateState={updateState} today={today} />
-
-        {/* New user setup — full 3-option card directly on home page */}
-        {showExerciseSetupPrompt && (
-          <NewUserGetStartedCard
-            aiLoading={aiLoading}
-            onAiGenerate={handleAiExerciseRecommend}
-            setupMethod={setupMethod}
-            state={state}
-            updateState={updateState}
-          />
-        )}
       </div>
     </div>
   )

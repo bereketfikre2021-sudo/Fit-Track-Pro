@@ -19,6 +19,7 @@ import {
   LayoutTemplate,
   ChevronUp,
   ChevronDown,
+  Sparkles,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
@@ -102,6 +103,7 @@ function CustomTab({ state, updateState }) {
   const [historyExercise, setHistoryExercise] = useState(null)
   const [showTemplatesSection, setShowTemplatesSection] = useState(false)
   const [libraryOpen, setLibraryOpen] = useState(false)
+  const [showUpdatePlan, setShowUpdatePlan] = useState(false)
 
   const customExercises = state.customExercises || []
   const showExerciseSetupPrompt = shouldShowExerciseSetupPrompt(state)
@@ -260,35 +262,13 @@ function CustomTab({ state, updateState }) {
             <h1 className="text-2xl font-bold mb-2">{t('exercises.pageTitle')}</h1>
             <p className="text-sm text-muted-foreground">{t('exercises.pageSubtitle')}</p>
           </div>
-          {/* Regenerate toolbar — visible once exercises exist, hidden when everything is already set up */}
-          {customExercises.length > 0 && (isMealPlanEmpty(state.mealPlan) || isShoppingListEmpty(state.shoppingList)) && (
-            <div className="flex flex-wrap gap-2 mt-1">
-              {showAiFeatures && (
-                <AiRecommendButton
-                  loading={aiLoading}
-                  label={t('ai.exerciseOnlyLabel')}
-                  onClick={handleAiExerciseRecommend}
-                />
-              )}
-              {showTemplateFeatures && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowTemplatesSection(true)}
-                >
-                  <LayoutTemplate className="h-4 w-4 mr-2" />
-                  {t('ai.chooseTemplate')}
-                </Button>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
       <div className="space-y-8">
 
         {/* ── WORKOUT DAYS & SCHEDULE ───────────────────── */}
-        <div id="schedule-section" className="space-y-4">
+        <div id="schedule-section" className="space-y-3">
           <h2 className="text-base font-semibold flex items-center gap-2">
             <Calendar className="h-4 w-4 text-primary" />
             {t('exercises.tabSchedule')}
@@ -382,19 +362,15 @@ function CustomTab({ state, updateState }) {
                       <p className="text-sm text-muted-foreground mt-1">{t('exercises.emptyDesc')}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {showAiFeatures && (
-                        <AiRecommendButton
-                          loading={aiLoading}
-                          label={t('ai.exerciseLabel')}
-                          onClick={handleAiExerciseRecommend}
-                        />
-                      )}
-                      {showTemplateFeatures && (
-                        <Button size="sm" variant="outline" onClick={() => setShowTemplatesSection(true)}>
-                          <LayoutTemplate className="h-4 w-4 mr-2" />
-                          {t('exercises.tabTemplates')}
-                        </Button>
-                      )}
+                      <AiRecommendButton
+                        loading={aiLoading}
+                        label={t('ai.exerciseLabel')}
+                        onClick={handleAiExerciseRecommend}
+                      />
+                      <Button size="sm" variant="outline" onClick={() => setShowTemplatesSection(true)}>
+                        <LayoutTemplate className="h-4 w-4 mr-2" />
+                        Preset plans
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -434,6 +410,45 @@ function CustomTab({ state, updateState }) {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+        </div>
+
+        {/* ── UPDATE PLAN ───────────────────────────────── */}
+        <div className="space-y-3">
+          <button
+            type="button"
+            className="w-full flex items-center justify-between gap-2 rounded-lg border border-border px-4 py-3 text-sm font-semibold hover:bg-muted/30 transition-colors"
+            onClick={() => setShowUpdatePlan((v) => !v)}
+          >
+            <span className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Update plan
+            </span>
+            {showUpdatePlan
+              ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          </button>
+          {showUpdatePlan && (
+            <div className="rounded-lg border border-border/60 bg-muted/10 p-4 space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Regenerate your workout exercises using AI or a preset plan. This appends to your existing library — nothing is deleted automatically.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <AiRecommendButton
+                  loading={aiLoading}
+                  label="AI exercise plan"
+                  onClick={handleAiExerciseRecommend}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setShowUpdatePlan(false); setShowTemplatesSection(true) }}
+                >
+                  <LayoutTemplate className="h-4 w-4 mr-2" />
+                  Preset plans
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -1635,50 +1650,38 @@ function ScheduleManager({
   }
 
   const dayPickerRow = (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm">{t('report.workoutDays')}</CardTitle>
-        <CardDescription className="text-xs">
-          {workoutDays.length === 0
-            ? t('custom.addDayHint')
-            : t('custom.workoutDaysCount', { count: workoutDays.length })}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap gap-2">
-          {DAYS_OF_WEEK.map((day) => {
-            const active = workoutDays.includes(day)
-            const isSelected = selectedDay === day
-            return (
-              <button
-                key={day}
-                type="button"
-                onClick={() => {
-                  if (active) {
-                    setSelectedDay(day)
-                  } else {
-                    handleToggleDay(day)
-                  }
-                }}
-                className={cn(
-                  'rounded-md border px-3 py-1.5 text-sm font-medium transition-all',
-                  active && isSelected
-                    ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
-                    : active
-                      ? 'border-primary/50 bg-primary/5 text-primary hover:bg-primary/10'
-                      : 'border-border bg-background text-muted-foreground hover:border-primary/50 hover:bg-muted/30'
-                )}
-              >
-                {translateWeekday(day).slice(0, 3)}
-              </button>
-            )
-          })}
-        </div>
-        <p className="text-[10px] text-muted-foreground mt-2">
-          Tap a day to select it · tap an unselected day to add it
-        </p>
-      </CardContent>
-    </Card>
+    <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+      {/* 7-day grid — always one line */}
+      <div className="grid grid-cols-7 gap-1">
+        {DAYS_OF_WEEK.map((day) => {
+          const active = workoutDays.includes(day)
+          const isSelected = selectedDay === day
+          return (
+            <button
+              key={day}
+              type="button"
+              onClick={() => active ? setSelectedDay(day) : handleToggleDay(day)}
+              className={cn(
+                'rounded-md py-1.5 text-[11px] font-semibold text-center transition-all',
+                active && isSelected
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : active
+                    ? 'border border-primary/40 bg-primary/8 text-primary'
+                    : 'border border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
+              )}
+            >
+              {translateWeekday(day).slice(0, 2)}
+            </button>
+          )
+        })}
+      </div>
+      <p className="text-[10px] text-muted-foreground leading-tight">
+        {workoutDays.length === 0
+          ? t('custom.addDayHint')
+          : t('custom.workoutDaysCount', { count: workoutDays.length })}{' '}
+        · Tap grey to add
+      </p>
+    </div>
   )
 
   if (workoutDays.length === 0) {
@@ -1690,36 +1693,37 @@ function ScheduleManager({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Day picker — toggle row */}
       {dayPickerRow}
 
       {/* Day Details */}
       {selectedDay && (
         <Card>
-          <CardHeader>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <CardTitle>
-                {t('common.dayWorkout', { day: translateWeekday(selectedDay) })}
+          <CardHeader className="pb-2 pt-3">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-base">
+                {translateWeekday(selectedDay)}
               </CardTitle>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex gap-1.5 shrink-0">
                 {(workoutSchedule[selectedDay]?.exercises?.length ?? 0) > 0 && (
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                     onClick={() => setCopyDialogOpen(true)}
                   >
-                    <Copy className="h-4 w-4 mr-1.5" />
+                    <Copy className="h-3.5 w-3.5 mr-1" />
                     {t('custom.copyDay')}
                   </Button>
                 )}
                 <Button
                   size="sm"
-                  variant="outline"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
                   onClick={() => setRemoveConfirmDay(selectedDay)}
                 >
-                  <Trash2 className="h-4 w-4 mr-1.5" />
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
                   {t('custom.removeDay')}
                 </Button>
               </div>

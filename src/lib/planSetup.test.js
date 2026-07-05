@@ -13,16 +13,16 @@ describe('plan setup method gating', () => {
     expect(allowsTemplatePlanFeatures({})).toBe(true)
   })
 
-  it('allows only template features when method is ai (AI already used at setup)', () => {
-    const state = { planSetupMethod: PLAN_SETUP_METHOD.AI }
-    expect(allowsAiPlanFeatures(state)).toBe(false)
-    expect(allowsTemplatePlanFeatures(state)).toBe(true)
+  it('always allows AI features regardless of setup method', () => {
+    expect(allowsAiPlanFeatures({ planSetupMethod: PLAN_SETUP_METHOD.AI })).toBe(true)
+    expect(allowsAiPlanFeatures({ planSetupMethod: PLAN_SETUP_METHOD.TEMPLATE })).toBe(true)
+    expect(allowsAiPlanFeatures({ planSetupMethod: PLAN_SETUP_METHOD.MANUAL })).toBe(true)
   })
 
-  it('blocks both AI and template features when method is template (both already used at setup)', () => {
-    const state = { planSetupMethod: PLAN_SETUP_METHOD.TEMPLATE }
-    expect(allowsAiPlanFeatures(state)).toBe(false)
-    expect(allowsTemplatePlanFeatures(state)).toBe(false)
+  it('always allows template features regardless of setup method', () => {
+    expect(allowsTemplatePlanFeatures({ planSetupMethod: PLAN_SETUP_METHOD.AI })).toBe(true)
+    expect(allowsTemplatePlanFeatures({ planSetupMethod: PLAN_SETUP_METHOD.TEMPLATE })).toBe(true)
+    expect(allowsTemplatePlanFeatures({ planSetupMethod: PLAN_SETUP_METHOD.MANUAL })).toBe(true)
   })
 
   it('allows both AI and template features when method is manual', () => {

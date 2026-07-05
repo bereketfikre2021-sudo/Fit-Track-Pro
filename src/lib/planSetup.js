@@ -36,19 +36,16 @@ export function getPlanSetupMethod(state) {
  * Visibility rules per setup method:
  *   ai       → template only (AI was already used at setup)
  *   template → nothing (both were used at setup — JSON only)
- *   manual   → both AI and template available
- *   null     → legacy save, keep both available
+/**
+ * AI and template features are always available — users can regenerate
+ * their plan at any time regardless of how they set up initially.
  */
 export function allowsAiPlanFeatures(state) {
-  const method = getPlanSetupMethod(state)
-  // available for manual and legacy; NOT for ai (already done) or template
-  return method === null || method === PLAN_SETUP_METHOD.MANUAL
+  return true
 }
 
 export function allowsTemplatePlanFeatures(state) {
-  const method = getPlanSetupMethod(state)
-  // available for ai, manual and legacy; NOT for template (already done)
-  return method === null || method === PLAN_SETUP_METHOD.AI || method === PLAN_SETUP_METHOD.MANUAL
+  return true
 }
 
 /**

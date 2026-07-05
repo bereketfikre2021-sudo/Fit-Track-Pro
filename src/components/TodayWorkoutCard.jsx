@@ -37,8 +37,8 @@ function DayHistoryBar({ completedSessions, day, today }) {
   }
 
   return (
-    <div className="mt-3 pt-3 border-t border-border/60 space-y-1.5">
-      <p className="text-[11px] font-medium text-muted-foreground">
+    <div className="mt-2 pt-2 border-t border-border/60 space-y-1">
+      <p className="text-[10px] font-medium text-muted-foreground">
         Past {past.length} {translateWeekday(day)} sessions
       </p>
       <div className="flex flex-wrap gap-1">
@@ -46,23 +46,20 @@ function DayHistoryBar({ completedSessions, day, today }) {
           <div
             key={s.id}
             className={cn(
-              'flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[10px] font-medium',
+              'flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium',
               s.skipped
-                ? 'border-destructive/40 bg-destructive/10 text-destructive/80'
-                : 'border-primary/40 bg-primary/10 text-primary'
+                ? 'bg-destructive/10 text-destructive/80'
+                : 'bg-primary/10 text-primary'
             )}
           >
-            <span>{formatDate(s.date)}</span>
-            <span className="font-bold">{s.skipped ? ' ✕' : ' ✓'}</span>
+            {formatDate(s.date)}{s.skipped ? ' ✕' : ' ✓'}
           </div>
         ))}
+        <span className="text-[10px] text-muted-foreground self-center">
+          <span className="text-primary font-semibold">{doneCount}✓</span>
+          {skippedCount > 0 && <span className="text-destructive/80 font-semibold ml-1">{skippedCount}✕</span>}
+        </span>
       </div>
-      <p className="text-[11px] text-muted-foreground">
-        <span className="text-primary font-semibold">{doneCount} ✓</span>
-        {skippedCount > 0 && (
-          <> · <span className="text-destructive/80 font-semibold">{skippedCount} ✕</span></>
-        )}
-      </p>
     </div>
   )
 }
@@ -119,24 +116,24 @@ function TodayWorkoutCard({
   return (
     <Card
       className={cn(
-        'mb-3 border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card',
+        'border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card',
         className
       )}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-medium text-primary flex items-center gap-1.5 mb-1">
+            <p className="text-xs font-medium text-primary flex items-center gap-1.5 mb-0.5">
               <Calendar className="h-3.5 w-3.5" />
               {isToday ? t('todayCard.today') : t('todayCard.next')}
             </p>
-            <h2 className="text-lg font-bold leading-tight">{focusDayLabel}</h2>
+            <h2 className="text-base font-bold leading-tight">{focusDayLabel}</h2>
             {!isToday && (
               <p className="text-xs text-muted-foreground mt-0.5">
                 {t('todayCard.restDay', { day: translateWeekday(ctx.calendarToday) })}
               </p>
             )}
-            <div className="flex flex-wrap items-center gap-2 mt-2">
+            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
               <Badge variant="secondary" className="text-xs">
                 <Dumbbell className="h-3 w-3 mr-1" />
                 {t('common.exercises', { count: totalAll })}
@@ -161,7 +158,7 @@ function TodayWorkoutCard({
           </div>
         </div>
         {schedule.note && (
-          <p className="text-xs text-muted-foreground mt-3 border-t border-border/60 pt-3 line-clamp-2">
+          <p className="text-xs text-muted-foreground mt-2 border-t border-border/60 pt-2 line-clamp-1">
             {schedule.note}
           </p>
         )}
@@ -173,7 +170,7 @@ function TodayWorkoutCard({
         />
 
         {total > 0 && !sessionActive && isToday && (
-          <div className="mt-3 pt-3 border-t border-border/60 flex flex-wrap gap-2">
+          <div className="mt-2 pt-2 border-t border-border/60 flex flex-wrap gap-2">
             <Button
               size="sm"
               disabled={sessionDoneToday}
@@ -190,7 +187,7 @@ function TodayWorkoutCard({
           </div>
         )}
         {total > 0 && !isToday && (
-          <p className="text-xs text-muted-foreground mt-3 border-t border-border/60 pt-3">
+          <p className="text-xs text-muted-foreground mt-2 border-t border-border/60 pt-2">
             {t('todayCard.startOnDay', { day: focusDayLabel })}
           </p>
         )}

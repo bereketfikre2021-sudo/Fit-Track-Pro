@@ -48,30 +48,25 @@ function WaterTracker({ state, updateState, today }) {
 
   return (
     <Card className={cn(
-      'mb-3 border transition-colors',
+      'border transition-colors',
       done ? 'border-blue-500/40 bg-blue-500/5' : 'border-border'
     )}>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2">
+      <CardContent className="p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <Droplets className={cn(
-              'h-5 w-5 shrink-0',
+              'h-4 w-4 shrink-0',
               done ? 'text-blue-500' : 'text-blue-400'
             )} />
-            <div>
-              <p className="text-sm font-semibold leading-tight">
-                {t('water.title')}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {done
-                  ? t('water.goalReached')
-                  : `Goal: ${formatGoal(goal, unit)}`}
+            <div className="min-w-0">
+              <p className="text-sm font-semibold leading-tight">{t('water.title')}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight truncate">
+                {done ? t('water.goalReached') : `Goal: ${formatGoal(goal, unit)}`}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Unit toggle */}
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={cycleUnit}
@@ -80,56 +75,36 @@ function WaterTracker({ state, updateState, today }) {
             >
               {unit.toUpperCase()}
             </button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 rounded-full"
-              onClick={() => setCups(cups - 1)}
-              disabled={cups === 0}
-              aria-label={t('water.removeCup')}
-            >
-              <Minus className="h-3.5 w-3.5" />
+            <Button type="button" variant="outline" size="icon"
+              className="h-7 w-7 rounded-full"
+              onClick={() => setCups(cups - 1)} disabled={cups === 0}
+              aria-label={t('water.removeCup')}>
+              <Minus className="h-3 w-3" />
             </Button>
-
-            <span className={cn(
-              'text-xl font-bold w-8 text-center tabular-nums',
-              done ? 'text-blue-500' : 'text-foreground'
-            )}>
+            <span className={cn('text-lg font-bold w-6 text-center tabular-nums',
+              done ? 'text-blue-500' : 'text-foreground')}>
               {cups}
             </span>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 rounded-full"
-              onClick={() => setCups(cups + 1)}
-              disabled={cups >= goal + 5}
-              aria-label={t('water.addCup')}
-            >
-              <Plus className="h-3.5 w-3.5" />
+            <Button type="button" variant="outline" size="icon"
+              className="h-7 w-7 rounded-full"
+              onClick={() => setCups(cups + 1)} disabled={cups >= goal + 5}
+              aria-label={t('water.addCup')}>
+              <Plus className="h-3 w-3" />
             </Button>
           </div>
         </div>
 
         {/* Progress bar */}
-        <div className="space-y-1.5">
-          <div className="flex gap-1">
+        <div className="mt-2 space-y-1">
+          <div className="flex gap-0.5">
             {Array.from({ length: goal }, (_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  'flex-1 h-2 rounded-full transition-colors',
-                  i < cups
-                    ? done ? 'bg-blue-500' : 'bg-blue-400'
-                    : 'bg-muted'
-                )}
-              />
+              <div key={i} className={cn(
+                'flex-1 h-1.5 rounded-full transition-colors',
+                i < cups ? done ? 'bg-blue-500' : 'bg-blue-400' : 'bg-muted'
+              )} />
             ))}
           </div>
-          <p className="text-[11px] text-muted-foreground text-right">
+          <p className="text-[10px] text-muted-foreground text-right">
             {formatAmount(cups, unit)} / {formatGoal(goal, unit)} ({percent}%)
           </p>
         </div>

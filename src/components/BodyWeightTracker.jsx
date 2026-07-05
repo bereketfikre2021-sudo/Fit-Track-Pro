@@ -13,7 +13,6 @@ import { Line } from 'react-chartjs-2'
 import { Scale, Plus, Trash2 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { DateInput } from './ui/date-input'
 import { toast } from 'sonner'
 import {
   addBodyLog,
@@ -137,7 +136,13 @@ function BodyWeightTracker({ state, updateState }) {
       <form onSubmit={handleAdd} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">{t('bodyWeight.date')}</label>
-            <DateInput value={date} onChange={(e) => setDate(e.target.value)} required />
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+              className="h-10"
+            />
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">{t('bodyWeight.weightKg')}</label>
