@@ -10,7 +10,6 @@ import { Badge } from './ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from './ui/tabs'
 import WorkoutInsightsReport from './WorkoutInsightsReport'
 import AchievementsCard from './AchievementsCard'
-import PersonalRecordsCard from './PersonalRecordsCard'
 import CustomChallengesCard from './CustomChallengesCard'
 import ProgressiveOverloadCard from './ProgressiveOverloadCard'
 import { translateWeekday } from '@/lib/i18nHelpers'
@@ -185,8 +184,6 @@ function HistoryTab({ state, updateState }) {
       )}
 
       <AchievementsCard state={state} />
-
-      <PersonalRecordsCard state={state} />
 
       <CustomChallengesCard state={state} updateState={updateState} />
 

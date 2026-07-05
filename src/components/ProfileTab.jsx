@@ -13,9 +13,13 @@ import {
   Zap,
   Wrench,
   Info,
+  Edit2,
+  Check,
+  X,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent } from './ui/card'
+import { Button } from './ui/button'
 import { Badge } from './ui/badge'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -26,6 +30,7 @@ import {
   translateGoal,
 } from '@/lib/i18nHelpers'
 import { EQUIPMENT_OPTIONS, equipmentToId } from '@/lib/profileOptions'
+import { DateInput } from './ui/date-input'
 import BodyWeightTracker from './BodyWeightTracker'
 
 const GOALS = [
@@ -91,6 +96,19 @@ function ProfileTab({ state, updateState }) {
   const { t, i18n } = useTranslation()
   const profile = state.profile
   const avatarFileInputRef = useRef(null)
+  const [editingBirthDate, setEditingBirthDate] = useState(false)
+  const [birthDateDraft, setBirthDateDraft] = useState(profile.birthDate || '')
+
+  const saveBirthDate = () => {
+    updateState({ profile: { ...profile, birthDate: birthDateDraft } })
+    setEditingBirthDate(false)
+    toast.success(t('profile.toastUpdated'))
+  }
+
+  const cancelBirthDate = () => {
+    setBirthDateDraft(profile.birthDate || '')
+    setEditingBirthDate(false)
+  }
 
   const handleAvatarFileChange = async (e) => {
     const file = e.target.files[0]
@@ -214,11 +232,48 @@ function ProfileTab({ state, updateState }) {
           />
 
           <div className="grid sm:grid-cols-2 gap-2 pt-1">
-            <MetricRow
-              icon={User}
-              label={t('profile.birthDate')}
-              value={age ? t('profile.years', { age }) : '—'}
-            />
+            {/* Birth date — editable (not asked in onboarding) */}
+            <div
+              className={cn(
+                'flex items-center justify-between rounded-lg border border-border bg-muted/20 px-3 py-2.5 transition-all',
+                !editingBirthDate && 'cursor-pointer hover:border-primary/40 hover:bg-primary/5',
+                editingBirthDate && 'ring-2 ring-primary border-primary/50'
+              )}
+              onClick={!editingBirthDate ? () => { setBirthDateDraft(profile.birthDate || ''); setEditingBirthDate(true) } : undefined}
+              role={!editingBirthDate ? 'button' : undefined}
+              tabIndex={!editingBirthDate ? 0 : undefined}
+              onKeyDown={!editingBirthDate ? (e) => { if (e.key === 'Enter' || e.key === ' ') { setBirthDateDraft(profile.birthDate || ''); setEditingBirthDate(true) } } : undefined}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <User className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="text-xs text-muted-foreground">{t('profile.birthDate')}</span>
+              </div>
+              {editingBirthDate ? (
+                <div className="flex items-center gap-1.5 ml-2">
+                  <DateInput
+                    value={birthDateDraft}
+                    onChange={(e) => setBirthDateDraft(e.target.value)}
+                    className="h-8 flex-1"
+                    onClick={(e) => e.stopPropagation()}
+                    autoFocus
+                  />
+                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); saveBirthDate() }}>
+                    <Check className="h-3.5 w-3.5 text-green-500" />
+                  </Button>
+                  <Button type="button" size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={(e) => { e.stopPropagation(); cancelBirthDate() }}>
+                    <X className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-semibold">
+                    {age ? t('profile.years', { age }) : t('profile.addBirthDate')}
+                  </span>
+                  <Edit2 className="h-3 w-3 text-muted-foreground/50" />
+                </div>
+              )}
+            </div>
+
             <MetricRow
               icon={User}
               label={t('profile.gender')}
