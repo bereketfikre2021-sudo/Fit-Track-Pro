@@ -813,6 +813,7 @@ function MealPlanPage({ state, updateState }) {
                             <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{preset.description}</p>
                             <Button size="sm" variant={preset.id === recommendedShoppingId ? 'default' : 'outline'} className="w-full"
                               onClick={() => {
+                                if (!confirm('This will replace your current shopping list. Continue?')) return
                                 const items = buildPresetShoppingList(preset.id)
                                 if (!items) return
                                 updateState({ shoppingList: items })

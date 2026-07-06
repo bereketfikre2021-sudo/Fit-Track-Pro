@@ -42,6 +42,11 @@ function PresetLoadDialog({ preset, workoutDays, onClose, onConfirm }) {
         </DialogHeader>
 
         <div className="space-y-4 pt-1">
+          {/* Replace warning */}
+          <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            <span>⚠️ This will <strong>replace</strong> your entire exercise library and workout schedule. This cannot be undone.</span>
+          </div>
+
           {/* Day mapping */}
           <div className="space-y-2">
             <p className="text-sm font-medium">Day mapping</p>
@@ -72,9 +77,9 @@ function PresetLoadDialog({ preset, workoutDays, onClose, onConfirm }) {
               <X className="h-4 w-4 mr-1.5" />
               Cancel
             </Button>
-            <Button className="flex-1" onClick={handleConfirm}>
+            <Button variant="destructive" className="flex-1" onClick={handleConfirm}>
               <Check className="h-4 w-4 mr-1.5" />
-              Apply
+              Replace & Apply
             </Button>
           </div>
         </div>

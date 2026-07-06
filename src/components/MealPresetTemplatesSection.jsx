@@ -30,55 +30,27 @@ const MEAL_SLOT_LABELS = {
 
 /** Confirm dialog before overwriting an existing meal plan */
 function ApplyConfirmDialog({ preset, onClose, onConfirm }) {
-  const [mode, setMode] = useState('replace')
-
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Apply "{preset.name}"</DialogTitle>
           <DialogDescription>
-            Choose how to apply this plan to your weekly meals.
+            This will <strong>replace</strong> your current meal plan and shopping list completely.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 pt-1">
-          <div className="space-y-1.5">
-            <p className="text-sm font-medium">Apply mode</p>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { value: 'replace', label: 'Replace', hint: 'Clears your current meals first.' },
-                { value: 'merge', label: 'Merge', hint: 'Adds to existing meals without clearing.' },
-              ].map((m) => (
-                <button
-                  key={m.value}
-                  type="button"
-                  onClick={() => setMode(m.value)}
-                  className={cn(
-                    'rounded-md border px-3 py-2 text-xs font-medium transition-colors text-center',
-                    mode === m.value
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50'
-                  )}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {mode === 'replace'
-                ? 'Clears your current meals first.'
-                : 'Adds to existing meals without clearing.'}
-            </p>
+          <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            <span>⚠️ Your existing meal plan and shopping list will be permanently replaced. This cannot be undone.</span>
           </div>
-
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={onClose}>
               <X className="h-4 w-4 mr-1.5" />
               Cancel
             </Button>
-            <Button className="flex-1" onClick={() => onConfirm(mode)}>
+            <Button variant="destructive" className="flex-1" onClick={() => onConfirm('replace')}>
               <Check className="h-4 w-4 mr-1.5" />
-              Apply
+              Replace & Apply
             </Button>
           </div>
         </div>
