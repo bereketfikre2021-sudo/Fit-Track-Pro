@@ -207,13 +207,17 @@ function PresetTemplatesSection({ state, updateState, onAfterApply }) {
     const payload = { ...preset.payload, schedule }
 
     try {
-      // Pass a cleared schedule so no old exercises carry over
-      const cleanState = { ...state, workoutSchedule: {} }
-      const result = applyExerciseImport(cleanState, payload, IMPORT_MODE.REPLACE_SCHEDULE)
+      // REPLACE_LIBRARY wipes the library and schedule, then rebuilds from payload.
+      // Also override workoutDays to only the preset's mapped days (no old days carried over).
+      const presetDays = Object.values(mapping).filter(Boolean)
+      const result = applyExerciseImport(state, payload, IMPORT_MODE.REPLACE_LIBRARY)
       updateState({
         customExercises: result.customExercises,
         workoutSchedule: result.workoutSchedule,
-        profile: result.profile,
+        profile: {
+          ...result.profile,
+          workoutDays: presetDays,
+        },
       })
       const { exercisesAdded, scheduleEntriesAdded } = result.summary
       toast.success(
