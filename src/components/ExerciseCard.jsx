@@ -30,6 +30,7 @@ import {
   migrateCompletionEntry,
   formatSetsSummary,
   buildDefaultSets,
+  buildSeededSets,
 } from '@/lib/setLogging'
 import SetLogEditor from './SetLogEditor'
 import {
@@ -260,7 +261,7 @@ export function ExerciseWorkoutCard({
     migrateCompletionEntry(completionEntry, exercise, fullExercise) ||
     (onSaveEntry
       ? migrateCompletionEntry(
-          { notes: '', sets: buildDefaultSets(exercise, fullExercise) },
+          { notes: '', sets: buildSeededSets(exercise, fullExercise, completedExercises) },
           exercise,
           fullExercise
         )

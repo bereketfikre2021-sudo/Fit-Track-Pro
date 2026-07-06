@@ -20,6 +20,7 @@ import {
   Search,
   LayoutTemplate,
   Info,
+  Sparkles,
 } from 'lucide-react'
 import { getDayMacroTotals, formatMacroSummary } from '../lib/mealPlan'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
@@ -62,6 +63,7 @@ import {
   PRESET_SHOPPING_LISTS,
   buildPresetShoppingList,
   getRecommendedShoppingListId,
+  getRelevantShoppingLists,
 } from '../lib/presetShoppingLists'
 import { calculateBmi, getBmiCategory, resolveEffectiveTrainingGoal } from '../lib/profileUtils'
 import { hasAnyExercises, isMealPlanEmpty, isShoppingListEmpty } from '../lib/planEmpty'
@@ -102,7 +104,9 @@ function MealPlanPage({ state, updateState }) {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiShoppingLoading, setAiShoppingLoading] = useState(false)
   const [showPresets, setShowPresets] = useState(false)
+  const [showMealPresets, setShowMealPresets] = useState(false)
   const [showShoppingTemplates, setShowShoppingTemplates] = useState(false)
+  const [showShoppingPresets, setShowShoppingPresets] = useState(false)
 
   const mealPlan = state.mealPlan || {}
   const showAiMealRecommend = isMealPlanEmpty(mealPlan)
@@ -111,13 +115,17 @@ function MealPlanPage({ state, updateState }) {
   const showTemplateShoppingFeatures = allowsTemplatePlanFeatures(state)
   const appSettings = getAppSettings(state)
 
+  // Profile-level BMI and category — used for filtering presets
+  const profile = state.profile || {}
+  const _bmi = calculateBmi(profile.currentWeight, profile.height)
+  const bmiCategory = getBmiCategory(_bmi)
+
   // Detect recommended shopping list from profile
   const recommendedShoppingId = useMemo(() => {
-    const profile = state.profile || {}
     const bmi = calculateBmi(profile.currentWeight, profile.height)
-    const bmiCategory = getBmiCategory(bmi)
+    const cat = getBmiCategory(bmi)
     const goal = resolveEffectiveTrainingGoal(profile)
-    return getRecommendedShoppingListId(bmiCategory, goal)
+    return getRecommendedShoppingListId(cat, goal)
   }, [state.profile])
 
   const patchSettings = (patch) => {
@@ -448,43 +456,63 @@ function MealPlanPage({ state, updateState }) {
 
         {/* MEALS TAB */}
         <TabsContent value="meals" className="space-y-4">
-          {/* Always-visible update row for meal plan */}
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            {allowsAiPlanFeatures(state) && (
-              <AiRecommendButton
-                loading={aiLoading}
-                label={t('ai.mealLabel')}
-                onClick={handleAiMealRecommend}
-                disabled={!hasAnyExercises(state)}
-              />
-            )}
-            {showTemplateFeatures && (
-              <Button
-                type="button"
-                variant={showPresets ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setShowPresets((v) => !v)}
-              >
-                <LayoutTemplate className="h-4 w-4 mr-2" />
-                Preset plans
-                {showPresets
-                  ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
-                  : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
-              </Button>
-            )}
-            {!hasAnyExercises(state) && (
-              <p className="text-xs text-muted-foreground w-full">
-                Add exercises to your Library first — AI uses your workout plan to tailor meals.
-              </p>
+          {/* Update plan — collapsible, always visible */}
+          <div className="space-y-2">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between gap-2 rounded-lg border border-border px-4 py-3 text-sm font-semibold hover:bg-muted/30 transition-colors"
+              onClick={() => setShowPresets((v) => !v)}
+            >
+              <span className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Update meal plan
+              </span>
+              {showPresets
+                ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+            {showPresets && (
+              <div className="rounded-lg border border-border/60 bg-muted/10 p-4 space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Generate a new meal plan with AI or apply a preset. This replaces the current plan.
+                  {!hasAnyExercises(state) && ' Add exercises to your Library first — AI uses your workout plan to tailor meals.'}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {allowsAiPlanFeatures(state) && (
+                    <AiRecommendButton
+                      loading={aiLoading}
+                      label={t('ai.mealLabel')}
+                      onClick={handleAiMealRecommend}
+                      disabled={!hasAnyExercises(state)}
+                    />
+                  )}
+                  {showTemplateFeatures && (
+                    <Button
+                      type="button"
+                      variant={showMealPresets ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setShowMealPresets((v) => !v)}
+                    >
+                      <LayoutTemplate className="h-4 w-4 mr-2" />
+                      Preset plans
+                      {showMealPresets
+                        ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
+                        : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
+                    </Button>
+                  )}
+                </div>
+                {showMealPresets && showTemplateFeatures && (
+                  <div className="pt-1 border-t border-border/60">
+                    <MealPresetTemplatesSection
+                      state={state}
+                      updateState={updateState}
+                      onAfterApply={() => { setShowMealPresets(false); setShowPresets(false) }}
+                    />
+                  </div>
+                )}
+              </div>
             )}
           </div>
-
-          {/* Preset templates reveal */}
-          {showPresets && showTemplateFeatures && (
-            <div className="mb-4">
-              <MealPresetTemplatesSection state={state} updateState={updateState} />
-            </div>
-          )}
 
           <div className="rounded-lg border border-border/60 bg-card/50 scroll-mt-20" id="meal-reminders">
             {/* Compact header row — always visible */}
@@ -721,23 +749,27 @@ function MealPlanPage({ state, updateState }) {
         {/* SHOPPING LIST TAB */}
         <TabsContent value="shopping" className="space-y-4">
 
-          {/* Setup card — only shown when shopping list is empty */}
-          {isShoppingListEmpty(shoppingList) && (
-            <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="py-5 space-y-4">
-                <div>
-                  <p className="font-medium">{t('meals.shoppingBuildTitle')}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{t('meals.shoppingBuildDesc')}</p>
-                </div>
-
-                {/* Hint when meal plan hasn't been filled yet */}
-                {isMealPlanEmpty(mealPlan) && (
-                  <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-                    <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                    <span>Fill your meal plan first — AI uses your meals to build a tailored shopping list.</span>
-                  </div>
-                )}
-
+          {/* Update shopping list — collapsible, always visible */}
+          <div className="space-y-2">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between gap-2 rounded-lg border border-border px-4 py-3 text-sm font-semibold hover:bg-muted/30 transition-colors"
+              onClick={() => setShowShoppingTemplates((v) => !v)}
+            >
+              <span className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Update shopping list
+              </span>
+              {showShoppingTemplates
+                ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+            {showShoppingTemplates && (
+              <div className="rounded-lg border border-border/60 bg-muted/10 p-4 space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Generate a shopping list with AI or apply a preset. This replaces the current list.
+                  {isMealPlanEmpty(mealPlan) && ' Fill your meal plan first — AI uses your meals to build a tailored list.'}
+                </p>
                 <div className="flex flex-wrap gap-2">
                   <AiRecommendButton
                     loading={aiShoppingLoading}
@@ -748,137 +780,72 @@ function MealPlanPage({ state, updateState }) {
                   {showTemplateShoppingFeatures && (
                     <Button
                       type="button"
-                      variant={showShoppingTemplates ? 'default' : 'outline'}
+                      variant={showShoppingPresets ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setShowShoppingTemplates((v) => !v)}
+                      onClick={() => setShowShoppingPresets((v) => !v)}
                     >
                       <LayoutTemplate className="h-4 w-4 mr-2" />
-                      Preset plans
-                      {showShoppingTemplates
+                      Preset lists
+                      {showShoppingPresets
                         ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
                         : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
                     </Button>
                   )}
                 </div>
-
-                {/* Template cards reveal */}
-                {showShoppingTemplates && showTemplateShoppingFeatures && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    {PRESET_SHOPPING_LISTS.map((preset) => {
-                      const isRecommended = preset.id === recommendedShoppingId
-                      return (
-                        <Card
-                          key={preset.id}
-                          className={cn(
-                            'border transition-all',
-                            isRecommended ? 'border-primary/50 bg-primary/5' : 'border-border'
-                          )}
-                        >
+                {showShoppingPresets && showTemplateShoppingFeatures && (
+                  <div className="space-y-3 pt-1 border-t border-border/60">
+                    <p className="text-xs text-muted-foreground">
+                      Recommended for your goal. Applying will <span className="font-semibold text-foreground">replace</span> your current shopping list.
+                    </p>
+                    {(() => {
+                      const relevantLists = getRelevantShoppingLists(bmiCategory, profile.goal)
+                      const recommended = relevantLists.find((p) => p.id === recommendedShoppingId) ?? relevantLists[0]
+                      const others = relevantLists.filter((p) => p.id !== recommended?.id)
+                      const ShoppingCard = ({ preset }) => (
+                        <Card className={cn('border transition-all', preset.id === recommendedShoppingId ? 'border-primary/50 bg-primary/5' : 'border-border')}>
                           <CardContent className="p-4">
                             <p className="text-sm font-semibold flex items-center gap-1.5 mb-1">
-                              <span>{preset.emoji}</span>
-                              {preset.name}
+                              <span>{preset.emoji}</span>{preset.name}
                             </p>
-                            {isRecommended && (
-                              <span className="text-[10px] text-primary font-medium block mb-1">
-                                ✓ Recommended for your goal
-                              </span>
+                            {preset.id === recommendedShoppingId && (
+                              <span className="text-[10px] text-primary font-medium block mb-1">✓ Recommended for your goal</span>
                             )}
-                            <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                              {preset.description}
-                            </p>
-                            <Button
-                              size="sm"
-                              variant={isRecommended ? 'default' : 'outline'}
-                              className="w-full"
+                            <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{preset.description}</p>
+                            <Button size="sm" variant={preset.id === recommendedShoppingId ? 'default' : 'outline'} className="w-full"
                               onClick={() => {
                                 const items = buildPresetShoppingList(preset.id)
                                 if (!items) return
                                 updateState({ shoppingList: items })
-                                setShowShoppingTemplates(false)
+                                setShowShoppingPresets(false)
                                 toast.success(`${preset.emoji} ${preset.name} applied`)
-                              }}
-                            >
+                              }}>
                               <LayoutTemplate className="h-3.5 w-3.5 mr-1.5" />
                               Use this list
                             </Button>
                           </CardContent>
                         </Card>
                       )
-                    })}
+                      return (
+                        <>
+                          <ShoppingCard preset={recommended} />
+                          {others.length > 0 && (
+                            <details>
+                              <summary className="text-xs text-primary hover:underline cursor-pointer list-none">
+                                See other options ({others.length} more)
+                              </summary>
+                              <div className="space-y-3 mt-3">
+                                {others.map((p) => <ShoppingCard key={p.id} preset={p} />)}
+                              </div>
+                            </details>
+                          )}
+                        </>
+                      )
+                    })()}
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Template + JSON bar — shown when shopping list already has items */}
-          {!isShoppingListEmpty(shoppingList) && (
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              {showTemplateShoppingFeatures && (
-                <Button
-                  type="button"
-                  variant={showShoppingTemplates ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setShowShoppingTemplates((v) => !v)}
-                >
-                  <LayoutTemplate className="h-4 w-4 mr-2" />
-                  Use Template
-                  {showShoppingTemplates
-                    ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
-                    : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
-                </Button>
-              )}
-            </div>
-          )}
-
-          {/* Template cards reveal when shopping list is already filled */}
-          {showShoppingTemplates && showTemplateShoppingFeatures && !isShoppingListEmpty(shoppingList) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-              {PRESET_SHOPPING_LISTS.map((preset) => {
-                const isRecommended = preset.id === recommendedShoppingId
-                return (
-                  <Card
-                    key={preset.id}
-                    className={cn(
-                      'border transition-all',
-                      isRecommended ? 'border-primary/50 bg-primary/5' : 'border-border'
-                    )}
-                  >
-                    <CardContent className="p-4">
-                      <p className="text-sm font-semibold flex items-center gap-1.5 mb-1">
-                        <span>{preset.emoji}</span>
-                        {preset.name}
-                      </p>
-                      {isRecommended && (
-                        <span className="text-[10px] text-primary font-medium block mb-1">
-                          ✓ Recommended for your goal
-                        </span>
-                      )}
-                      <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
-                        {preset.description}
-                      </p>
-                      <Button
-                        size="sm"
-                        variant={isRecommended ? 'default' : 'outline'}
-                        className="w-full"
-                        onClick={() => {
-                          const items = buildPresetShoppingList(preset.id)
-                          if (!items) return
-                          updateState({ shoppingList: items })
-                          setShowShoppingTemplates(false)
-                          toast.success(`${preset.emoji} ${preset.name} applied`)
-                        }}
-                      >
-                        <LayoutTemplate className="h-3.5 w-3.5 mr-1.5" />
-                        Use this list
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )
-              })}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
 
           {/* Shopping list — categories as horizontal tabs */}
           <Card>

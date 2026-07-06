@@ -24,6 +24,56 @@ export function buildDefaultSets(exercise, libraryExercise = null) {
   }))
 }
 
+/**
+ * Like buildDefaultSets but seeds reps/weightKg from the most recent
+ * logged session for this exercise, falling back to the exercise defaults.
+ * Used to pre-fill the set editor on the workout card.
+ */
+export function buildSeededSets(exercise, libraryExercise = null, completedExercises = {}) {
+  const merged = { ...libraryExercise, ...exercise }
+  if (isSimplePhase(inferExercisePhase(merged)) || merged.isTimeBased) {
+    return []
+  }
+
+  const count = parseSetCount(merged)
+  const libraryId = libraryExercise?.id || exercise?.exerciseId
+
+  // Find the most recent completed entry for this exercise (by libraryExerciseId)
+  let lastSets = null
+  if (libraryId) {
+    const entries = Object.values(completedExercises)
+      .filter((e) => e?.libraryExerciseId === libraryId && e.completedAt && !e.skipped && e.sets?.length)
+      .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
+    if (entries[0]?.sets?.length) {
+      lastSets = entries[0].sets
+    }
+  }
+
+  if (lastSets) {
+    // Use last session's sets, adjusting count if needed
+    const base = lastSets.slice(0, count)
+    // If we need more sets, repeat the last one
+    const lastSet = base[base.length - 1]
+    while (base.length < count) {
+      base.push({ ...lastSet, setNumber: base.length + 1 })
+    }
+    return base.map((s, i) => ({
+      setNumber: i + 1,
+      reps: s.reps != null ? String(s.reps) : '',
+      weightKg: s.weightKg != null ? String(s.weightKg) : '',
+    }))
+  }
+
+  // No history — fall back to exercise defaults
+  const defaultReps = String(merged.reps ?? '10').trim()
+  const defaultWeightKg = merged.weightKg ? String(merged.weightKg) : ''
+  return Array.from({ length: count }, (_, i) => ({
+    setNumber: i + 1,
+    reps: defaultReps,
+    weightKg: defaultWeightKg,
+  }))
+}
+
 export function normalizeSets(sets, exercise, libraryExercise) {
   if (!sets?.length) return buildDefaultSets(exercise, libraryExercise)
 

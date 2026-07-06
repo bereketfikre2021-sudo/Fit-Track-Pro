@@ -137,6 +137,22 @@ export const PRESET_SHOPPING_LISTS = [
   },
 ]
 
+/**
+ * Return only the shopping list presets relevant for this user.
+ */
+export function getRelevantShoppingLists(bmiCategory, profileGoal) {
+  if (bmiCategory === 'underweight') {
+    return PRESET_SHOPPING_LISTS.filter((p) => p.targetGoals.includes('muscle') || p.targetGoals.includes('strength'))
+  }
+  if (bmiCategory === 'overweight' || bmiCategory === 'obese') {
+    return PRESET_SHOPPING_LISTS.filter((p) => p.targetGoals.includes('fat'))
+  }
+  if (profileGoal === 'fat' || profileGoal === 'endurance') {
+    return PRESET_SHOPPING_LISTS.filter((p) => p.targetGoals.includes('fat'))
+  }
+  return PRESET_SHOPPING_LISTS.filter((p) => !p.targetGoals.includes('fat'))
+}
+
 /** Get the pre-stamped shopping list items for a given preset id */
 export function buildPresetShoppingList(presetId) {
   if (presetId === 'weight-gain') return stampIds(WEIGHT_GAIN_SHOPPING)

@@ -10,7 +10,9 @@ import {
   PRESET_MEAL_PLANS,
   buildPresetMealPlanDays,
   getRecommendedMealPlanId,
+  getRelevantMealPlans,
 } from '@/lib/presetMealPlans'
+import { buildPresetShoppingList } from '@/lib/presetShoppingLists'
 import { calculateBmi, getBmiCategory } from '@/lib/profileUtils'
 import { getDayMacroTotals, formatMacroSummary } from '@/lib/mealPlan'
 import { translateWeekday } from '@/lib/i18nHelpers'
@@ -227,7 +229,7 @@ function MealPresetCard({ preset, isRecommended, onApply }) {
  * Section rendered at the top of the Meals tab showing preset meal plan templates.
  * Detects the user's BMI / goal and visually highlights the recommended plan.
  */
-function MealPresetTemplatesSection({ state, updateState }) {
+function MealPresetTemplatesSection({ state, updateState, onAfterApply }) {
   const profile = state.profile || {}
   const bmi = calculateBmi(profile.currentWeight, profile.height)
   const bmiCategory = getBmiCategory(bmi)
@@ -235,11 +237,12 @@ function MealPresetTemplatesSection({ state, updateState }) {
 
   const handleApply = (preset, mode) => {
     const freshDays = buildPresetMealPlanDays(preset)
+    // Apply the matching shopping list automatically (same id — weight-gain or weight-loss)
+    const shoppingList = buildPresetShoppingList(preset.id)
 
     if (mode === 'replace') {
-      updateState({ mealPlan: freshDays })
+      updateState({ mealPlan: freshDays, ...(shoppingList ? { shoppingList } : {}) })
     } else {
-      // merge: add foods to existing slots without removing existing entries
       const existing = state.mealPlan || {}
       const merged = { ...existing }
       for (const day of DAYS_OF_WEEK) {
@@ -251,38 +254,54 @@ function MealPresetTemplatesSection({ state, updateState }) {
           ]
         }
       }
-      updateState({ mealPlan: merged })
+      updateState({ mealPlan: merged, ...(shoppingList ? { shoppingList } : {}) })
     }
 
-    toast.success(`Applied "${preset.name}" to your meal plan.`)
+    toast.success(
+      shoppingList
+        ? `Applied "${preset.name}" — meal plan and shopping list updated.`
+        : `Applied "${preset.name}" to your meal plan.`
+    )
+    onAfterApply?.()
   }
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 mb-1">
-        <p className="text-sm font-semibold">Meal Plan Templates</p>
-        <Badge variant="secondary" className="text-[10px]">{PRESET_MEAL_PLANS.length}</Badge>
-        {recommendedId && (
-          <Badge variant="outline" className="text-[10px] border-primary/40 text-primary gap-0.5">
-            <Sparkles className="h-2.5 w-2.5" />
-            {bmiCategory ? `Based on your BMI (${bmiCategory})` : 'Based on your goal'}
-          </Badge>
-        )}
-      </div>
-      <p className="text-xs text-muted-foreground -mt-1">
-        Ready-made 7-day Ethiopian meal plans. The plan that matches your BMI and goal is highlighted.
+      <p className="text-xs text-muted-foreground">
+        Recommended for your goal and BMI. Applying will <span className="font-semibold text-foreground">replace</span> your current meal plan and automatically update the matching shopping list.
       </p>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {PRESET_MEAL_PLANS.map((preset) => (
-          <MealPresetCard
-            key={preset.id}
-            preset={preset}
-            isRecommended={preset.id === recommendedId}
-            onApply={handleApply}
-          />
-        ))}
-      </div>
+      {(() => {
+        const relevantPlans = getRelevantMealPlans(bmiCategory, profile.goal)
+        const recommended = relevantPlans.find((p) => p.id === recommendedId) ?? relevantPlans[0]
+        const others = relevantPlans.filter((p) => p.id !== recommended?.id)
+        return (
+          <>
+            <MealPresetCard
+              preset={recommended}
+              isRecommended
+              onApply={handleApply}
+            />
+            {others.length > 0 && (
+              <details className="group">
+                <summary className="text-xs text-primary hover:underline cursor-pointer list-none">
+                  See other options ({others.length} more)
+                </summary>
+                <div className="space-y-3 mt-3">
+                  {others.map((preset) => (
+                    <MealPresetCard
+                      key={preset.id}
+                      preset={preset}
+                      isRecommended={false}
+                      onApply={handleApply}
+                    />
+                  ))}
+                </div>
+              </details>
+            )}
+          </>
+        )
+      })()}
     </div>
   )
 }

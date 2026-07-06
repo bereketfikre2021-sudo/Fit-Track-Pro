@@ -7,7 +7,7 @@ import { Badge } from './ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { PRESET_TEMPLATES, getRecommendedWorkoutTemplateId } from '@/lib/presetTemplates'
+import { PRESET_TEMPLATES, getRecommendedWorkoutTemplateId, getRelevantWorkoutTemplates } from '@/lib/presetTemplates'
 import { applyExerciseImport, IMPORT_MODE } from '@/lib/exerciseImport'
 import { translateWeekday } from '@/lib/i18nHelpers'
 import { resolveEffectiveTrainingGoal } from '@/lib/profileUtils'
@@ -20,17 +20,15 @@ function PresetLoadDialog({ preset, workoutDays, onClose, onConfirm }) {
   const splitKeys = Object.keys(preset.scheduleMap)
 
   const [mapping, setMapping] = useState(() => {
-    // default: spread split days across available days
     const m = {}
     splitKeys.forEach((key, i) => {
       m[key] = days[i % days.length]
     })
     return m
   })
-  const [mode, setMode] = useState('append')
 
   const handleConfirm = () => {
-    onConfirm(mapping, mode)
+    onConfirm(mapping, 'replace')
   }
 
   return (
@@ -39,7 +37,7 @@ function PresetLoadDialog({ preset, workoutDays, onClose, onConfirm }) {
         <DialogHeader>
           <DialogTitle>Apply "{preset.name}"</DialogTitle>
           <DialogDescription>
-            Map each split day to a day of your week, then choose how to apply it.
+            Map each split day to a day of your week. This will replace the exercises on the selected days.
           </DialogDescription>
         </DialogHeader>
 
@@ -67,33 +65,6 @@ function PresetLoadDialog({ preset, workoutDays, onClose, onConfirm }) {
                 </select>
               </div>
             ))}
-          </div>
-
-          {/* Mode */}
-          <div className="space-y-1.5">
-            <p className="text-sm font-medium">Apply mode</p>
-            <div className="grid grid-cols-2 gap-2">
-              {['append', 'replace'].map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMode(m)}
-                  className={cn(
-                    'rounded-md border px-3 py-2 text-xs font-medium transition-colors text-center capitalize',
-                    mode === m
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50'
-                  )}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {mode === 'append'
-                ? 'Adds exercises without removing existing ones.'
-                : 'Replaces the exercises on the mapped days.'}
-            </p>
           </div>
 
           <div className="flex gap-2 pt-1">
@@ -211,11 +182,14 @@ const GOAL_GROUPS = [
 ]
 
 /** Section rendered at the top of the Templates tab */
-function PresetTemplatesSection({ state, updateState }) {
+function PresetTemplatesSection({ state, updateState, onAfterApply }) {
   const workoutDays = state.profile?.workoutDays || []
   const recommendedId = getRecommendedWorkoutTemplateId(state.profile || {})
+  const relevantTemplates = getRelevantWorkoutTemplates(state.profile || {})
 
-  const handleApply = (preset, mapping, mode) => {
+  const handleApply = (preset, mapping, _mode) => {
+    // Always replace — clear the entire schedule and library first
+    const mode = 'replace'
     const splitKeys = Object.keys(preset.scheduleMap)
     const schedule = {}
 
@@ -231,10 +205,11 @@ function PresetTemplatesSection({ state, updateState }) {
     })
 
     const payload = { ...preset.payload, schedule }
-    const importMode = mode === 'replace' ? IMPORT_MODE.REPLACE_SCHEDULE : IMPORT_MODE.APPEND
 
     try {
-      const result = applyExerciseImport(state, payload, importMode)
+      // Pass a cleared schedule so no old exercises carry over
+      const cleanState = { ...state, workoutSchedule: {} }
+      const result = applyExerciseImport(cleanState, payload, IMPORT_MODE.REPLACE_SCHEDULE)
       updateState({
         customExercises: result.customExercises,
         workoutSchedule: result.workoutSchedule,
@@ -244,65 +219,60 @@ function PresetTemplatesSection({ state, updateState }) {
       toast.success(
         `Applied "${preset.name}" — ${exercisesAdded} exercises added to library, ${scheduleEntriesAdded} scheduled.`
       )
+      onAfterApply?.()
     } catch (err) {
       toast.error(err.message || 'Failed to apply template.')
     }
   }
 
   // Group templates: recommended first in its group, then by goal
-  const userGoal = resolveEffectiveTrainingGoal(state.profile || {})
+  const [showAll, setShowAll] = useState(false)
+
+  const recommended = relevantTemplates.find((p) => p.id === recommendedId) ?? relevantTemplates[0]
+  const others = relevantTemplates.filter((p) => p.id !== recommended?.id)
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-sm font-semibold mb-0.5">Preset Plans</p>
-        <p className="text-xs text-muted-foreground">
-          Ready-made programs with well-known exercises. Map each day to your schedule and apply instantly.
-        </p>
-      </div>
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">
+        Recommended for your goal. Applying will <span className="font-semibold text-foreground">replace</span> your current exercise library and schedule.
+      </p>
 
-      {GOAL_GROUPS.map(({ goal, label, description }) => {
-        const templates = PRESET_TEMPLATES.filter((p) =>
-          goal === null ? !p.goal || p.goal === 'strength' : p.goal === goal
-        )
-        if (templates.length === 0) return null
+      <PresetCard
+        preset={recommended}
+        workoutDays={workoutDays}
+        onApply={handleApply}
+        recommended
+      />
 
-        const isUserGoalGroup =
-          goal === userGoal ||
-          (goal === null && (userGoal === 'strength' || !userGoal))
-
-        // Sort: recommended first
-        const sorted = [...templates].sort((a, b) => {
-          if (a.id === recommendedId) return -1
-          if (b.id === recommendedId) return 1
-          return 0
-        })
-
-        return (
-          <div key={goal ?? 'general'} className="space-y-3">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold">{label}</p>
-              {isUserGoalGroup && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
-                  Your goal
-                </Badge>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground -mt-1">{description}</p>
-            <div className="space-y-3">
-              {sorted.map((preset) => (
-                <PresetCard
-                  key={preset.id}
-                  preset={preset}
-                  workoutDays={workoutDays}
-                  onApply={handleApply}
-                  recommended={preset.id === recommendedId}
-                />
-              ))}
-            </div>
-          </div>
-        )
-      })}
+      {!showAll ? (
+        <button
+          type="button"
+          className="text-xs text-primary hover:underline"
+          onClick={() => setShowAll(true)}
+        >
+          See all plans ({others.length} more)
+        </button>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground font-medium">Other plans</p>
+          {others.map((preset) => (
+            <PresetCard
+              key={preset.id}
+              preset={preset}
+              workoutDays={workoutDays}
+              onApply={handleApply}
+              recommended={false}
+            />
+          ))}
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:underline"
+            onClick={() => setShowAll(false)}
+          >
+            Show less
+          </button>
+        </div>
+      )}
     </div>
   )
 }

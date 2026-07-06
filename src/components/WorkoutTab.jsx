@@ -17,11 +17,12 @@ import WorkoutSessionBar from './WorkoutSessionBar'
 import RestTimer from './RestTimer'
 import HoldTimer from './HoldTimer'
 import SkipDayDialog from './SkipDayDialog'
+import SkipExerciseDialog from './SkipExerciseDialog'
 import { ExerciseWorkoutCard } from './ExerciseCard'
 import { parseRestSeconds } from '@/lib/restTimer'
 import { createHoldTimer } from '@/lib/holdTimer'
 import { getAppSettings } from '@/lib/appSettings'
-import { buildDefaultSets, migrateCompletionEntry } from '@/lib/setLogging'
+import { buildDefaultSets, buildSeededSets, migrateCompletionEntry } from '@/lib/setLogging'
 import { isCompletedEntry } from '@/lib/exerciseSkip'
 import { isNewPersonalRecord } from '@/lib/personalRecords'
 
@@ -239,6 +240,7 @@ function WorkoutTab({ state, updateState }) {
   const [holdTimer, setHoldTimer] = useState(null)
   const [holdExerciseContext, setHoldExerciseContext] = useState(null)
   const [skipDayOpen, setSkipDayOpen] = useState(false)
+  const [skipExerciseTarget, setSkipExerciseTarget] = useState(null) // { day, exerciseId, name }
   const [aiLoading, setAiLoading] = useState(false)
   const [celebrating, setCelebrating] = useState(false)
   const sessionStartedAtRef = useRef(null)
@@ -413,7 +415,7 @@ function WorkoutTab({ state, updateState }) {
       const baseSets = existing?.sets?.length
         ? existing.sets
         : appSettings.enableSetLogging
-          ? buildDefaultSets(scheduled, library)
+          ? buildSeededSets(scheduled, library, completedExercises)
           : []
       newCompleted[key] = migrateCompletionEntry(
         {
@@ -545,6 +547,35 @@ function WorkoutTab({ state, updateState }) {
     toast.success(t('home.toastSkippedToday'))
   }
 
+  const handleSkipExercise = (day, scheduleExerciseId, reason) => {
+    if (day !== todayCtx.calendarToday) return
+    if (isSessionFinishedForDay(day)) { toast.error(t('workout.toastSessionLocked')); return }
+    const key = completionKey(today, day, scheduleExerciseId)
+    const scheduled = workoutSchedule[day]?.exercises?.find((e) => e.id === scheduleExerciseId)
+    const library = scheduled?.exerciseId ? customExercises.find((c) => c.id === scheduled.exerciseId) : null
+    updateState({
+      completedExercises: {
+        ...completedExercises,
+        [key]: {
+          date: today, day, exerciseId: scheduleExerciseId,
+          libraryExerciseId: library?.id,
+          skipped: true, skipReason: reason, skippedAt: Date.now(),
+        },
+      },
+    })
+    toast.success(t('workout.toastSkipped'))
+  }
+
+  const handleUnskipExercise = (day, scheduleExerciseId) => {
+    if (day !== todayCtx.calendarToday) return
+    if (isSessionFinishedForDay(day)) { toast.error(t('workout.toastSessionLocked')); return }
+    const key = completionKey(today, day, scheduleExerciseId)
+    const newCompleted = { ...completedExercises }
+    delete newCompleted[key]
+    updateState({ completedExercises: newCompleted })
+    toast.success(t('workout.toastSkipRemoved'))
+  }
+
   const isExerciseCompleted = (day, scheduleExerciseId) => {
     const entry = completedExercises[completionKey(today, day, scheduleExerciseId)]
     return isCompletedEntry(entry)
@@ -573,7 +604,7 @@ function WorkoutTab({ state, updateState }) {
     const existing = completedExercises[key]
     const base = existing || {
       notes: '',
-      sets: buildDefaultSets(scheduled, library),
+      sets: buildSeededSets(scheduled, library, completedExercises),
       libraryExerciseId: library?.id,
     }
     const migrated = migrateCompletionEntry({ ...base, ...patch }, scheduled, library)
@@ -878,8 +909,10 @@ function WorkoutTab({ state, updateState }) {
                                   readOnly={workoutLocked}
                                   onSaveEntry={workoutLocked ? undefined : (patch) => saveCompletionEntry(day, ex.id, patch)}
                                   onToggleComplete={workoutLocked ? undefined : () => toggleExerciseCompletion(day, ex.id)}
+                                  onSkip={workoutLocked ? undefined : () => setSkipExerciseTarget({ day, exerciseId: ex.id, name: ex.name })}
+                                  onUnskip={workoutLocked ? undefined : () => handleUnskipExercise(day, ex.id)}
                                   onStartRest={workoutLocked ? undefined : (seconds, label) => startRestTimer(seconds, label)}
-                                  onStartHold={workoutLocked ? undefined : (seconds, label) => startHoldTimer(seconds, label, { day, exerciseId: ex.id })}
+                                  onStartHold={workoutLocked ? undefined : (seconds, label) => startHoldTimer(seconds, label, { day, exerciseId: ex.id, locked: workoutLocked })}
                                 />
                               ))}
                             </div>
@@ -942,7 +975,7 @@ function WorkoutTab({ state, updateState }) {
         timer={holdTimer}
         onStop={() => { setHoldTimer(null); setHoldExerciseContext(null) }}
         onComplete={() => {
-          if (holdExerciseContext && !workoutLocked) {
+          if (holdExerciseContext && !holdExerciseContext.locked) {
             toggleExerciseCompletion(holdExerciseContext.day, holdExerciseContext.exerciseId)
           }
           setHoldExerciseContext(null)
@@ -956,6 +989,18 @@ function WorkoutTab({ state, updateState }) {
         onOpenChange={setSkipDayOpen}
         dayLabel={translateWeekday(todayCtx.calendarToday)}
         onConfirm={(reason) => handleSkipToday(todayCtx.calendarToday, reason)}
+      />
+
+      <SkipExerciseDialog
+        open={!!skipExerciseTarget}
+        onOpenChange={(open) => { if (!open) setSkipExerciseTarget(null) }}
+        exerciseName={skipExerciseTarget?.name ?? ''}
+        onConfirm={(reason) => {
+          if (skipExerciseTarget) {
+            handleSkipExercise(skipExerciseTarget.day, skipExerciseTarget.exerciseId, reason)
+            setSkipExerciseTarget(null)
+          }
+        }}
       />
 
       {/* Workout complete celebration overlay */}

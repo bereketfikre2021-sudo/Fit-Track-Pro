@@ -470,6 +470,23 @@ export function buildPresetMealPlanDays(preset) {
  * @param {string|null} profileGoal  'muscle'|'fat'|'strength'|'endurance'|null
  * @returns {string|null}  preset id ('weight-gain' | 'weight-loss' | null)
  */
+/**
+ * Return only the meal plan presets relevant for this user.
+ */
+export function getRelevantMealPlans(bmiCategory, profileGoal) {
+  if (bmiCategory === 'underweight') {
+    return PRESET_MEAL_PLANS.filter((p) => p.targetGoals.includes('muscle') || p.targetGoals.includes('strength'))
+  }
+  if (bmiCategory === 'overweight' || bmiCategory === 'obese') {
+    return PRESET_MEAL_PLANS.filter((p) => p.targetGoals.includes('fat'))
+  }
+  // Normal BMI — filter by goal
+  if (profileGoal === 'fat' || profileGoal === 'endurance') {
+    return PRESET_MEAL_PLANS.filter((p) => p.targetGoals.includes('fat'))
+  }
+  return PRESET_MEAL_PLANS.filter((p) => !p.targetGoals.includes('fat'))
+}
+
 export function getRecommendedMealPlanId(bmiCategory, profileGoal) {
   for (const plan of PRESET_MEAL_PLANS) {
     if (bmiCategory && plan.targetBmiCategories.includes(bmiCategory)) return plan.id

@@ -51,6 +51,7 @@ import CopyDayDialog from './CopyDayDialog'
 import ScheduleExerciseList from './ScheduleExerciseList'
 import { ExerciseLibraryCard } from './ExerciseCard'
 import TemplateManager from './TemplateManager'
+import PresetTemplatesSection from './PresetTemplatesSection'
 import { filterExerciseLibrary } from '@/lib/exerciseSearch'
 import { getPersonalRecord } from '@/lib/personalRecords'
 import { copyDaySchedule, reorderDayExercises } from '@/lib/workoutSchedule'
@@ -104,6 +105,7 @@ function CustomTab({ state, updateState }) {
   const [showTemplatesSection, setShowTemplatesSection] = useState(false)
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [showUpdatePlan, setShowUpdatePlan] = useState(false)
+  const [showPresetPlans, setShowPresetPlans] = useState(false)
 
   const customExercises = state.customExercises || []
   const showExerciseSetupPrompt = shouldShowExerciseSetupPrompt(state)
@@ -221,7 +223,7 @@ function CustomTab({ state, updateState }) {
     setAiLoading(true)
     try {
       const parsed = await fetchExerciseRecommendation(state)
-      const result = applyExerciseImport(state, parsed, IMPORT_MODE.APPEND)
+      const result = applyExerciseImport(state, parsed, IMPORT_MODE.REPLACE_LIBRARY)
       updateState({
         customExercises: result.customExercises,
         workoutSchedule: result.workoutSchedule,
@@ -282,33 +284,7 @@ function CustomTab({ state, updateState }) {
           />
         </div>
 
-        {/* ── TEMPLATES (collapsible) ───────────────────── */}
-        {showTemplateFeatures && (
-          <div className="space-y-3">
-            <button
-              type="button"
-              className="w-full flex items-center justify-between gap-2 rounded-lg border border-border px-4 py-3 text-sm font-semibold hover:bg-muted/30 transition-colors"
-              onClick={() => setShowTemplatesSection((v) => !v)}
-            >
-              <span className="flex items-center gap-2">
-                <LayoutTemplate className="h-4 w-4 text-primary" />
-                {t('exercises.tabTemplates')}
-              </span>
-              {showTemplatesSection
-                ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-            </button>
-            {showTemplatesSection && (
-              <TemplateManager
-                state={state}
-                updateState={updateState}
-                showPresetTemplates={showTemplateFeatures}
-              />
-            )}
-          </div>
-        )}
-
-        {/* ── EXERCISE LIBRARY (collapsible) ───────────── */}
+        {/* ── EXERCISES (collapsible) ───────────────────── */}
         <div className="space-y-3">
           <button
             type="button"
@@ -317,7 +293,7 @@ function CustomTab({ state, updateState }) {
           >
             <span className="flex items-center gap-2">
               <Dumbbell className="h-4 w-4 text-primary" />
-              <span>{t('exercises.tabLibrary')}</span>
+              <span>Exercises</span>
               <span className="text-xs font-normal text-muted-foreground">
                 ({customExercises.length})
               </span>
@@ -367,7 +343,7 @@ function CustomTab({ state, updateState }) {
                         label={t('ai.exerciseLabel')}
                         onClick={handleAiExerciseRecommend}
                       />
-                      <Button size="sm" variant="outline" onClick={() => setShowTemplatesSection(true)}>
+                      <Button size="sm" variant="outline" onClick={() => { setShowUpdatePlan(true); setShowPresetPlans(true) }}>
                         <LayoutTemplate className="h-4 w-4 mr-2" />
                         Preset plans
                       </Button>
@@ -442,13 +418,25 @@ function CustomTab({ state, updateState }) {
                 />
                 <Button
                   size="sm"
-                  variant="outline"
-                  onClick={() => { setShowUpdatePlan(false); setShowTemplatesSection(true) }}
+                  variant={showPresetPlans ? 'default' : 'outline'}
+                  onClick={() => setShowPresetPlans((v) => !v)}
                 >
                   <LayoutTemplate className="h-4 w-4 mr-2" />
                   Preset plans
+                  {showPresetPlans
+                    ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
+                    : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
                 </Button>
               </div>
+              {showPresetPlans && (
+                <div className="pt-1 border-t border-border/60">
+                  <PresetTemplatesSection
+                    state={state}
+                    updateState={updateState}
+                    onAfterApply={() => { setShowPresetPlans(false); setShowUpdatePlan(false) }}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

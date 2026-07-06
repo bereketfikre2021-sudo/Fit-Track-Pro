@@ -4,7 +4,7 @@
  * Shape matches the applyExerciseImport payload format.
  */
 
-import { resolveEffectiveFitnessLevel } from './profileUtils'
+import { resolveEffectiveFitnessLevel, calculateBmi, getBmiCategory } from './profileUtils'
 
 export const PRESET_TEMPLATES = [
   {
@@ -232,6 +232,30 @@ export const PRESET_TEMPLATES = [
 ]
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+/**
+ * Return only the presets relevant for this user based on BMI + goal.
+ * underweight → weight-gain plans only
+ * overweight/obese → weight-loss (fat) plans only
+ * normal/unknown → filtered by their explicit goal
+ */
+export function getRelevantWorkoutTemplates(profile = {}) {
+  const bmi = calculateBmi(profile.currentWeight, profile.height)
+  const bmiCategory = getBmiCategory(bmi)
+
+  if (bmiCategory === 'underweight') {
+    return PRESET_TEMPLATES.filter((p) => p.goal !== 'fat')
+  }
+  if (bmiCategory === 'overweight' || bmiCategory === 'obese') {
+    return PRESET_TEMPLATES.filter((p) => p.goal === 'fat')
+  }
+  // Normal BMI or no BMI — filter by explicit goal
+  const goal = profile.goal || 'strength'
+  if (goal === 'fat' || goal === 'endurance') {
+    return PRESET_TEMPLATES.filter((p) => p.goal === 'fat')
+  }
+  return PRESET_TEMPLATES.filter((p) => p.goal !== 'fat')
+}
 
 export function getPresetTemplateById(id) {
   return PRESET_TEMPLATES.find((p) => p.id === id) ?? null
