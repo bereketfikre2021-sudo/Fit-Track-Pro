@@ -20,6 +20,7 @@ import {
   ChevronUp,
   ChevronDown,
   Sparkles,
+  ArrowLeftRight,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
@@ -1596,6 +1597,28 @@ function ScheduleManager({
     )
   }
 
+  const [switchDayOpen, setSwitchDayOpen] = useState(false)
+
+  const handleSwitchDay = (toDay) => {
+    if (!selectedDay || !toDay || selectedDay === toDay) return
+    const currentWorkoutDays = state.profile?.workoutDays || []
+    const currentSchedule = state.workoutSchedule || {}
+    const fromSchedule = currentSchedule[selectedDay] || { exercises: [], note: '' }
+    const newSchedule = { ...currentSchedule }
+    newSchedule[toDay] = { ...fromSchedule }
+    delete newSchedule[selectedDay]
+    const newWorkoutDays = currentWorkoutDays
+      .map((d) => (d === selectedDay ? toDay : d))
+      .filter((d, i, arr) => arr.indexOf(d) === i)
+    updateState({
+      profile: { ...state.profile, workoutDays: newWorkoutDays },
+      workoutSchedule: newSchedule,
+    })
+    toast.success(`${translateWeekday(selectedDay)} workout permanently moved to ${translateWeekday(toDay)}.`)
+    setSelectedDay(toDay)
+    setSwitchDayOpen(false)
+  }
+
   const handleCopyDay = (targetDays, replace) => {
     const newSchedule = copyDaySchedule(workoutSchedule, selectedDay, targetDays, { replace })
     if (!newSchedule) {
@@ -1705,6 +1728,16 @@ function ScheduleManager({
                     {t('custom.copyDay')}
                   </Button>
                 )}
+                {/* Switch day — move workout permanently to a free day */}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setSwitchDayOpen(true)}
+                >
+                  <ArrowLeftRight className="h-3.5 w-3.5 mr-1" />
+                  Switch day
+                </Button>
                 <Button
                   size="sm"
                   variant="ghost"
@@ -1772,6 +1805,50 @@ function ScheduleManager({
         exerciseCount={workoutSchedule[selectedDay]?.exercises?.length ?? 0}
         onCopy={handleCopyDay}
       />
+
+      {/* Switch Day dialog — move workout permanently to a free day */}
+      {switchDayOpen && selectedDay && (
+        <Dialog open={switchDayOpen} onOpenChange={setSwitchDayOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ArrowLeftRight className="h-4 w-4 text-primary" aria-hidden />
+                Switch {translateWeekday(selectedDay)} to another day
+              </DialogTitle>
+              <DialogDescription>
+                All exercises will be permanently moved to the selected day.
+                {translateWeekday(selectedDay)} will become a rest day.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 py-1">
+              {DAYS_OF_WEEK.filter((d) => !workoutDays.includes(d)).length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  All days are already workout days. Remove a day first to switch.
+                </p>
+              ) : (
+                DAYS_OF_WEEK.filter((d) => !workoutDays.includes(d)).map((day) => (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => handleSwitchDay(day)}
+                    className={cn(
+                      'w-full text-left rounded-lg border border-border px-3 py-2.5',
+                      'text-sm font-medium flex items-center justify-between',
+                      'hover:border-primary/50 hover:bg-primary/5 transition-colors'
+                    )}
+                  >
+                    <span>{translateWeekday(day)}</span>
+                    <span className="text-xs text-muted-foreground">Rest day → Workout day</span>
+                  </button>
+                ))
+              )}
+            </div>
+            <Button variant="outline" className="w-full" onClick={() => setSwitchDayOpen(false)}>
+              Cancel
+            </Button>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {isAddingExerciseToDay && selectedDay && (
         <AddExerciseToDayDialog
