@@ -52,12 +52,12 @@ function DayHistoryBar({ completedSessions, day, today }) {
                 : 'bg-primary/10 text-primary'
             )}
           >
-            {formatDate(s.date)}{s.skipped ? ' ✕' : ' ✓'}
+            {formatDate(s.date)}{s.skipped ? ' Skip' : ' Done'}
           </div>
         ))}
         <span className="text-[10px] text-muted-foreground self-center">
-          <span className="text-primary font-semibold">{doneCount}✓</span>
-          {skippedCount > 0 && <span className="text-destructive/80 font-semibold ml-1">{skippedCount}✕</span>}
+          <span className="text-primary font-semibold">{doneCount} done</span>
+          {skippedCount > 0 && <span className="text-destructive/80 font-semibold ml-1">{skippedCount} skipped</span>}
         </span>
       </div>
     </div>
@@ -100,11 +100,11 @@ function TodayWorkoutCard({
     return acc + (entry?.completedAt && !entry?.skipped ? 1 : 0)
   }, 0)
 
-  // Phase breakdown string e.g. "🔥 2 · 💪 6 · ❄️ 1"
+  // Phase breakdown string e.g. "Warmup 2 · Main 6 · Cooldown 1"
   const phaseParts = [
-    warmupExercises.length > 0 ? `🔥 ${warmupExercises.length}` : null,
-    mainExercises.length > 0   ? `💪 ${mainExercises.length}`   : null,
-    cooldownExercises.length > 0 ? `❄️ ${cooldownExercises.length}` : null,
+    warmupExercises.length   > 0 ? `Warmup ${warmupExercises.length}`   : null,
+    mainExercises.length     > 0 ? `Main ${mainExercises.length}`       : null,
+    cooldownExercises.length > 0 ? `Cooldown ${cooldownExercises.length}` : null,
   ].filter(Boolean).join(' · ')
   const sessionActive = activeSession?.day === focusDay
   const isToday = !!ctx.planDay

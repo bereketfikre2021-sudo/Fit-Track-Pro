@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Play, ChevronDown, ChevronUp, Dumbbell, X, Check, Star } from 'lucide-react'
+import { Play, ChevronDown, ChevronUp, Dumbbell, X, Check, Star, Flame, Activity, AlertTriangle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card'
 import { Button } from './ui/button'
@@ -44,7 +44,8 @@ function PresetLoadDialog({ preset, workoutDays, onClose, onConfirm }) {
         <div className="space-y-4 pt-1">
           {/* Replace warning */}
           <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            <span>⚠️ This will <strong>replace</strong> your entire exercise library and workout schedule. This cannot be undone.</span>
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
+            <span>This will <strong>replace</strong> your entire exercise library and workout schedule. This cannot be undone.</span>
           </div>
 
           {/* Day mapping */}
@@ -180,10 +181,10 @@ function PresetCard({ preset, workoutDays, onApply, recommended = false }) {
 }
 
 const GOAL_GROUPS = [
-  { goal: 'fat', label: '🔥 Weight Loss', description: 'High-rep circuits and cardio-strength combos to maximise calorie burn.' },
-  { goal: 'muscle', label: '💪 Muscle Gain', description: 'Volume-focused splits designed to build size and strength.' },
-  { goal: 'strength', label: '🏋️ Strength', description: 'Compound-heavy programs for building raw power.' },
-  { goal: null, label: '⚡ General Fitness', description: 'Balanced programs suitable for all goals.' },
+  { goal: 'fat',      label: 'Weight Loss',     icon: Flame,    description: 'High-rep circuits and cardio-strength combos to maximise calorie burn.' },
+  { goal: 'muscle',   label: 'Muscle Gain',     icon: Dumbbell, description: 'Volume-focused splits designed to build size and strength.' },
+  { goal: 'strength', label: 'Strength',        icon: Dumbbell, description: 'Compound-heavy programs for building raw power.' },
+  { goal: null,       label: 'General Fitness', icon: Activity, description: 'Balanced programs suitable for all goals.' },
 ]
 
 /** Section rendered at the top of the Templates tab */

@@ -122,7 +122,6 @@ export const PRESET_SHOPPING_LISTS = [
   {
     id: 'weight-gain',
     name: 'Weight Gain Shopping List',
-    emoji: '💪',
     description: 'Ingredients for ~3 200 kcal/day — high-protein, high-carb Ethiopian foods for muscle building.',
     targetGoals: ['muscle', 'strength'],
     targetBmiCategories: ['underweight'],
@@ -130,7 +129,6 @@ export const PRESET_SHOPPING_LISTS = [
   {
     id: 'weight-loss',
     name: 'Weight Loss Shopping List',
-    emoji: '🔥',
     description: 'Ingredients for ~1 700 kcal/day — lean proteins and fibre-rich Ethiopian foods for fat loss.',
     targetGoals: ['fat'],
     targetBmiCategories: ['overweight', 'obese'],

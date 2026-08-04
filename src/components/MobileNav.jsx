@@ -1,8 +1,8 @@
-import { Dumbbell, BarChart3, UtensilsCrossed, User, ListChecks } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { getWeeklyCompletedExerciseCount } from '@/lib/stats'
+import { getNavTabs, isTabActive } from './navTabs'
 
 function MobileNav({ currentPath, state }) {
   const { t } = useTranslation()
@@ -10,56 +10,59 @@ function MobileNav({ currentPath, state }) {
   const path = currentPath || location.pathname
   const weeklyCompleted = getWeeklyCompletedExerciseCount(state)
 
-  const tabs = [
-    { id: 'workout', label: t('nav.workout'), icon: Dumbbell, path: '/workout' },
-    { id: 'report', label: t('nav.report'), icon: BarChart3, path: '/report', badge: weeklyCompleted },
-    { id: 'exercises', label: t('nav.exercises'), icon: ListChecks, path: '/exercises' },
-    { id: 'meal', label: t('nav.meals'), icon: UtensilsCrossed, path: '/meal-plan' },
-    { id: 'profile', label: t('nav.profile'), icon: User, path: '/profile' },
-  ]
+  const tabs = getNavTabs(t).map((tab) =>
+    tab.id === 'report' ? { ...tab, badge: weeklyCompleted } : tab
+  )
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-border/40 bg-background/80 backdrop-blur-xl">
-      <div className="flex items-center justify-around h-16 px-2 pb-safe">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-border/40 bg-background/90 backdrop-blur-xl"
+      aria-label="Main navigation"
+    >
+      <div className="flex items-center justify-around h-16 px-1 pb-safe">
         {tabs.map((tab) => {
-          const Icon = tab.icon
-          const isActive = path === tab.path || (tab.path === '/profile' && path.startsWith('/profile'))
+          const Icon   = tab.icon
+          const active = isTabActive(tab, path)
+
           return (
             <Link
               key={tab.id}
               to={tab.path}
-              className={cn(
-                "relative flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-lg transition-all duration-200 active:scale-95 flex-1 max-w-[72px]"
-              )}
+              aria-label={tab.label}
+              aria-current={active ? 'page' : undefined}
+              className="relative flex flex-col items-center justify-center gap-0.5 px-2 py-1 rounded-xl transition-all duration-200 active:scale-90 flex-1 min-w-0"
             >
               <div className="relative">
                 <div className={cn(
-                  "p-2 rounded-xl transition-all duration-200",
-                  isActive 
-                    ? "bg-primary/15 text-primary" 
-                    : "text-muted-foreground"
+                  'p-2 rounded-xl transition-all duration-200',
+                  active ? 'bg-primary/15' : ''
                 )}>
-                  <Icon 
+                  <Icon
                     className={cn(
-                      "h-5 w-5 transition-all duration-200"
-                    )} 
-                    strokeWidth={isActive ? 3 : 2.5}
+                      'h-[22px] w-[22px] transition-all duration-200',
+                      active ? 'text-primary' : 'text-muted-foreground'
+                    )}
+                    strokeWidth={active ? 2.5 : 2}
                   />
                 </div>
-                
-                {tab.badge > 0 && !isActive && (
-                  <div className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[8px] font-bold">
-                    {tab.badge > 9 ? t('nav.badge9') : tab.badge}
-                  </div>
+
+                {tab.badge > 0 && !active && (
+                  <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[9px] font-bold leading-none">
+                    {tab.badge > 9 ? '9+' : tab.badge}
+                  </span>
                 )}
               </div>
-              
+
               <span className={cn(
-                "text-[10px] font-medium transition-all duration-200",
-                isActive ? "text-primary" : "text-muted-foreground"
+                'text-[10px] font-medium leading-none transition-colors duration-200 truncate w-full text-center',
+                active ? 'text-primary' : 'text-muted-foreground'
               )}>
                 {tab.label}
               </span>
+
+              {active && (
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-4 rounded-full bg-primary" />
+              )}
             </Link>
           )
         })}

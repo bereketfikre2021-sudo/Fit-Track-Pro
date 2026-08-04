@@ -15,6 +15,8 @@ import { saveAppState } from '../lib/storage'
 import { hydrateAppStateFromBackup } from '../lib/appState'
 import { translateGoal } from '@/lib/i18nHelpers'
 import { EQUIPMENT_OPTIONS } from '@/lib/profileOptions'
+import { useAuth } from '../lib/useAuth'
+import { loadAllFromSupabase, syncUserProfile, syncBodyLog, syncMealSlot, syncWaterLog, syncWorkoutSession } from '../lib/supabaseDb'
 
 import {
   calculateBmi,
@@ -27,18 +29,37 @@ import {
 const GOAL_VALUES = ['strength', 'muscle', 'fat', 'endurance']
 const GENDER_VALUES = ['male', 'female']
 const FITNESS_LEVELS = [
-  { value: 'beginner', label: '🌱 Beginner' },
-  { value: 'intermediate', label: '⚡ Intermediate' },
-  { value: 'advanced', label: '🔥 Advanced' },
+  { value: 'beginner',     label: 'Beginner' },
+  { value: 'intermediate', label: 'Intermediate' },
+  { value: 'advanced',     label: 'Advanced' },
 ]
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const DAY_ABBREV = { Monday: 'Mon', Tuesday: 'Tue', Wednesday: 'Wed', Thursday: 'Thu', Friday: 'Fri', Saturday: 'Sat', Sunday: 'Sun' }
 
-function OnboardingPage({ profile, onResume, onComplete }) {
+/**
+ * Extracts a display name from an email address.
+ * e.g. "john.doe123@gmail.com" → "John Doe"
+ *      "sarah_smith@yahoo.com" → "Sarah Smith"
+ */
+function nameFromEmail(email) {
+  if (!email) return ''
+  const local = email.split('@')[0] || ''
+  // Split on dots, underscores, hyphens and numbers
+  const parts = local.split(/[._\-0-9]+/).filter(Boolean)
+  return parts
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+    .join(' ')
+    .trim()
+}
+
+function OnboardingPage({ profile, userEmail = '', onResume, onComplete }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const canResume = !!profile?.name?.trim()
-  const [name, setName] = useState('')
+
+  // Pre-fill name from email if available, otherwise empty
+  const [name, setName] = useState(() => nameFromEmail(userEmail))
   const [gender, setGender] = useState('male')
   const [currentWeight, setCurrentWeight] = useState('')
   const [height, setHeight] = useState('')
@@ -95,7 +116,7 @@ function OnboardingPage({ profile, onResume, onComplete }) {
     if (!file) return
 
     const reader = new FileReader()
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const text = ev.target?.result
         if (typeof text !== 'string') {
@@ -104,6 +125,53 @@ function OnboardingPage({ profile, onResume, onComplete }) {
         const imported = hydrateAppStateFromBackup(text)
         saveAppState(imported)
         toast.success(t('onboarding.toastImportSuccess'))
+
+        // If the user is signed in, push ALL imported data to Supabase
+        // so their exercises, meals, workouts, body logs, and water logs
+        // are stored in the cloud immediately after import.
+        const userId = user?.id
+        if (userId) {
+          toast.info('Syncing your data to the cloud…', { duration: 3000 })
+          try {
+            // Profile
+            if (imported.profile?.name) {
+              await syncUserProfile(userId, imported.profile)
+            }
+
+            // Body logs
+            for (const log of imported.bodyLogs || []) {
+              await syncBodyLog(userId, log)
+            }
+
+            // Meal plan — sync each day+slot that has food items
+            const DAYS  = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+            const SLOTS = ['breakfast','morningSnack','lunch','afternoonSnack','dinner','beforeBed']
+            for (const day of DAYS) {
+              for (const slot of SLOTS) {
+                const foods = imported.mealPlan?.[day]?.[slot]
+                if (foods?.length) {
+                  await syncMealSlot(userId, day, slot, foods)
+                }
+              }
+            }
+
+            // Water logs
+            for (const [date, cups] of Object.entries(imported.waterLogs || {})) {
+              await syncWaterLog(userId, date, cups)
+            }
+
+            // Completed workout sessions + their exercise logs
+            for (const session of imported.completedSessions || []) {
+              await syncWorkoutSession(userId, session, imported.completedExercises || {})
+            }
+
+            toast.success('All data synced to cloud!', { duration: 4000 })
+          } catch (syncErr) {
+            console.warn('[OnboardingPage] Sync after import failed:', syncErr?.message)
+            toast.warning('Data imported locally. Cloud sync failed — it will retry when you next open the app.')
+          }
+        }
+
         window.location.replace('/')
       } catch (error) {
         toast.error(error.message || t('onboarding.toastImportFail'))

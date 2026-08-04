@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Link, useNavigate } from 'react-router-dom'
 
-import { Calendar, Dumbbell, Plus } from 'lucide-react'
+import { Calendar, Dumbbell, Plus, Trophy } from 'lucide-react'
 
 import confetti from 'canvas-confetti'
 
@@ -164,9 +164,9 @@ function getPhaseFullLabel(phase, t) {
 }
 
 function getPhaseIcon(phase) {
-  if (phase === EXERCISE_PHASE.WARMUP) return '🔥'
-  if (phase === EXERCISE_PHASE.COOLDOWN) return '❄️'
-  return '💪'
+  if (phase === EXERCISE_PHASE.WARMUP) return '↑'
+  if (phase === EXERCISE_PHASE.COOLDOWN) return '↓'
+  return '●'
 }
 
 function buildWorkoutPhaseGroups(enriched, phaseFilter, { allPhases }, t) {
@@ -440,7 +440,7 @@ function WorkoutTab({ state, updateState }) {
         isNewPersonalRecord(completedExercises, libraryId, newEntry.sets, key)
 
       if (isPr) {
-        toast.success(`🏆 New PR — ${scheduled?.name || library?.name || 'Exercise'}!`, {
+        toast.success(`New PR — ${scheduled?.name || library?.name || 'Exercise'}!`, {
           description: t('workout.toastComplete'),
         })
       } else {
@@ -1007,12 +1007,14 @@ function WorkoutTab({ state, updateState }) {
       {celebrating && (
         <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
           <div className="flex flex-col items-center gap-3 bg-background/90 backdrop-blur-sm border border-border rounded-2xl px-10 py-8 shadow-2xl pointer-events-auto animate-in fade-in zoom-in-95 duration-300">
-            <span className="text-6xl" role="img" aria-label="trophy">🏆</span>
+            <div className="h-16 w-16 rounded-full bg-primary/15 flex items-center justify-center">
+              <Trophy className="h-9 w-9 text-primary" aria-hidden />
+            </div>
             <p className="text-xl font-bold text-foreground">
               {t('workout.celebrateTitle', { defaultValue: 'Workout Complete!' })}
             </p>
             <p className="text-sm text-muted-foreground text-center">
-              {t('workout.celebrateSubtitle', { defaultValue: 'Amazing work — you crushed it! 💪' })}
+              {t('workout.celebrateSubtitle', { defaultValue: 'Amazing work — you crushed it!' })}
             </p>
           </div>
         </div>

@@ -7,8 +7,6 @@ export const ACHIEVEMENT_IDS = [
   'first_session',
   // Streaks
   'streak_3',
-  'streak_7',
-  'streak_30',
   // Sessions
   'sessions_10',
   'sessions_50',
@@ -97,8 +95,6 @@ function evaluateAchievement(id, state) {
     case 'first_completion':  return exerciseCount >= 1
     case 'first_session':     return completedSessions.length >= 1
     case 'streak_3':          return streaks.longest >= 3
-    case 'streak_7':          return streaks.longest >= 7
-    case 'streak_30':         return streaks.longest >= 30
     case 'sessions_10':       return completedSessions.length >= 10
     case 'sessions_50':       return completedSessions.length >= 50
     case 'sessions_100':      return completedSessions.length >= 100

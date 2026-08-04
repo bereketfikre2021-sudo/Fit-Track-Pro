@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Fit Track Pro</string>
+    <string name="title_activity_main">Fit Track Pro</string>
+    <string name="package_name">com.bereketfikre.fittrackpro</string>
+    <string name="custom_url_scheme">com.bereketfikre.fittrackpro</string>
+</resources>

@@ -2,9 +2,9 @@ import i18n from '@/i18n'
 
 /** Single-select equipment groups — each option expands to the equipment values it covers. */
 export const EQUIPMENT_OPTIONS = [
-  { id: 'gym', label: '🏋️ Full gym', values: ['Gym', 'Barbell', 'Dumbbell', 'Machine', 'Cable'] },
-  { id: 'freeweights', label: '🥇 Free weights', values: ['Barbell', 'Dumbbell'] },
-  { id: 'bodyweight', label: '🤸 Bodyweight only', values: ['Bodyweight'] },
+  { id: 'gym',         label: 'Full gym',        values: ['Gym', 'Barbell', 'Dumbbell', 'Machine', 'Cable'] },
+  { id: 'freeweights', label: 'Free weights',    values: ['Barbell', 'Dumbbell'] },
+  { id: 'bodyweight',  label: 'Bodyweight only', values: ['Bodyweight'] },
 ]
 
 export function equipmentToId(equipment = []) {

@@ -433,7 +433,6 @@ export const PRESET_MEAL_PLANS = [
   {
     id: 'weight-gain',
     name: 'Weight Gain Plan',
-    emoji: '💪',
     description:
       'High-calorie (~3 200 kcal/day), protein-rich Ethiopian meals designed to support muscle building and healthy weight gain.',
     tags: ['Weight Gain', 'High Protein', '~3 200 kcal'],
@@ -444,7 +443,6 @@ export const PRESET_MEAL_PLANS = [
   {
     id: 'weight-loss',
     name: 'Weight Loss Plan',
-    emoji: '🔥',
     description:
       'Calorie-controlled (~1 700 kcal/day), high-protein Ethiopian meals designed to support fat loss while preserving muscle.',
     tags: ['Weight Loss', 'High Protein', '~1 700 kcal'],

@@ -1753,7 +1753,7 @@ function ScheduleManager({
                 </div>
               ) : (
                 <ScheduleExerciseList
-                  exercises={workoutSchedule[selectedDay].exercises}
+                  exercises={workoutSchedule[selectedDay]?.exercises ?? []}
                   onReorder={handleReorder}
                   onRemove={(id) => handleRemoveExerciseFromDay(selectedDay, id)}
                   onUpdate={(updatedEntry) => handleUpdateScheduleEntry(selectedDay, updatedEntry)}

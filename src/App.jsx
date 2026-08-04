@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { toast } from 'sonner'
@@ -13,8 +13,17 @@ import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import MealPlanPage from './pages/MealPlanPage'
 import NotFoundPage from './pages/NotFoundPage'
+import LoginPage from './pages/LoginPage'
+import SignupPage from './pages/SignupPage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
+import AuthGuard from './components/AuthGuard'
+import { AuthProvider, useAuth } from './lib/useAuth'
 import { loadAppState, clearAppState } from './lib/storage'
 import { useDebouncedSave } from './lib/useDebouncedSave'
+import { useSupabaseSync } from './lib/useSupabaseSync'
+import { loadAllFromSupabase, syncUserProfile, syncBodyLog, syncMealSlot, syncWaterLog, syncWorkoutSession } from './lib/supabaseDb'
 import {
   createDefaultAppState,
   CURRENT_SCHEMA_VERSION,
@@ -29,6 +38,7 @@ import { translateWeekday } from './lib/i18nHelpers'
 import { getAppSettings } from './lib/appSettings'
 import { configureGeminiFromAppSettings } from './lib/gemini'
 import { needsPlanSetup } from './lib/planEmpty'
+import AdService from './lib/monetization'
 
 function RequireOnboarded({ state, children }) {
   if (!state.onboarded) return <Navigate to="/onboarding" replace />
@@ -40,18 +50,52 @@ function RequirePlanSetupDone({ state, children }) {
   return children
 }
 
-function App() {
+function AppRoutes() {
+  const { user } = useAuth()
   const [state, setState] = useState(() => {
     const loaded = loadAppState()
     configureGeminiFromAppSettings(getAppSettings(loaded))
     return loaded
   })
 
+  // Track whether we've already loaded cloud data for this session
+  const cloudLoadedFor = useRef(null)
+
+  // ── On login: load data from Supabase and merge over local state ────────
+  useEffect(() => {
+    if (!user?.id || cloudLoadedFor.current === user.id) return
+    cloudLoadedFor.current = user.id
+
+    loadAllFromSupabase(user.id).then((patch) => {
+      if (!patch) return
+      setState((prev) => {
+        const merged = { ...prev, ...patch }
+        // Preserve local settings (device-specific)
+        merged.appSettings = prev.appSettings
+        // Preserve local workout schedule and custom exercises —
+        // these are not stored in Supabase tables so the cloud patch
+        // never includes them, but we explicitly guard here in case
+        // a future change adds them to avoid wiping local data.
+        if (!patch.workoutSchedule) merged.workoutSchedule = prev.workoutSchedule
+        if (!patch.customExercises) merged.customExercises = prev.customExercises
+        return merged
+      })
+    })
+  }, [user?.id])
+
+  // ── Clear cloud-load marker on sign-out ─────────────────────────────────
+  useEffect(() => {
+    if (!user) cloudLoadedFor.current = null
+  }, [user])
+
   useEffect(() => {
     configureGeminiFromAppSettings(getAppSettings(state))
   }, [state.appSettings])
 
+  // ── Persist to localStorage (existing) + sync to Supabase (new) ─────────
   useDebouncedSave(state)
+  useSupabaseSync(state)
+
   useMealReminders(state)
   useWorkoutReminder(state)
 
@@ -68,30 +112,37 @@ function App() {
       }
     })
 
+    const profileUpdate = {
+      ...state.profile,
+      name:              onboardingData.name,
+      registrationDate:  onboardingData.registrationDate,
+      birthDate:         onboardingData.birthDate || '',
+      gender:            onboardingData.gender,
+      currentWeight:     onboardingData.currentWeight,
+      height:            onboardingData.height,
+      targetWeight:      onboardingData.targetWeight,
+      avatarUrl:         onboardingData.avatarUrl || '',
+      goal:              onboardingData.goal,
+      focusArea:         onboardingData.focusArea,
+      equipment:         onboardingData.equipment || [],
+      fitnessLevel:      onboardingData.fitnessLevel,
+      fitnessLevelManual: onboardingData.fitnessLevelManual ?? false,
+      workoutDays:       onboardingData.workoutDays,
+    }
+
     updateState({
       onboarded: true,
       planSetupComplete: false,
       schemaVersion: CURRENT_SCHEMA_VERSION,
-      profile: {
-        ...state.profile,
-        name: onboardingData.name,
-        registrationDate: onboardingData.registrationDate,
-        birthDate: onboardingData.birthDate || '',
-        gender: onboardingData.gender,
-        currentWeight: onboardingData.currentWeight,
-        height: onboardingData.height,
-        targetWeight: onboardingData.targetWeight,
-        avatarUrl: onboardingData.avatarUrl || '',
-        goal: onboardingData.goal,
-        focusArea: onboardingData.focusArea,
-        equipment: onboardingData.equipment || [],
-        fitnessLevel: onboardingData.fitnessLevel,
-        fitnessLevelManual: onboardingData.fitnessLevelManual ?? false,
-        workoutDays: onboardingData.workoutDays,
-      },
+      profile: profileUpdate,
       customExercises: [],
       workoutSchedule,
     })
+
+    // Push profile to Supabase immediately after onboarding
+    if (user?.id) {
+      syncUserProfile(user.id, profileUpdate)
+    }
 
     toast.success(i18n.t('app.welcome', { name: onboardingData.name }))
   }
@@ -116,7 +167,7 @@ function App() {
     if (!file) return
 
     const reader = new FileReader()
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const text = ev.target?.result
         if (typeof text !== 'string') {
@@ -125,6 +176,34 @@ function App() {
         const imported = hydrateAppStateFromBackup(text)
         setState(imported)
         toast.success(i18n.t('app.importSuccess'))
+
+        // Push all imported data to Supabase so it survives across sessions
+        const userId = user?.id
+        if (userId) {
+          const DAYS  = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+          const SLOTS = ['breakfast','morningSnack','lunch','afternoonSnack','dinner','beforeBed']
+          try {
+            if (imported.profile?.name) await syncUserProfile(userId, imported.profile)
+            for (const log of imported.bodyLogs || []) await syncBodyLog(userId, log)
+            for (const day of DAYS) {
+              for (const slot of SLOTS) {
+                const foods = imported.mealPlan?.[day]?.[slot]
+                if (foods?.length) await syncMealSlot(userId, day, slot, foods)
+              }
+            }
+            for (const [date, cups] of Object.entries(imported.waterLogs || {})) {
+              await syncWaterLog(userId, date, cups)
+            }
+            for (const session of imported.completedSessions || []) {
+              await syncWorkoutSession(userId, session, imported.completedExercises || {})
+            }
+            toast.success('Data synced to cloud!', { duration: 3000 })
+          } catch (syncErr) {
+            console.warn('[importData] Cloud sync failed:', syncErr?.message)
+          }
+          // Reset cloud-load marker so fresh data loads next session
+          cloudLoadedFor.current = null
+        }
       } catch (err) {
         toast.error(err.message || i18n.t('app.importInvalid'))
       }
@@ -141,10 +220,175 @@ function App() {
     }
   }
 
-  const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined
-
   return (
     <I18nSync state={state}>
+      {state.onboarded && <PwaInstallPrompt />}
+      <Routes>
+        {/* ── Auth routes (public) ── */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+
+        {/* ── Onboarding / setup (requires Supabase session) ── */}
+        <Route
+          path="/onboarding"
+          element={
+            <AuthGuard>
+              {state.onboarded ? (
+                <Navigate to="/" replace />
+              ) : (
+                <OnboardingPage
+                  profile={state.profile}
+                  userEmail={user?.email ?? ''}
+                  onResume={() => updateState({ onboarded: true })}
+                  onComplete={handleOnboardingComplete}
+                />
+              )}
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/setup"
+          element={
+            <AuthGuard>
+              {!state.onboarded ? (
+                <Navigate to="/onboarding" replace />
+              ) : state.planSetupComplete ? (
+                <Navigate to="/" replace />
+              ) : (
+                <PlanSetupPage state={state} updateState={updateState} />
+              )}
+            </AuthGuard>
+          }
+        />
+
+        {/* ── App routes (require session + onboarding + plan setup) ── */}
+        <Route
+          path="/"
+          element={
+            <AuthGuard>
+              {!state.onboarded ? (
+                <Navigate to="/onboarding" replace />
+              ) : (
+                <RequirePlanSetupDone state={state}>
+                  <DashboardLayout state={state} updateState={updateState}>
+                    <HomePage state={state} updateState={updateState} />
+                  </DashboardLayout>
+                </RequirePlanSetupDone>
+              )}
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/workout"
+          element={
+            <AuthGuard>
+              <RequireOnboarded state={state}>
+                <RequirePlanSetupDone state={state}>
+                  <DashboardLayout state={state} updateState={updateState}>
+                    <WorkoutPage state={state} updateState={updateState} />
+                  </DashboardLayout>
+                </RequirePlanSetupDone>
+              </RequireOnboarded>
+            </AuthGuard>
+          }
+        />
+        <Route path="/history" element={<Navigate to="/report" replace />} />
+        <Route
+          path="/report"
+          element={
+            <AuthGuard>
+              <RequireOnboarded state={state}>
+                <RequirePlanSetupDone state={state}>
+                  <DashboardLayout state={state} updateState={updateState}>
+                    <HistoryPage state={state} updateState={updateState} />
+                  </DashboardLayout>
+                </RequirePlanSetupDone>
+              </RequireOnboarded>
+            </AuthGuard>
+          }
+        />
+        <Route path="/custom" element={<Navigate to="/exercises" replace />} />
+        <Route
+          path="/exercises"
+          element={
+            <AuthGuard>
+              <RequireOnboarded state={state}>
+                <RequirePlanSetupDone state={state}>
+                  <DashboardLayout state={state} updateState={updateState}>
+                    <CustomPage state={state} updateState={updateState} />
+                  </DashboardLayout>
+                </RequirePlanSetupDone>
+              </RequireOnboarded>
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/meal-plan"
+          element={
+            <AuthGuard>
+              <RequireOnboarded state={state}>
+                <RequirePlanSetupDone state={state}>
+                  <DashboardLayout state={state} updateState={updateState}>
+                    <MealPlanPage state={state} updateState={updateState} />
+                  </DashboardLayout>
+                </RequirePlanSetupDone>
+              </RequireOnboarded>
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <AuthGuard>
+              <RequireOnboarded state={state}>
+                <RequirePlanSetupDone state={state}>
+                  <DashboardLayout state={state} updateState={updateState}>
+                    <ProfilePage state={state} updateState={updateState} />
+                  </DashboardLayout>
+                </RequirePlanSetupDone>
+              </RequireOnboarded>
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/profile/settings"
+          element={
+            <AuthGuard>
+              <RequireOnboarded state={state}>
+                <RequirePlanSetupDone state={state}>
+                  <DashboardLayout state={state} updateState={updateState}>
+                    <SettingsPage
+                      state={state}
+                      updateState={updateState}
+                      exportData={exportData}
+                      importData={importData}
+                      clearAllData={clearAllData}
+                    />
+                  </DashboardLayout>
+                </RequirePlanSetupDone>
+              </RequireOnboarded>
+            </AuthGuard>
+          }
+        />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </I18nSync>
+  )
+}
+
+function App() {
+  const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined
+
+  // Initialise AdMob once on app startup.
+  // This is a no-op in the browser — only activates inside Capacitor (Android).
+  useEffect(() => {
+    AdService.initialize()
+  }, [])
+
+  return (
     <BrowserRouter
       basename={routerBasename}
       future={{
@@ -152,153 +396,30 @@ function App() {
         v7_relativeSplatPath: true,
       }}
     >
-      <Toaster
-        position="top-center"
-        expand={false}
-        visibleToasts={4}
-        gap={8}
-        toastOptions={{
-          unstyled: true,
-          classNames: {
-            toast:
-              'ftp-toast',
-            title: 'ftp-toast-title',
-            description: 'ftp-toast-description',
-            icon: 'ftp-toast-icon',
-            closeButton: 'ftp-toast-close',
-            success: 'ftp-toast--success',
-            error: 'ftp-toast--error',
-            warning: 'ftp-toast--warning',
-            info: 'ftp-toast--info',
-          },
-        }}
-      />
-      {state.onboarded && <PwaInstallPrompt />}
-      <Routes>
-        <Route
-          path="/onboarding"
-          element={
-            state.onboarded ? (
-              <Navigate to="/" replace />
-            ) : (
-              <OnboardingPage
-                profile={state.profile}
-                onResume={() => updateState({ onboarded: true })}
-                onComplete={handleOnboardingComplete}
-              />
-            )
-          }
+      <AuthProvider>
+        <Toaster
+          position="top-center"
+          expand={false}
+          visibleToasts={4}
+          gap={8}
+          toastOptions={{
+            unstyled: true,
+            classNames: {
+              toast: 'ftp-toast',
+              title: 'ftp-toast-title',
+              description: 'ftp-toast-description',
+              icon: 'ftp-toast-icon',
+              closeButton: 'ftp-toast-close',
+              success: 'ftp-toast--success',
+              error: 'ftp-toast--error',
+              warning: 'ftp-toast--warning',
+              info: 'ftp-toast--info',
+            },
+          }}
         />
-        <Route
-          path="/setup"
-          element={
-            !state.onboarded ? (
-              <Navigate to="/onboarding" replace />
-            ) : state.planSetupComplete ? (
-              <Navigate to="/" replace />
-            ) : (
-              <PlanSetupPage state={state} updateState={updateState} />
-            )
-          }
-        />
-        <Route
-          path="/"
-          element={
-            !state.onboarded ? (
-              <Navigate to="/onboarding" replace />
-            ) : (
-              <RequirePlanSetupDone state={state}>
-                <DashboardLayout state={state} updateState={updateState}>
-                  <HomePage state={state} updateState={updateState} />
-                </DashboardLayout>
-              </RequirePlanSetupDone>
-            )
-          }
-        />
-        <Route
-          path="/workout"
-          element={
-            <RequireOnboarded state={state}>
-              <RequirePlanSetupDone state={state}>
-                <DashboardLayout state={state} updateState={updateState}>
-                  <WorkoutPage state={state} updateState={updateState} />
-                </DashboardLayout>
-              </RequirePlanSetupDone>
-            </RequireOnboarded>
-          }
-        />
-        <Route path="/history" element={<Navigate to="/report" replace />} />
-        <Route
-          path="/report"
-          element={
-            <RequireOnboarded state={state}>
-              <RequirePlanSetupDone state={state}>
-                <DashboardLayout state={state} updateState={updateState}>
-                  <HistoryPage state={state} updateState={updateState} />
-                </DashboardLayout>
-              </RequirePlanSetupDone>
-            </RequireOnboarded>
-          }
-        />
-        <Route path="/custom" element={<Navigate to="/exercises" replace />} />
-        <Route
-          path="/exercises"
-          element={
-            <RequireOnboarded state={state}>
-              <RequirePlanSetupDone state={state}>
-                <DashboardLayout state={state} updateState={updateState}>
-                  <CustomPage state={state} updateState={updateState} />
-                </DashboardLayout>
-              </RequirePlanSetupDone>
-            </RequireOnboarded>
-          }
-        />
-        <Route
-          path="/meal-plan"
-          element={
-            <RequireOnboarded state={state}>
-              <RequirePlanSetupDone state={state}>
-                <DashboardLayout state={state} updateState={updateState}>
-                  <MealPlanPage state={state} updateState={updateState} />
-                </DashboardLayout>
-              </RequirePlanSetupDone>
-            </RequireOnboarded>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <RequireOnboarded state={state}>
-              <RequirePlanSetupDone state={state}>
-                <DashboardLayout state={state} updateState={updateState}>
-                  <ProfilePage state={state} updateState={updateState} />
-                </DashboardLayout>
-              </RequirePlanSetupDone>
-            </RequireOnboarded>
-          }
-        />
-        <Route
-          path="/profile/settings"
-          element={
-            <RequireOnboarded state={state}>
-              <RequirePlanSetupDone state={state}>
-                <DashboardLayout state={state} updateState={updateState}>
-                  <SettingsPage
-                    state={state}
-                    updateState={updateState}
-                    exportData={exportData}
-                    importData={importData}
-                    clearAllData={clearAllData}
-                  />
-                </DashboardLayout>
-              </RequirePlanSetupDone>
-            </RequireOnboarded>
-          }
-        />
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+        <AppRoutes />
+      </AuthProvider>
     </BrowserRouter>
-    </I18nSync>
   )
 }
 

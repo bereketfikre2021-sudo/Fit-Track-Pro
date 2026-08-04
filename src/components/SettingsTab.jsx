@@ -10,11 +10,12 @@ import {
   ChevronUp,
   ChevronRight,
   LogOut,
-  ArrowLeft,
   Languages,
   Calendar,
   Bell,
   Sparkles,
+  CheckCircle2,
+  Cloud,
 } from 'lucide-react'
 import { getAppSettings, updateAppSettings, SUPPORTED_LOCALES } from '@/lib/appSettings'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -32,12 +33,15 @@ import { toast } from 'sonner'
 import CopyrightBadge from './CopyrightBadge'
 import JsonFileActions from './JsonFileActions'
 import { isGeminiConfigured } from '@/lib/gemini'
+import { NotificationSettings } from './NotificationSettings'
+import { useAuth } from '@/lib/useAuth'
 
 const selectClassName =
   'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 function SettingsTab({ state, updateState, exportData, importData, clearAllData, onLogout }) {
   const { t } = useTranslation()
+  const { user } = useAuth()
   const appSettings = getAppSettings(state)
 
   const patchSettings = (patch) => {
@@ -50,7 +54,7 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
   const [hasExportedBackup, setHasExportedBackup] = useState(false)
   const [confirmedBackup, setConfirmedBackup] = useState(false)
 
-  const canClear = hasExportedBackup || confirmedBackup
+  const canClear = hasExportedBackup || confirmedBackup || !!user
 
   const openClearDialog = () => {
     setHasExportedBackup(false)
@@ -74,14 +78,6 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
 
   return (
     <div className="p-4 md:p-6 pb-20 md:pb-6 max-w-2xl mx-auto">
-      <Link
-        to="/profile"
-        className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 mb-4 -ml-1 transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden />
-        {t('settings.backToProfile')}
-      </Link>
-
       <h1 className="text-2xl font-bold mb-6">{t('settings.title')}</h1>
 
       <Card className="mb-6">
@@ -93,10 +89,10 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
           <div className="min-w-0">
             <p className="text-base font-semibold flex items-center gap-2">
               <User className="h-4 w-4 shrink-0" />
-              {t('settings.accountData.title')}
+              Account &amp; Data
             </p>
             <p className="text-xs text-muted-foreground mt-0.5 truncate">
-              {t('settings.accountData.subtitle')}
+              {user ? `Signed in as ${user.email}` : 'Sign in to sync your data across devices'}
             </p>
           </div>
           {showAccountData ? (
@@ -105,23 +101,61 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
             <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
           )}
         </button>
+
         {showAccountData && (
           <CardContent className="space-y-5 pt-0 pb-4 border-t border-border/60">
-            <p className="text-xs text-muted-foreground pt-3 rounded-md border border-border/60 bg-muted/20 px-3 py-2">
-              {t('settings.account.localDataNote')}
-            </p>
-            <div className="space-y-2">
-              <p className="text-sm font-medium">{t('settings.account.title')}</p>
-              <p className="text-xs text-muted-foreground">{t('settings.account.description')}</p>
-              <Button variant="outline" className="w-full sm:w-auto" onClick={onLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                {t('settings.account.logout')}
-              </Button>
-            </div>
 
+            {/* ── Cloud sync status ── */}
+            {user ? (
+              <div className="flex items-start gap-3 rounded-md border border-primary/30 bg-primary/5 px-3 py-3 mt-3">
+                <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-primary">Cloud sync active</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 break-all">
+                    {user.email || 'Google account'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Your workouts, meals, and progress sync automatically across devices.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-3 rounded-md border border-border bg-muted/20 px-3 py-3 mt-3">
+                <Cloud className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden />
+                <div>
+                  <p className="text-sm font-medium">Not signed in</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Data is stored on this device only.{' '}
+                    <Link to="/login" className="text-primary hover:underline font-medium">
+                      Sign in
+                    </Link>{' '}
+                    to enable cloud sync.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* ── Sign out ── */}
+            {user && (
+              <div className="space-y-2 border-t border-border/60 pt-4">
+                <p className="text-sm font-medium">Session</p>
+                <p className="text-xs text-muted-foreground">
+                  Sign out to switch accounts or use a different device.
+                </p>
+                <Button variant="outline" className="w-full sm:w-auto" onClick={onLogout}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign out
+                </Button>
+              </div>
+            )}
+
+            {/* ── Data portability ── */}
             <div className="space-y-2 border-t border-border/60 pt-4">
-              <p className="text-sm font-medium">{t('settings.data.title')}</p>
-              <p className="text-xs text-muted-foreground">{t('settings.data.hint')}</p>
+              <p className="text-sm font-medium">Data portability</p>
+              <p className="text-xs text-muted-foreground">
+                Export a full backup of your data as JSON. Import a backup to restore or migrate from another device.
+                {user && ' Your cloud data remains safe even if you clear local storage.'}
+              </p>
               <JsonFileActions
                 showTemplate={false}
                 onExport={exportData}
@@ -130,6 +164,16 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
                 exportLabel={t('settings.data.exportJson')}
                 importLabel={t('settings.data.importJson')}
               />
+            </div>
+
+            {/* ── Clear local device cache ── */}
+            <div className="space-y-2 border-t border-border/60 pt-4">
+              <p className="text-sm font-medium">Clear local device cache</p>
+              <p className="text-xs text-muted-foreground">
+                {user
+                  ? 'Removes all data from this device. Your cloud backup is unaffected — sign back in to restore everything.'
+                  : 'Permanently removes all data from this device. This cannot be undone.'}
+              </p>
               <Button
                 variant="destructive"
                 size="sm"
@@ -137,9 +181,10 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
                 onClick={openClearDialog}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                {t('settings.data.clearAll')}
+                Clear device data
               </Button>
             </div>
+
           </CardContent>
         )}
       </Card>
@@ -149,41 +194,50 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
-              {t('settings.clearDialog.title')}
+              Clear device data?
             </DialogTitle>
             <DialogDescription className="text-left pt-2 space-y-2">
-              <span className="block">{t('settings.clearDialog.body1')}</span>
+              <span className="block">
+                This removes all FitTrack Pro data stored on <strong>this device</strong>.
+              </span>
               <span className="block font-medium text-foreground">
-                {t('settings.clearDialog.body2')}
+                {user
+                  ? 'Your cloud backup is safe — sign back in to restore everything instantly.'
+                  : 'You are not signed in. This cannot be undone. Export a backup first.'}
               </span>
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            <Button className="w-full" onClick={handleExportFromDialog}>
-              <Download className="h-4 w-4 mr-2" />
-              {hasExportedBackup
-                ? t('settings.clearDialog.exportAgain')
-                : t('settings.clearDialog.exportNow')}
-            </Button>
+            {/* Only require backup confirmation when NOT signed in (no cloud safety net) */}
+            {!user && (
+              <Button className="w-full" onClick={handleExportFromDialog}>
+                <Download className="h-4 w-4 mr-2" />
+                {hasExportedBackup
+                  ? t('settings.clearDialog.exportAgain')
+                  : t('settings.clearDialog.exportNow')}
+              </Button>
+            )}
 
-            {hasExportedBackup && (
+            {!user && hasExportedBackup && (
               <p className="text-xs text-primary font-medium text-center">
                 {t('settings.clearDialog.exportedHint')}
               </p>
             )}
 
-            <label className="flex items-start gap-3 cursor-pointer rounded-md border border-border p-3 hover:bg-muted/50 transition-colors">
-              <input
-                type="checkbox"
-                checked={confirmedBackup}
-                onChange={(e) => setConfirmedBackup(e.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-input accent-primary"
-              />
-              <span className="text-sm text-muted-foreground">
-                {t('settings.clearDialog.checkbox')}
-              </span>
-            </label>
+            {!user && (
+              <label className="flex items-start gap-3 cursor-pointer rounded-md border border-border p-3 hover:bg-muted/50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={confirmedBackup}
+                  onChange={(e) => setConfirmedBackup(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-input accent-primary"
+                />
+                <span className="text-sm text-muted-foreground">
+                  {t('settings.clearDialog.checkbox')}
+                </span>
+              </label>
+            )}
           </div>
 
           <DialogFooter className="flex-col sm:flex-col gap-2">
@@ -194,7 +248,7 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
               onClick={handleConfirmClear}
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              {t('settings.clearDialog.deleteAll')}
+              Clear device data
             </Button>
             <Button
               variant="outline"
@@ -211,6 +265,9 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Push Notification Settings ── */}
+      <NotificationSettings />
 
       <Card className="mb-6">
         <button
@@ -482,6 +539,14 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
           <p>{t('settings.about.version')}</p>
           <p>{t('settings.about.tagline')}</p>
           <p className="pt-2 text-xs">{t('settings.about.stack')}</p>
+          <div className="pt-3">
+            <Link
+              to="/privacy-policy"
+              className="text-xs text-primary hover:underline underline-offset-2"
+            >
+              Privacy Policy
+            </Link>
+          </div>
           <div className="pt-4 border-t border-border">
             <CopyrightBadge className="text-center" />
           </div>

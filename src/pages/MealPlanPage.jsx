@@ -21,6 +21,14 @@ import {
   LayoutTemplate,
   Info,
   Sparkles,
+  Sunrise,
+  Apple,
+  Utensils,
+  Coffee,
+  UtensilsCrossed,
+  Moon,
+  Dumbbell,
+  Flame,
 } from 'lucide-react'
 import { getDayMacroTotals, formatMacroSummary } from '../lib/mealPlan'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
@@ -28,6 +36,7 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog'
+import { MealPushReminderSection } from '../components/MealPushReminderSection'
 import { Badge } from '../components/ui/badge'
 import { toast } from 'sonner'
 import { getAiToastKey } from '@/lib/aiErrors'
@@ -73,12 +82,12 @@ import { searchFoods } from '../lib/ethiopianFoods'
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 const MEAL_SLOTS = [
-  { id: 'breakfast', emoji: '🌅' },
-  { id: 'morningSnack', emoji: '🥜' },
-  { id: 'lunch', emoji: '🍛' },
-  { id: 'afternoonSnack', emoji: '☕️' },
-  { id: 'dinner', emoji: '🍽' },
-  { id: 'beforeBed', emoji: '🌙' },
+  { id: 'breakfast',     icon: Sunrise },
+  { id: 'morningSnack',  icon: Apple },
+  { id: 'lunch',         icon: Utensils },
+  { id: 'afternoonSnack',icon: Coffee },
+  { id: 'dinner',        icon: UtensilsCrossed },
+  { id: 'beforeBed',     icon: Moon },
 ]
 
 const SHOPPING_CATEGORIES = DEFAULT_SHOPPING_CATEGORIES
@@ -549,9 +558,15 @@ function MealPlanPage({ state, updateState }) {
             {/* Expanded content */}
             {showMealReminderSetup && (
               <div className="border-t border-border/60 px-3 pb-3 pt-3 space-y-3 text-xs">
-                {/* Platform picker */}
-                <div className="space-y-1.5">
-                  <p className="font-medium text-foreground">{t('meals.calendarPlatformLabel')}</p>
+
+                {/* ── Push notification toggle (new) ── */}
+                <MealPushReminderSection
+                  appSettings={appSettings}
+                  patchSettings={patchSettings}
+                />
+
+                <div className="border-t border-border/60 pt-3">
+                  <p className="font-medium text-foreground mb-2">{t('meals.calendarPlatformLabel')}</p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                     {MEAL_CALENDAR_PLATFORMS.map((platform) => (
                       <button
@@ -659,7 +674,7 @@ function MealPlanPage({ state, updateState }) {
                           <div key={mealTime.id} className="space-y-2">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <span className="text-xl">{mealTime.emoji}</span>
+                                {(() => { const Icon = mealTime.icon; return <Icon className="h-5 w-5 text-primary shrink-0" aria-hidden /> })()}
                                 <div>
                                   <h3 className="font-semibold text-sm">
                                     {translateMealSlot(mealTime.id)}
@@ -805,10 +820,13 @@ function MealPlanPage({ state, updateState }) {
                         <Card className={cn('border transition-all', preset.id === recommendedShoppingId ? 'border-primary/50 bg-primary/5' : 'border-border')}>
                           <CardContent className="p-4">
                             <p className="text-sm font-semibold flex items-center gap-1.5 mb-1">
-                              <span>{preset.emoji}</span>{preset.name}
+                              {preset.id === 'weight-gain'
+                                ? <Dumbbell className="h-4 w-4 text-primary shrink-0" />
+                                : <Flame className="h-4 w-4 text-primary shrink-0" />}
+                              {preset.name}
                             </p>
                             {preset.id === recommendedShoppingId && (
-                              <span className="text-[10px] text-primary font-medium block mb-1">✓ Recommended for your goal</span>
+                              <span className="text-[10px] text-primary font-medium block mb-1">Recommended for your goal</span>
                             )}
                             <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{preset.description}</p>
                             <Button size="sm" variant={preset.id === recommendedShoppingId ? 'default' : 'outline'} className="w-full"
@@ -818,7 +836,7 @@ function MealPlanPage({ state, updateState }) {
                                 if (!items) return
                                 updateState({ shoppingList: items })
                                 setShowShoppingPresets(false)
-                                toast.success(`${preset.emoji} ${preset.name} applied`)
+                                toast.success(`${preset.name} applied`)
                               }}>
                               <LayoutTemplate className="h-3.5 w-3.5 mr-1.5" />
                               Use this list

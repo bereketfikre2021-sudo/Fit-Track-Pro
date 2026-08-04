@@ -2,7 +2,6 @@ import { useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   User,
-  Settings,
   Scale,
   Ruler,
   Award,
@@ -16,6 +15,10 @@ import {
   Edit2,
   Check,
   X,
+  Dumbbell,
+  Flame,
+  Activity,
+  TrendingUp,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent } from './ui/card'
@@ -34,10 +37,10 @@ import { DateInput } from './ui/date-input'
 import BodyWeightTracker from './BodyWeightTracker'
 
 const GOALS = [
-  { value: 'strength', label: 'Strength', emoji: '💪' },
-  { value: 'muscle', label: 'Muscle', emoji: '🏋️' },
-  { value: 'fat', label: 'Fat loss', emoji: '🔥' },
-  { value: 'endurance', label: 'Endurance', emoji: '🏃' },
+  { value: 'strength',  label: 'Strength',  icon: Dumbbell },
+  { value: 'muscle',    label: 'Muscle',    icon: TrendingUp },
+  { value: 'fat',       label: 'Fat loss',  icon: Flame },
+  { value: 'endurance', label: 'Endurance', icon: Activity },
 ]
 
 const LEVEL_STYLES = {
@@ -127,7 +130,7 @@ function ProfileTab({ state, updateState }) {
     : t('profile.experienceAutoDetected')
   const goalMeta = GOALS.find((g) => g.value === profile.goal) || GOALS[1]
   const bmi = calculateBmi(profile.currentWeight, profile.height)
-  const eqLabel = EQUIPMENT_OPTIONS.find((o) => o.id === equipmentToId(profile.equipment || []))?.label || '🏋️ Full gym'
+  const eqLabel = EQUIPMENT_OPTIONS.find((o) => o.id === equipmentToId(profile.equipment || []))?.label || 'Full gym'
 
   return (
     <div className="p-4 md:p-6 pb-20 md:pb-6 max-w-2xl mx-auto space-y-3">
@@ -135,13 +138,6 @@ function ProfileTab({ state, updateState }) {
       {/* Hero card */}
       <Card className="overflow-hidden border-primary/20 shadow-md">
         <CardContent className="relative p-5 bg-gradient-to-br from-primary/30 via-primary/10 to-transparent">
-          <Link
-            to="/profile/settings"
-            className="absolute top-3 right-3 rounded-lg border border-border/80 bg-background/80 p-2 hover:bg-muted transition-colors"
-            aria-label={t('profile.settingsAria')}
-          >
-            <Settings className="h-4 w-4" />
-          </Link>
 
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="relative shrink-0 mx-auto sm:mx-0">
@@ -174,8 +170,9 @@ function ProfileTab({ state, updateState }) {
                 </p>
               )}
               <div className="flex flex-wrap gap-1.5 justify-center sm:justify-start mt-2">
-                <Badge variant="secondary" className="text-xs font-normal">
-                  {goalMeta.emoji} {translateGoal(profile.goal)}
+                <Badge variant="secondary" className="text-xs font-normal flex items-center gap-1">
+                  {goalMeta.icon && <goalMeta.icon className="h-3 w-3" />}
+                  {translateGoal(profile.goal)}
                 </Badge>
                 <Badge variant="outline" className={cn('text-xs font-normal', LEVEL_STYLES[fitnessLevel])}>
                   {translateFitnessLevel(fitnessLevel)}
@@ -299,8 +296,9 @@ function ProfileTab({ state, updateState }) {
       >
         <div className="pt-3 space-y-2">
           <div className="flex items-center justify-center rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
-            <span className="text-sm font-semibold">
-              {goalMeta.emoji} {translateGoal(profile.goal)}
+            <span className="text-sm font-semibold flex items-center gap-2">
+              {goalMeta.icon && <goalMeta.icon className="h-4 w-4 text-primary" />}
+              {translateGoal(profile.goal)}
             </span>
           </div>
           <div className="flex items-center gap-1.5 rounded-md border border-border/40 bg-muted/20 px-3 py-2">
@@ -320,8 +318,12 @@ function ProfileTab({ state, updateState }) {
       >
         <div className="pt-3 space-y-2">
           <div className="flex items-center justify-center rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
-            <span className={cn('text-sm font-semibold', LEVEL_STYLES[fitnessLevel])}>
-              {fitnessLevel === 'beginner' ? '🌱' : fitnessLevel === 'intermediate' ? '⚡' : '🔥'}{' '}
+            <span className={cn('text-sm font-semibold flex items-center gap-2', LEVEL_STYLES[fitnessLevel])}>
+              {fitnessLevel === 'beginner'
+                ? <Zap className="h-4 w-4" />
+                : fitnessLevel === 'intermediate'
+                  ? <TrendingUp className="h-4 w-4" />
+                  : <Flame className="h-4 w-4" />}
               {translateFitnessLevel(fitnessLevel)}
             </span>
           </div>

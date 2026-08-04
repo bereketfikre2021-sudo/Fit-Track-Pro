@@ -26,7 +26,7 @@ export function useWorkoutReminder(state) {
         firedRef.current = todayKey
         const perm = await requestNotificationPermission()
         if (perm !== 'granted') return
-        await showAppNotification('Time to work out! 💪', {
+        await showAppNotification('Time to work out!', {
           body: 'Your daily workout reminder from FitTrack Pro.',
           tag: 'fittrack-workout-reminder',
         })

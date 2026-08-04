@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, Flame, TrendingUp, Sparkles, Check, X, Play } from 'lucide-react'
+import { ChevronDown, ChevronUp, Flame, TrendingUp, Sparkles, Check, X, Play, Sunrise, Apple, Utensils, Coffee, UtensilsCrossed, Moon, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
@@ -19,13 +19,22 @@ import { translateWeekday } from '@/lib/i18nHelpers'
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
+const MEAL_SLOT_ICONS = {
+  breakfast:      Sunrise,
+  morningSnack:   Apple,
+  lunch:          Utensils,
+  afternoonSnack: Coffee,
+  dinner:         UtensilsCrossed,
+  beforeBed:      Moon,
+}
+
 const MEAL_SLOT_LABELS = {
-  breakfast: '🌅 Breakfast',
-  morningSnack: '🥜 Morning Snack',
-  lunch: '🍛 Lunch',
-  afternoonSnack: '☕️ Afternoon Snack',
-  dinner: '🍽 Dinner',
-  beforeBed: '🌙 Before Bed',
+  breakfast:      'Breakfast',
+  morningSnack:   'Morning Snack',
+  lunch:          'Lunch',
+  afternoonSnack: 'Afternoon Snack',
+  dinner:         'Dinner',
+  beforeBed:      'Before Bed',
 }
 
 /** Confirm dialog before overwriting an existing meal plan */
@@ -41,7 +50,8 @@ function ApplyConfirmDialog({ preset, onClose, onConfirm }) {
         </DialogHeader>
         <div className="space-y-4 pt-1">
           <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            <span>⚠️ Your existing meal plan and shopping list will be permanently replaced. This cannot be undone.</span>
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
+            <span>Your existing meal plan and shopping list will be permanently replaced. This cannot be undone.</span>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={onClose}>

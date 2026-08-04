@@ -44,6 +44,8 @@ export const DEFAULT_APP_SETTINGS = {
   /** Workout reminder notification */
   workoutReminderEnabled: false,
   workoutReminderTime: '07:00',
+  /** Meal push notification reminders (FCM-based) */
+  mealPushRemindersEnabled: false,
 }
 
 const MEAL_SLOT_IDS = [
@@ -111,6 +113,7 @@ export function normalizeAppSettings(settings) {
     waterUnit: ['cups', 'ml', 'oz'].includes(s.waterUnit) ? s.waterUnit : 'cups',
     workoutReminderEnabled: s.workoutReminderEnabled === true,
     workoutReminderTime: normalizeTimeString(s.workoutReminderTime, '07:00'),
+    mealPushRemindersEnabled: s.mealPushRemindersEnabled === true,
   }
 }
 

@@ -4,6 +4,8 @@ import { toast } from 'sonner'
 import GymFloatingPattern from '../components/GymFloatingPattern'
 import TodayWorkoutCard from '../components/TodayWorkoutCard'
 import WaterTracker from '../components/WaterTracker'
+import BannerAdSpacer from '../components/BannerAdSpacer'
+import { useAds } from '../lib/useAds'
 import { canStartWorkoutForDay } from '@/lib/calendarDay'
 import {
   getTodaySessionForDay,
@@ -16,11 +18,15 @@ import { getDailyMotivation } from '@/lib/dailyMotivation'
 
 function MotivationQuote({ lines }) {
   return (
-    <div className="mb-2 pl-3 border-l-4 border-primary">
+    <div className="pl-3 border-l-4 border-primary">
       {lines.map((line, index) => (
         <p
           key={index}
-          className="text-3xl font-display font-extrabold tracking-tight leading-tight text-foreground"
+          className="
+            font-display font-extrabold tracking-tight leading-tight text-foreground
+            text-3xl md:text-5xl lg:text-6xl xl:text-7xl
+            line-clamp-2 md:line-clamp-1
+          "
         >
           {line.before}
           <span className="text-primary">{line.highlight}</span>
@@ -36,6 +42,17 @@ function HomePage({ state, updateState }) {
   const navigate = useNavigate()
   const today = todayDateString()
   const motivationLines = getDailyMotivation()
+
+  /**
+   * Ad setup for Home screen:
+   *   - Banner: shown at the bottom (reserved by <BannerAdSpacer />)
+   *   - Interstitial: preloaded here so it's ready after workout completion
+   *     (WorkoutTab calls AdService.showInterstitial() after session finish)
+   *
+   * No ads are shown during active workout sessions — the useAds hook only
+   * renders the banner on THIS screen, not on /workout.
+   */
+  useAds({ banner: true, preloadInterstitial: true })
 
   const handleStartSession = (day) => {
     const workoutDays = state.profile?.workoutDays || []
@@ -68,11 +85,17 @@ function HomePage({ state, updateState }) {
   }
 
   return (
-    <div className="relative -mt-10 px-3 pb-20 md:pb-6 md:px-6 md:mt-0">
-      <GymFloatingPattern />
-      <div className="relative z-10 flex flex-col gap-2">
+    <div className="px-3 pt-4 pb-24 md:pb-8 md:px-6 max-w-2xl mx-auto">
+      {/* Floating gym pattern sits behind everything */}
+      <div className="fixed inset-0 pointer-events-none z-0 opacity-30" aria-hidden>
+        <GymFloatingPattern />
+      </div>
+
+      <div className="relative z-10 flex flex-col gap-3">
+        {/* Daily motivation quote */}
         <MotivationQuote lines={motivationLines} />
 
+        {/* Today's workout */}
         <TodayWorkoutCard
           workoutDays={state.profile?.workoutDays || []}
           workoutSchedule={state.workoutSchedule || {}}
@@ -84,7 +107,11 @@ function HomePage({ state, updateState }) {
           onSkipToday={handleSkipToday}
         />
 
+        {/* Water intake */}
         <WaterTracker state={state} updateState={updateState} today={today} />
+
+        {/* Space reserved for the native AdMob banner (Capacitor only) */}
+        <BannerAdSpacer />
       </div>
     </div>
   )
