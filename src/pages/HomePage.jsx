@@ -86,9 +86,9 @@ function HomePage({ state, updateState }) {
 
   /**
    * Transfer today's workout to a rest day.
-   * Copies the exercises from the skipped day into the target rest day's
-   * schedule slot (does NOT mark the session as skipped — streak is preserved).
-   * A note is added to the target day so the user knows why it's there.
+   * Records a one-time transfer entry — does NOT permanently modify the
+   * weekly schedule or workoutDays. The transferred workout appears on
+   * the Home card on the target date, and the streak is preserved.
    */
   const handleTransferToday = (fromDay, toDay) => {
     const fromSchedule = state.workoutSchedule?.[fromDay]
@@ -97,36 +97,27 @@ function HomePage({ state, updateState }) {
       return
     }
 
-    const existingToSchedule = state.workoutSchedule?.[toDay] || { exercises: [], note: '' }
+    // Calculate the date of the target rest day this week
+    const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    const todayDate = new Date()
+    const todayIdx = todayDate.getDay() === 0 ? 6 : todayDate.getDay() - 1 // Mon=0
+    const toIdx = DAYS_OF_WEEK.indexOf(toDay)
+    let daysAhead = toIdx - todayIdx
+    if (daysAhead <= 0) daysAhead += 7
+    const targetDate = new Date(todayDate)
+    targetDate.setDate(todayDate.getDate() + daysAhead)
+    const targetDateStr = targetDate.toISOString().slice(0, 10)
 
-    // Merge exercises — don't duplicate if already transferred
-    const existingIds = new Set((existingToSchedule.exercises || []).map((e) => e.id))
-    const newExercises = fromSchedule.exercises.filter((e) => !existingIds.has(e.id))
-
-    const updatedSchedule = {
-      ...state.workoutSchedule,
-      [toDay]: {
-        ...existingToSchedule,
-        note: existingToSchedule.note
-          ? `${existingToSchedule.note} + transferred from ${fromDay}`
-          : `Transferred from ${fromDay}`,
-        exercises: [...(existingToSchedule.exercises || []), ...newExercises],
-      },
+    // Store the transfer — keyed by target date
+    const updatedTransfers = {
+      ...(state.transferredWorkouts || {}),
+      [targetDateStr]: { fromDay, toDay, transferredAt: Date.now() },
     }
 
-    // Also add toDay to workoutDays if not already there (so it appears in workout tabs)
-    const currentWorkoutDays = state.profile?.workoutDays || []
-    const updatedWorkoutDays = currentWorkoutDays.includes(toDay)
-      ? currentWorkoutDays
-      : [...currentWorkoutDays, toDay]
-
-    updateState({
-      workoutSchedule: updatedSchedule,
-      profile: { ...state.profile, workoutDays: updatedWorkoutDays },
-    })
+    updateState({ transferredWorkouts: updatedTransfers })
 
     toast.success(
-      `Workout transferred to ${translateWeekday(toDay)}! Your streak is safe.`,
+      `Workout moved to ${translateWeekday(toDay)} (${targetDateStr.slice(5).replace('-', '/')}). Your streak is safe!`,
       { duration: 5000 }
     )
   }
@@ -148,6 +139,7 @@ function HomePage({ state, updateState }) {
           workoutSchedule={state.workoutSchedule || {}}
           completedExercises={state.completedExercises || {}}
           completedSessions={state.completedSessions || []}
+          transferredWorkouts={state.transferredWorkouts || {}}
           today={today}
           activeSession={state.activeWorkoutSession || null}
           onStartSession={handleStartSession}

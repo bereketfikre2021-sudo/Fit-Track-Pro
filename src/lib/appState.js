@@ -66,6 +66,9 @@ export function createDefaultAppState() {
     completedSessions: [],
     completedExercises: {},
     activeWorkoutSession: null,
+    // transferredWorkouts: { 'YYYY-MM-DD': { fromDay: 'Tuesday', toDay: 'Wednesday' } }
+    // Stores one-time workout transfers so the schedule isn't permanently mutated.
+    transferredWorkouts: {},
     appSettings: { ...DEFAULT_APP_SETTINGS },
   }
 }

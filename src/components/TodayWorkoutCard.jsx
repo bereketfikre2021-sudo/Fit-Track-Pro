@@ -69,6 +69,7 @@ function TodayWorkoutCard({
   workoutSchedule,
   completedExercises,
   completedSessions,
+  transferredWorkouts = {},
   today,
   activeSession,
   onStartSession,
@@ -79,9 +80,15 @@ function TodayWorkoutCard({
   const { t } = useTranslation()
   const [skipOpen, setSkipOpen] = useState(false)
   const ctx = getTodayWorkoutContext(workoutDays)
-  const focusDay = ctx.planDay || ctx.nextWorkoutDay
 
-  if (!focusDay || !workoutDays?.length) return null
+  // Check if today has a transferred workout (one-time rest day override)
+  const transfer = transferredWorkouts?.[today]
+  const isTransferDay = !!(transfer && transfer.toDay === ctx.calendarToday)
+
+  // If today is a transfer target, use the source day's exercises
+  const focusDay = isTransferDay ? transfer.fromDay : (ctx.planDay || ctx.nextWorkoutDay)
+
+  if (!focusDay || (!workoutDays?.length && !isTransferDay)) return null
 
   const schedule = workoutSchedule[focusDay] || { exercises: [] }
   const allExercises = schedule.exercises || []
@@ -108,7 +115,7 @@ function TodayWorkoutCard({
     cooldownExercises.length > 0 ? `Cooldown ${cooldownExercises.length}` : null,
   ].filter(Boolean).join(' · ')
   const sessionActive = activeSession?.day === focusDay
-  const isToday = !!ctx.planDay
+  const isToday = isTransferDay || !!ctx.planDay
   const todaySession =
     isToday && focusDay ? getTodaySessionForDay(completedSessions, focusDay, today) : null
   const sessionDoneToday = !!todaySession
@@ -126,7 +133,9 @@ function TodayWorkoutCard({
           <div className="min-w-0">
             <p className="text-xs font-medium text-primary flex items-center gap-1.5 mb-0.5">
               <Calendar className="h-3.5 w-3.5" />
-              {isToday ? t('todayCard.today') : t('todayCard.next')}
+              {isTransferDay
+                ? `Transferred from ${translateWeekday(transfer.fromDay)}`
+                : isToday ? t('todayCard.today') : t('todayCard.next')}
             </p>
             <h2 className="text-base font-bold leading-tight">{focusDayLabel}</h2>
             {!isToday && (
