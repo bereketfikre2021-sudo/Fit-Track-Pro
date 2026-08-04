@@ -11,10 +11,12 @@ function SettingsPage({ state, updateState, exportData, importData, clearAllData
   const { signOut } = useAuth()
 
   const handleLogout = async () => {
-    // Sign out from Supabase, clear offline queue, then reset local state
+    // Sign out from Supabase and clear ALL local data so the next
+    // user who signs in starts with a clean slate (no previous user's
+    // progress, sessions, meals, shopping list, body logs, etc.)
     await signOut()
     clearQueue()
-    updateState({ onboarded: false })
+    clearAllData({ showToast: false })
     toast.success(t('settings.toastLogout'))
     navigate('/login', { replace: true })
   }
