@@ -152,10 +152,17 @@ function TodayWorkoutCard({
                 )}
               </Badge>
               {sessionDoneToday && todaySession?.skipped && (
-                <Badge variant="outline" className="text-xs">
-                  {t('todayCard.skippedToday', {
-                    reason: getSkipReasonLabel(todaySession.skipReason),
-                  })}
+                <Badge
+                  variant="outline"
+                  className="text-xs border-amber-500/50 bg-amber-500/10 text-amber-400"
+                >
+                  {todaySession.skipReason === 'transfer'
+                    ? `Transferred to ${translateWeekday(Object.values(transferredWorkouts || {}).find(t => t.fromDay === focusDay)?.toDay || '')}`
+                    : todaySession.skipReason === 'injury'
+                    ? 'Skipped — Injury / Pain'
+                    : todaySession.skipReason === 'busy'
+                    ? 'Skipped — Short on time'
+                    : `Skipped — ${getSkipReasonLabel(todaySession.skipReason)}`}
                 </Badge>
               )}
               {sessionDoneToday && !todaySession?.skipped && (
@@ -180,19 +187,39 @@ function TodayWorkoutCard({
         />
 
         {total > 0 && !sessionActive && isToday && (
-          <div className="mt-2 pt-2 border-t border-border/60 flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              disabled={sessionDoneToday}
-              onClick={() => onStartSession(focusDay)}
-            >
-              <Play className="h-3.5 w-3.5 mr-1" />
-              {sessionDoneToday ? t('todayCard.doneForToday') : t('common.start')}
-            </Button>
-            {!sessionDoneToday && onSkipToday && (
-              <Button size="sm" variant="outline" onClick={() => setSkipOpen(true)}>
-                {t('todayCard.skipToday')}
-              </Button>
+          <div className="mt-2 pt-2 border-t border-border/60 flex flex-wrap gap-2 items-center">
+            {/* Hide Start if already skipped or completed */}
+            {!sessionDoneToday && (
+              <>
+                <Button
+                  size="sm"
+                  onClick={() => onStartSession(focusDay)}
+                >
+                  <Play className="h-3.5 w-3.5 mr-1" />
+                  {t('common.start')}
+                </Button>
+                {onSkipToday && (
+                  <Button size="sm" variant="outline" onClick={() => setSkipOpen(true)}>
+                    {t('todayCard.skipToday')}
+                  </Button>
+                )}
+              </>
+            )}
+            {sessionDoneToday && todaySession?.skipped && (
+              <p className="text-xs text-muted-foreground">
+                {todaySession.skipReason === 'injury'
+                  ? 'Workout skipped due to injury. Rest and recover!'
+                  : todaySession.skipReason === 'busy'
+                  ? "No worries — catch it next time."
+                  : todaySession.skipReason === 'transfer'
+                  ? `Moved to ${translateWeekday(Object.values(transferredWorkouts || {}).find(t => t.fromDay === focusDay)?.toDay || 'another day')} — keep it up!`
+                  : 'Workout skipped for today.'}
+              </p>
+            )}
+            {sessionDoneToday && !todaySession?.skipped && (
+              <p className="text-xs text-primary font-medium">
+                Great work today!
+              </p>
             )}
           </div>
         )}
