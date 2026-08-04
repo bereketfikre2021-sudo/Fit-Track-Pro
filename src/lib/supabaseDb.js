@@ -475,7 +475,15 @@ export async function loadAllFromSupabase(userId) {
 
   if (profile) {
     patch.profile = profile
-    patch.onboarded = !!(profile.name?.trim())
+    // Only mark as onboarded if the profile has been fully filled out
+    // (has height + workoutDays). A Google sign-in creates a profile row
+    // with just a name — that user still needs to go through onboarding.
+    const isFullyOnboarded = !!(
+      profile.name?.trim() &&
+      profile.height &&
+      profile.workoutDays?.length > 0
+    )
+    patch.onboarded = isFullyOnboarded
   }
 
   if (bodyLogs)          patch.bodyLogs         = bodyLogs
