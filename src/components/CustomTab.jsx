@@ -1716,36 +1716,38 @@ function ScheduleManager({
               <CardTitle className="text-base">
                 {translateWeekday(selectedDay)}
               </CardTitle>
-              <div className="flex gap-1.5 shrink-0">
+              <div className="flex items-center gap-0.5 shrink-0">
+                {/* Copy day */}
                 {(workoutSchedule[selectedDay]?.exercises?.length ?? 0) > 0 && (
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="ghost"
-                    className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                    title="Copy day"
                     onClick={() => setCopyDialogOpen(true)}
                   >
-                    <Copy className="h-3.5 w-3.5 mr-1" />
-                    {t('custom.copyDay')}
+                    <Copy className="h-3.5 w-3.5" />
                   </Button>
                 )}
-                {/* Switch day — move workout permanently to a free day */}
+                {/* Switch day */}
                 <Button
-                  size="sm"
+                  size="icon"
                   variant="ghost"
-                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                  title="Switch to another day"
                   onClick={() => setSwitchDayOpen(true)}
                 >
-                  <ArrowLeftRight className="h-3.5 w-3.5 mr-1" />
-                  Switch day
+                  <ArrowLeftRight className="h-3.5 w-3.5" />
                 </Button>
+                {/* Remove day */}
                 <Button
-                  size="sm"
+                  size="icon"
                   variant="ghost"
-                  className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  title="Remove day"
                   onClick={() => setRemoveConfirmDay(selectedDay)}
                 >
-                  <Trash2 className="h-3.5 w-3.5 mr-1" />
-                  {t('custom.removeDay')}
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
