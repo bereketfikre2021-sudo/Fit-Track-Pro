@@ -73,6 +73,7 @@ function TodayWorkoutCard({
   activeSession,
   onStartSession,
   onSkipToday,
+  onTransferToday,
   className,
 }) {
   const { t } = useTranslation()
@@ -198,7 +199,10 @@ function TodayWorkoutCard({
           open={skipOpen}
           onOpenChange={setSkipOpen}
           dayLabel={focusDayLabel}
+          todayName={ctx.calendarToday}
+          workoutDays={workoutDays}
           onConfirm={(reason) => onSkipToday(focusDay, reason)}
+          onTransfer={(targetDay) => onTransferToday?.(focusDay, targetDay)}
         />
       )}
     </Card>

@@ -84,6 +84,53 @@ function HomePage({ state, updateState }) {
     toast.success(t('home.toastSkippedToday'))
   }
 
+  /**
+   * Transfer today's workout to a rest day.
+   * Copies the exercises from the skipped day into the target rest day's
+   * schedule slot (does NOT mark the session as skipped — streak is preserved).
+   * A note is added to the target day so the user knows why it's there.
+   */
+  const handleTransferToday = (fromDay, toDay) => {
+    const fromSchedule = state.workoutSchedule?.[fromDay]
+    if (!fromSchedule?.exercises?.length) {
+      toast.error('No exercises to transfer.')
+      return
+    }
+
+    const existingToSchedule = state.workoutSchedule?.[toDay] || { exercises: [], note: '' }
+
+    // Merge exercises — don't duplicate if already transferred
+    const existingIds = new Set((existingToSchedule.exercises || []).map((e) => e.id))
+    const newExercises = fromSchedule.exercises.filter((e) => !existingIds.has(e.id))
+
+    const updatedSchedule = {
+      ...state.workoutSchedule,
+      [toDay]: {
+        ...existingToSchedule,
+        note: existingToSchedule.note
+          ? `${existingToSchedule.note} + transferred from ${fromDay}`
+          : `Transferred from ${fromDay}`,
+        exercises: [...(existingToSchedule.exercises || []), ...newExercises],
+      },
+    }
+
+    // Also add toDay to workoutDays if not already there (so it appears in workout tabs)
+    const currentWorkoutDays = state.profile?.workoutDays || []
+    const updatedWorkoutDays = currentWorkoutDays.includes(toDay)
+      ? currentWorkoutDays
+      : [...currentWorkoutDays, toDay]
+
+    updateState({
+      workoutSchedule: updatedSchedule,
+      profile: { ...state.profile, workoutDays: updatedWorkoutDays },
+    })
+
+    toast.success(
+      `Workout transferred to ${translateWeekday(toDay)}! Your streak is safe.`,
+      { duration: 5000 }
+    )
+  }
+
   return (
     <div className="px-3 pt-4 pb-24 md:pb-8 md:px-6 max-w-2xl mx-auto">
       {/* Floating gym pattern sits behind everything */}
@@ -105,6 +152,7 @@ function HomePage({ state, updateState }) {
           activeSession={state.activeWorkoutSession || null}
           onStartSession={handleStartSession}
           onSkipToday={handleSkipToday}
+          onTransferToday={handleTransferToday}
         />
 
         {/* Water intake */}
