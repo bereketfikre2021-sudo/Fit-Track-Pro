@@ -15,9 +15,6 @@
     "generate-icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
-    "@capacitor/android": "^8.5.0",
-    "@capacitor/cli": "^8.5.0",
-    "@capacitor/core": "^8.5.0",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/sora": "^5.2.8",
     "@radix-ui/react-dialog": "^1.0.5",
@@ -44,6 +41,9 @@
     "tailwind-merge": "^2.2.1"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
     "@vitejs/plugin-react": "^6.0.0",
     "autoprefixer": "^10.4.17",
     "postcss": "^8.4.35",
