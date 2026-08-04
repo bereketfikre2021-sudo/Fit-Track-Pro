@@ -18,6 +18,9 @@ export const supabase = createClient(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
+      // PKCE flow ensures redirectTo is respected on both localhost and production.
+      // Without this, Supabase falls back to its configured Site URL.
+      flowType: 'pkce',
     },
   }
 )
