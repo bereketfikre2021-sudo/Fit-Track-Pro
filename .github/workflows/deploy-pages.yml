@@ -7,7 +7,6 @@ on:
       - 'docs/**'
   workflow_dispatch:
 
-# Build dist/ and commit to docs/ on main (no gh-pages branch, no Actions Pages API).
 permissions:
   contents: write
 
@@ -33,8 +32,26 @@ jobs:
         run: npm run build
         env:
           GITHUB_PAGES: 'true'
-          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
-          VITE_GEMINI_MODEL: ${{ secrets.VITE_GEMINI_MODEL }}
+
+          # ── Gemini (public) ────────────────────────────────────────
+          VITE_GEMINI_MODEL: gemini-3.5-flash
+
+          # ── Supabase (URL is public; anon key from secret) ─────────
+          VITE_SUPABASE_URL: https://myyttidixinlbohlfftd.supabase.co
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+          # ── Firebase (all public identifiers) ──────────────────────
+          VITE_FIREBASE_API_KEY: AIzaSyBiYgxLlmqAjBWmmtRxbT9kEkNuPMm8Smc
+          VITE_FIREBASE_AUTH_DOMAIN: fit-track-pro-d4e6f.firebaseapp.com
+          VITE_FIREBASE_PROJECT_ID: fit-track-pro-d4e6f
+          VITE_FIREBASE_STORAGE_BUCKET: fit-track-pro-d4e6f.firebasestorage.app
+          VITE_FIREBASE_MESSAGING_SENDER_ID: '384275195217'
+          VITE_FIREBASE_APP_ID: 1:384275195217:web:743b5c3eae90068e6d1f70
+          VITE_FIREBASE_VAPID_KEY: BL6VYgZiAsGbqIJMoCb_w8ioqO0AysePdyfc5hAL3RRw6j7Ye1ONWBj7h4_bDNAULLtoKQYJdOsk8wMVTnb6mko
+
+          # ── AdMob (test IDs until production IDs are ready) ────────
+          VITE_ADMOB_DISABLED: 'false'
+          VITE_ADMOB_FORCE_TEST_ADS: 'false'
 
       - name: Publish build to docs/
         run: |
