@@ -29,6 +29,8 @@ import {
   Moon,
   Dumbbell,
   Flame,
+  FileText,
+  Share2,
 } from 'lucide-react'
 import { getDayMacroTotals, formatMacroSummary } from '../lib/mealPlan'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
@@ -37,6 +39,13 @@ import { Input } from '../components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { MealPushReminderSection } from '../components/MealPushReminderSection'
+import {
+  downloadMealPlanPDF,
+  downloadShoppingListPDF,
+  getMealPlanPDFBlob,
+  getShoppingListPDFBlob,
+  sharePDF,
+} from '../lib/pdfExport'
 import { Badge } from '../components/ui/badge'
 import { toast } from 'sonner'
 import { getAiToastKey } from '@/lib/aiErrors'
@@ -190,6 +199,17 @@ function MealPlanPage({ state, updateState }) {
     toast.success(t('mealToasts.exportMeals'))
   }
 
+  const handleDownloadMealPDF = () => {
+    downloadMealPlanPDF(state.mealPlan, state.profile?.name)
+    toast.success('Meal plan PDF downloaded!')
+  }
+
+  const handleShareMealPDF = async () => {
+    const blob = getMealPlanPDFBlob(state.mealPlan, state.profile?.name)
+    const filename = `fittrack-meal-plan-${new Date().toISOString().slice(0, 10)}.pdf`
+    await sharePDF(blob, filename)
+  }
+
   const handleAiMealRecommend = async () => {
     if (!hasAnyExercises(state)) {
       toast.error('Add exercises to your library first — AI uses your workout plan to tailor meals.')
@@ -263,6 +283,17 @@ function MealPlanPage({ state, updateState }) {
   const handleExportShoppingList = () => {
     downloadShoppingListExport(state)
     toast.success(t('mealToasts.shoppingExported'))
+  }
+
+  const handleDownloadShoppingPDF = () => {
+    downloadShoppingListPDF(state.shoppingList, state.profile?.name)
+    toast.success('Shopping list PDF downloaded!')
+  }
+
+  const handleShareShoppingPDF = async () => {
+    const blob = getShoppingListPDFBlob(state.shoppingList, state.profile?.name)
+    const filename = `fittrack-shopping-list-${new Date().toISOString().slice(0, 10)}.pdf`
+    await sharePDF(blob, filename)
   }
 
   const handleImportShoppingListFileSelected = (e) => {
@@ -447,8 +478,35 @@ function MealPlanPage({ state, updateState }) {
   return (
     <div className="p-4 md:p-6 pb-20 md:pb-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">{t('meals.pageTitle')}</h1>
-        <p className="text-sm text-muted-foreground">{t('meals.pageSubtitle')}</p>
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h1 className="text-2xl font-bold mb-1">{t('meals.pageTitle')}</h1>
+            <p className="text-sm text-muted-foreground">{t('meals.pageSubtitle')}</p>
+          </div>
+          {/* PDF actions — shown based on active tab */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {activeTab === 'meals' && (
+              <>
+                <Button size="icon" variant="ghost" className="h-8 w-8" title="Download meal plan PDF" onClick={handleDownloadMealPDF}>
+                  <FileText className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" title="Share meal plan PDF" onClick={handleShareMealPDF}>
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+            {activeTab === 'shopping' && (
+              <>
+                <Button size="icon" variant="ghost" className="h-8 w-8" title="Download shopping list PDF" onClick={handleDownloadShoppingPDF}>
+                  <FileText className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" title="Share shopping list PDF" onClick={handleShareShoppingPDF}>
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
