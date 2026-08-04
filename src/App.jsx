@@ -58,28 +58,34 @@ function AppRoutes() {
     return loaded
   })
 
-  // Track whether we've already loaded cloud data for this session
+  // cloudLoading: true while we're fetching Supabase data after login.
+  // During this time we show a spinner instead of routing, preventing flicker.
+  const [cloudLoading, setCloudLoading] = useState(false)
   const cloudLoadedFor = useRef(null)
 
-  // ── On login: load data from Supabase and merge over local state ────────
+  // ── On login: load ALL data from Supabase, replace local state cleanly ──
   useEffect(() => {
     if (!user?.id || cloudLoadedFor.current === user.id) return
     cloudLoadedFor.current = user.id
+    setCloudLoading(true)
 
     loadAllFromSupabase(user.id).then((patch) => {
-      if (!patch) return
-      setState((prev) => {
-        const merged = { ...prev, ...patch }
-        // Preserve local settings (device-specific)
-        merged.appSettings = prev.appSettings
-        // Preserve local workout schedule and custom exercises —
-        // these are not stored in Supabase tables so the cloud patch
-        // never includes them, but we explicitly guard here in case
-        // a future change adds them to avoid wiping local data.
-        if (!patch.workoutSchedule) merged.workoutSchedule = prev.workoutSchedule
-        if (!patch.customExercises) merged.customExercises = prev.customExercises
-        return merged
-      })
+      if (patch) {
+        setState((prev) => {
+          const merged = { ...prev, ...patch }
+          merged.appSettings = prev.appSettings // device-specific, keep local
+          if (!patch.workoutSchedule) merged.workoutSchedule = prev.workoutSchedule
+          if (!patch.customExercises) merged.customExercises = prev.customExercises
+          // If cloud says onboarded, also infer planSetupComplete so no /setup flash
+          if (patch.onboarded) {
+            merged.planSetupComplete = true
+          }
+          return merged
+        })
+      }
+      setCloudLoading(false)
+    }).catch(() => {
+      setCloudLoading(false)
     })
   }, [user?.id])
 
@@ -92,15 +98,24 @@ function AppRoutes() {
     configureGeminiFromAppSettings(getAppSettings(state))
   }, [state.appSettings])
 
-  // ── Persist to localStorage (existing) + sync to Supabase (new) ─────────
+  // ── Persist to localStorage + sync to Supabase ───────────────────────────
   useDebouncedSave(state)
   useSupabaseSync(state)
-
   useMealReminders(state)
   useWorkoutReminder(state)
 
   const updateState = (updates) => {
     setState((prev) => ({ ...prev, ...updates }))
+  }
+
+  // Show spinner while cloud data is loading to prevent any routing flash
+  if (cloudLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
+        <div className="h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        <p className="text-sm text-muted-foreground">Loading your data…</p>
+      </div>
+    )
   }
 
   const handleOnboardingComplete = (onboardingData) => {
