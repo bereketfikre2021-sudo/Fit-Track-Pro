@@ -49,7 +49,7 @@ function DashboardLayout({ state, updateState, children }) {
               <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center shadow-sm">
                 <Dumbbell className="h-5 w-5 text-primary-foreground" aria-hidden />
               </div>
-              <div className="hidden sm:block">
+              <div>
                 <p className="text-base font-bold leading-tight">{t('layout.appName')}</p>
                 <p className="text-[11px] text-muted-foreground leading-tight">
                   {t('layout.welcomeBack', { name })}

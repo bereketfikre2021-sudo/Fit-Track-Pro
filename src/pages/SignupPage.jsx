@@ -96,9 +96,10 @@ function SignupPage() {
         imageClassName="opacity-45"
         overlayClassName="bg-background/65"
       />
+      {/* Brand-colour tint — navy overlay */}
       <div
         className="absolute inset-0 z-0 pointer-events-none"
-        style={{ background: 'hsla(84, 81%, 44%, 0.18)' }}
+        style={{ background: 'hsla(224, 71%, 20%, 0.18)' }}
         aria-hidden
       />
 
