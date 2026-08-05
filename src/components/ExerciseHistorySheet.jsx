@@ -100,9 +100,9 @@ export default function ExerciseHistorySheet({ exercise, completedExercises, onC
   const chartOptions = {
     responsive: true,
     plugins: { legend: { display: false }, tooltip: {
-      backgroundColor: 'rgba(0,0,0,0.75)',
-      titleColor: '#fff',
-      bodyColor: '#ccc',
+      backgroundColor: 'rgba(10,17,40,0.92)',
+      titleColor: 'hsl(213,31%,91%)',
+      bodyColor: 'hsl(215,20%,65%)',
       callbacks: {
         label: (ctx) => hasWeight ? `${ctx.raw} kg` : `${ctx.raw} reps`,
       },
@@ -110,13 +110,13 @@ export default function ExerciseHistorySheet({ exercise, completedExercises, onC
     scales: {
       x: {
         grid: { display: false },
-        ticks: { font: { size: 10 }, color: 'rgba(150,150,150,0.8)' },
+        ticks: { font: { size: 10 }, color: 'hsl(215,20%,55%)' },
       },
       y: {
-        grid: { color: 'rgba(150,150,150,0.15)' },
+        grid: { color: 'rgba(71,108,182,0.15)' },
         ticks: {
           font: { size: 10 },
-          color: 'rgba(150,150,150,0.8)',
+          color: 'hsl(215,20%,55%)',
           callback: (v) => hasWeight ? `${v}kg` : `${v}r`,
         },
       },
@@ -127,7 +127,7 @@ export default function ExerciseHistorySheet({ exercise, completedExercises, onC
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden
       />

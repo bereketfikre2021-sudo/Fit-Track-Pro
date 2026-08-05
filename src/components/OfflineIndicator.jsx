@@ -72,8 +72,8 @@ export function OfflineIndicator() {
         'flex items-center gap-2 px-4 py-2 rounded-full shadow-lg',
         'text-sm font-medium border transition-all duration-300',
         'animate-in slide-in-from-bottom-2 fade-in',
-        isOffline && 'bg-zinc-900 border-zinc-700 text-zinc-200',
-        isSyncing && 'bg-zinc-900 border-primary/40 text-primary',
+        isOffline && 'bg-secondary border-border text-foreground',
+        isSyncing && 'bg-secondary border-primary/40 text-primary',
         isSynced  && 'bg-primary/10 border-primary/40 text-primary',
       )}
     >
@@ -83,7 +83,7 @@ export function OfflineIndicator() {
           <span>
             You&apos;re offline
             {pending > 0 && (
-              <span className="ml-1 text-xs text-zinc-400">
+              <span className="ml-1 text-xs text-muted-foreground">
                 · {pending} pending
               </span>
             )}

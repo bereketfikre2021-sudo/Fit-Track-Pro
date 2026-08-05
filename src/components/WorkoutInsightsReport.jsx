@@ -540,9 +540,9 @@ function WorkoutInsightsReport({ state, className, stats = null }) {
                   plugins: {
                     legend: { display: false },
                     tooltip: {
-                      backgroundColor: 'rgba(0,0,0,0.75)',
-                      titleColor: '#fff',
-                      bodyColor: '#ccc',
+                      backgroundColor: 'rgba(10,17,40,0.92)',
+                      titleColor: 'hsl(213,31%,91%)',
+                      bodyColor: 'hsl(215,20%,65%)',
                       callbacks: {
                         label: (ctx) => `${ctx.raw.toLocaleString()} kg`,
                       },
@@ -551,13 +551,13 @@ function WorkoutInsightsReport({ state, className, stats = null }) {
                   scales: {
                     x: {
                       grid: { display: false },
-                      ticks: { font: { size: 9 }, color: 'rgba(150,150,150,0.8)' },
+                      ticks: { font: { size: 9 }, color: 'hsl(215,20%,55%)' },
                     },
                     y: {
-                      grid: { color: 'rgba(150,150,150,0.1)' },
+                      grid: { color: 'rgba(71,108,182,0.1)' },
                       ticks: {
                         font: { size: 9 },
-                        color: 'rgba(150,150,150,0.8)',
+                        color: 'hsl(215,20%,55%)',
                         callback: (v) => v === 0 ? '' : `${v}kg`,
                       },
                     },
