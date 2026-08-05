@@ -31,7 +31,70 @@ on conflict (tier) do update
 
 -- ══════════════════════════════════════════════════════════════
 --  2. PRESET EXERCISES (original 35)
+--  NOTE: user_id is nullable for global/preset exercises.
 -- ══════════════════════════════════════════════════════════════
+
+-- Ensure user_id is nullable (idempotent)
+alter table public.exercises alter column user_id drop not null;
+alter table public.foods    alter column user_id drop not null;
+
+-- Ensure extended exercise columns exist (added by migration 001)
+do $$ begin
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='exercises' and column_name='category') then
+    alter table public.exercises add column category text default 'strength';
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='exercises' and column_name='difficulty') then
+    alter table public.exercises add column difficulty text default 'beginner';
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='exercises' and column_name='is_compound') then
+    alter table public.exercises add column is_compound boolean not null default false;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='exercises' and column_name='met_value') then
+    alter table public.exercises add column met_value numeric(4,1);
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='exercises' and column_name='instructions') then
+    alter table public.exercises add column instructions text;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='exercises' and column_name='tips') then
+    alter table public.exercises add column tips text;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='exercises' and column_name='is_featured') then
+    alter table public.exercises add column is_featured boolean not null default false;
+  end if;
+end $$;
+
+-- Ensure extended foods columns exist
+do $$ begin
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='foods' and column_name='name_am') then
+    alter table public.foods add column name_am text;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='foods' and column_name='source') then
+    alter table public.foods add column source text default 'custom';
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='foods' and column_name='serving_unit') then
+    alter table public.foods add column serving_unit text default 'g';
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='foods' and column_name='fiber_g') then
+    alter table public.foods add column fiber_g numeric(6,2);
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='foods' and column_name='is_verified') then
+    alter table public.foods add column is_verified boolean not null default false;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='foods' and column_name='is_featured') then
+    alter table public.foods add column is_featured boolean not null default false;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='foods' and column_name='tags') then
+    alter table public.foods add column tags text[];
+  end if;
+end $$;
+
+-- Ensure exercise_tags table exists (added by migration 001)
+create table if not exists public.exercise_tags (
+  id          uuid primary key default gen_random_uuid(),
+  exercise_id uuid not null references public.exercises(id) on delete cascade,
+  tag         text not null,
+  unique (exercise_id, tag)
+);
 
 insert into public.exercises (id, user_id, name, muscle_group, equipment, phase, is_time_based)
 values
@@ -170,7 +233,11 @@ on conflict (id) do nothing;  -- food_id is FK, conflict on primary key (id)
 
 -- ══════════════════════════════════════════════════════════════
 --  5. WORKOUT TEMPLATES
+--  NOTE: Run migration 20240301000010 first to make user_id nullable.
 -- ══════════════════════════════════════════════════════════════
+
+-- Ensure user_id is nullable (idempotent — safe to run even if already done)
+alter table public.workout_templates alter column user_id drop not null;
 
 insert into public.workout_templates
   (id,user_id,name,description,exercises)
@@ -189,7 +256,29 @@ values
    '[{"name":"Cat-Cow Stretch","sets":2,"reps":"60","isTimeBased":true,"phase":"warmup"},{"name":"World''s Greatest Stretch","sets":2,"reps":"90","isTimeBased":true,"phase":"main"},{"name":"Hip 90/90 Stretch","sets":2,"reps":"120","isTimeBased":true,"phase":"main"},{"name":"Pigeon Pose","sets":2,"reps":"120","isTimeBased":true,"phase":"main"},{"name":"Foam Rolling","sets":1,"reps":"300","isTimeBased":true,"phase":"cooldown"}]'::jsonb)
 on conflict (id) do nothing;
 
--- Update extended columns (added by migration 001)
+-- Add extended columns if not yet present (idempotent — safe to re-run)
+do $$ begin
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='workout_templates' and column_name='is_public') then
+    alter table public.workout_templates add column is_public boolean not null default false;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='workout_templates' and column_name='category') then
+    alter table public.workout_templates add column category text;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='workout_templates' and column_name='difficulty') then
+    alter table public.workout_templates add column difficulty text;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='workout_templates' and column_name='duration_min') then
+    alter table public.workout_templates add column duration_min integer;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='workout_templates' and column_name='tags') then
+    alter table public.workout_templates add column tags text[];
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='workout_templates' and column_name='is_featured') then
+    alter table public.workout_templates add column is_featured boolean not null default false;
+  end if;
+end $$;
+
+-- Update extended columns
 update public.workout_templates set is_public=true, category='strength',  difficulty='intermediate', duration_min=60, tags=array['push','chest','shoulders','triceps'], is_featured=true  where id='a1000001-0000-0000-0000-000000000001';
 update public.workout_templates set is_public=true, category='strength',  difficulty='intermediate', duration_min=65, tags=array['pull','back','biceps','strength'],   is_featured=true  where id='a1000001-0000-0000-0000-000000000002';
 update public.workout_templates set is_public=true, category='strength',  difficulty='intermediate', duration_min=70, tags=array['legs','quads','hamstrings','glutes'], is_featured=true  where id='a1000001-0000-0000-0000-000000000003';
@@ -201,6 +290,34 @@ update public.workout_templates set is_public=true, category='mobility',  diffic
 -- ══════════════════════════════════════════════════════════════
 --  6. APP SETTINGS & BMI PROGRAMS
 -- ══════════════════════════════════════════════════════════════
+
+-- Ensure app_settings table exists
+create table if not exists public.app_settings (
+  key         text primary key,
+  value       jsonb not null,
+  description text,
+  is_public   boolean not null default false,
+  updated_at  timestamptz not null default now()
+);
+
+-- Ensure bmi_programs table exists
+create table if not exists public.bmi_programs (
+  id                  uuid primary key default gen_random_uuid(),
+  name                text not null,
+  description         text,
+  program_type        text not null,
+  target_bmi_min      numeric(4,1),
+  target_bmi_max      numeric(4,1),
+  target_bmi_category text,
+  duration_weeks      integer,
+  weekly_workouts     integer,
+  difficulty          text,
+  features            jsonb default '{}',
+  workout_template_id uuid references public.workout_templates(id) on delete set null,
+  is_active           boolean not null default true,
+  is_featured         boolean not null default false,
+  created_at          timestamptz not null default now()
+);
 
 insert into public.app_settings (key,value,description,is_public) values
   ('app_version','"1.0.0"','Current app version',true),
