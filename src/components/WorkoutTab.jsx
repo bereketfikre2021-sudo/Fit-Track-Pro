@@ -266,6 +266,13 @@ function WorkoutTab({ state, updateState }) {
   const todayCtx = getTodayWorkoutContext(workoutDays)
   const appSettings = getAppSettings(state)
 
+  // True when `day` is the source of a transfer whose target is today
+  // (e.g. Tuesday's workout was moved to today — Tuesday is the source day)
+  const transferredWorkouts = state.transferredWorkouts || {}
+  const todayTransfer = transferredWorkouts[today]
+  const isTransferSourceDay = (day) =>
+    !!(todayTransfer && todayTransfer.toDay === todayCtx.calendarToday && todayTransfer.fromDay === day)
+
   useEffect(() => {
     if (!workoutDays.length) return
     if (activeDay && workoutDays.includes(activeDay)) return
@@ -301,7 +308,7 @@ function WorkoutTab({ state, updateState }) {
 
   // Keep the visible tab on the earliest incomplete phase during today's workout.
   useEffect(() => {
-    if (!activeDay || activeDay !== todayCtx.calendarToday) return
+    if (!activeDay || (activeDay !== todayCtx.calendarToday && !isTransferSourceDay(activeDay))) return
     if (getTodaySessionForDay(completedSessions, activeDay, today)) return
     const dayExercises = workoutSchedule[activeDay]?.exercises || []
     if (!dayExercises.length) return
@@ -388,7 +395,7 @@ function WorkoutTab({ state, updateState }) {
   }
 
   const toggleExerciseCompletion = (day, scheduleExerciseId) => {
-    if (day !== todayCtx.calendarToday) {
+    if (day !== todayCtx.calendarToday && !isTransferSourceDay(day)) {
       toast.error(t('workout.toastOnlyToday', { day: translateWeekday(todayCtx.calendarToday) }))
       return
     }
@@ -535,7 +542,7 @@ function WorkoutTab({ state, updateState }) {
   }
 
   const handleSkipToday = (day, reason) => {
-    if (day !== todayCtx.calendarToday) {
+    if (day !== todayCtx.calendarToday && !isTransferSourceDay(day)) {
       toast.error(t('workout.toastOnlyToday', { day: translateWeekday(todayCtx.calendarToday) }))
       return
     }
@@ -548,7 +555,7 @@ function WorkoutTab({ state, updateState }) {
   }
 
   const handleSkipExercise = (day, scheduleExerciseId, reason) => {
-    if (day !== todayCtx.calendarToday) return
+    if (day !== todayCtx.calendarToday && !isTransferSourceDay(day)) return
     if (isSessionFinishedForDay(day)) { toast.error(t('workout.toastSessionLocked')); return }
     const key = completionKey(today, day, scheduleExerciseId)
     const scheduled = workoutSchedule[day]?.exercises?.find((e) => e.id === scheduleExerciseId)
@@ -567,7 +574,7 @@ function WorkoutTab({ state, updateState }) {
   }
 
   const handleUnskipExercise = (day, scheduleExerciseId) => {
-    if (day !== todayCtx.calendarToday) return
+    if (day !== todayCtx.calendarToday && !isTransferSourceDay(day)) return
     if (isSessionFinishedForDay(day)) { toast.error(t('workout.toastSessionLocked')); return }
     const key = completionKey(today, day, scheduleExerciseId)
     const newCompleted = { ...completedExercises }
@@ -588,7 +595,7 @@ function WorkoutTab({ state, updateState }) {
   }
 
   const saveCompletionEntry = (day, scheduleExerciseId, patch) => {
-    if (day !== todayCtx.calendarToday) {
+    if (day !== todayCtx.calendarToday && !isTransferSourceDay(day)) {
       toast.error(t('workout.toastOnlyToday', { day: translateWeekday(todayCtx.calendarToday) }))
       return
     }
@@ -741,7 +748,7 @@ function WorkoutTab({ state, updateState }) {
 
 
         {workoutDays.map(day => {
-          const readOnly = day !== todayCtx.calendarToday
+          const readOnly = day !== todayCtx.calendarToday && !isTransferSourceDay(day)
 
           const daySchedule = workoutSchedule[day] || { note: '', exercises: [] }
 
