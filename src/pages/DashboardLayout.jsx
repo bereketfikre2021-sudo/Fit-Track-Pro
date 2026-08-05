@@ -1,6 +1,7 @@
-import { Dumbbell, Settings, User } from 'lucide-react'
+import { Dumbbell, User } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import NotificationBell from '../components/NotificationBell'
 import MobileNav from '../components/MobileNav'
 import DesktopNav from '../components/DesktopNav'
 import PageTopBanner from '../components/PageTopBanner'
@@ -59,18 +60,8 @@ function DashboardLayout({ state, updateState, children }) {
 
             {/* Right side — quick actions */}
             <div className="flex items-center gap-2">
-              {/* Settings shortcut — visible on all screen sizes */}
-              <Link
-                to="/profile/settings"
-                aria-label="Settings"
-                className={cn(
-                  'h-9 w-9 rounded-lg flex items-center justify-center transition-colors',
-                  'text-muted-foreground hover:text-foreground hover:bg-muted/50',
-                  location.pathname === '/profile/settings' && 'bg-primary/15 text-primary'
-                )}
-              >
-                <Settings className="h-[18px] w-[18px]" strokeWidth={2} aria-hidden />
-              </Link>
+              {/* Notification bell */}
+              <NotificationBell />
 
               {/* Profile / avatar shortcut */}
               <Link

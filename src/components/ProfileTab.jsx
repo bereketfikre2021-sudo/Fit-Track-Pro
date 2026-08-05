@@ -9,6 +9,7 @@ import {
   Plus,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Zap,
   Wrench,
   Info,
@@ -19,6 +20,7 @@ import {
   Flame,
   Activity,
   TrendingUp,
+  Settings,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent } from './ui/card'
@@ -185,6 +187,19 @@ function ProfileTab({ state, updateState }) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Settings shortcut */}
+      <Link to="/profile/settings">
+        <Card>
+          <div className="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors rounded-xl">
+            <div className="flex items-center gap-2.5">
+              <Settings className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-sm font-semibold">Settings</span>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </Card>
+      </Link>
 
       {/* Body Metrics — read-only, auto-updated from body weight log */}
       <AccordionCard

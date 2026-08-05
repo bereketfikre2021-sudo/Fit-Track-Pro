@@ -20,6 +20,13 @@ import { supabase } from './supabase'
 const AuthContext = createContext(null)
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  App base URL — explicit per environment so OAuth redirects land on the
+//  correct origin (localhost in dev, production URL in prod).
+//  Fallback to window.location.origin for safety.
+// ─────────────────────────────────────────────────────────────────────────────
+const APP_URL = import.meta.env.VITE_APP_URL?.replace(/\/$/, '') || window.location.origin
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  Role helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -95,8 +102,7 @@ export function AuthProvider({ children }) {
       email,
       password,
       options: {
-        // Email confirmation link returns here
-        emailRedirectTo: `${window.location.origin}/auth/confirm`,
+        emailRedirectTo: `${APP_URL}/auth/confirm`,
       },
     })
     return { error }
@@ -118,7 +124,7 @@ export function AuthProvider({ children }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: `${APP_URL}/`,
         queryParams: { access_type: 'offline', prompt: 'consent' },
       },
     })
@@ -129,7 +135,7 @@ export function AuthProvider({ children }) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/`,
+        emailRedirectTo: `${APP_URL}/`,
         shouldCreateUser: true,
       },
     })
@@ -138,7 +144,7 @@ export function AuthProvider({ children }) {
 
   const resetPassword = async (email) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
+      redirectTo: `${APP_URL}/auth/reset-password`,
     })
     return { error }
   }

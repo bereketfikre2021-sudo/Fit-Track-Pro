@@ -24,7 +24,7 @@ function MotivationQuote({ lines }) {
           key={index}
           className="
             font-display font-extrabold tracking-tight leading-tight text-foreground
-            text-3xl md:text-5xl lg:text-6xl xl:text-7xl
+            text-3xl md:text-4xl lg:text-4xl xl:text-5xl
           "
         >
           {line.before}
