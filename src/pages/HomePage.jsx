@@ -56,7 +56,10 @@ function HomePage({ state, updateState }) {
 
   const handleStartSession = (day) => {
     const workoutDays = state.profile?.workoutDays || []
-    if (!canStartWorkoutForDay(day, workoutDays)) {
+    const transfer = state.transferredWorkouts?.[today]
+    const isTransferredToToday = !!(transfer && transfer.fromDay === day)
+
+    if (!isTransferredToToday && !canStartWorkoutForDay(day, workoutDays)) {
       toast.error(t('home.toastStartOnDay', { day: translateWeekday(day) }))
       return
     }
