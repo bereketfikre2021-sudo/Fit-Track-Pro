@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
-const repoBase = process.env.GITHUB_PAGES ? '/Bk-Fitness-Track-Pro/' : '/'
+// Custom domain (app.bereketfikre.et) serves from root — base is always '/'
+const repoBase = '/'
 
 export default defineConfig({
   base: repoBase,

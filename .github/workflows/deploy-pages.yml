@@ -34,7 +34,7 @@ jobs:
           GITHUB_PAGES: 'true'
 
           # ── Gemini (public) ────────────────────────────────────────
-          VITE_GEMINI_MODEL: gemini-3.5-flash
+          VITE_GEMINI_MODEL: gemini-1.5-flash
 
           # ── Supabase (URL is public; anon key from secret) ─────────
           VITE_SUPABASE_URL: https://myyttidixinlbohlfftd.supabase.co
