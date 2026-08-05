@@ -18,7 +18,10 @@ import SignupPage from './pages/SignupPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
+import AuthConfirmPage from './pages/AuthConfirmPage'
 import AuthGuard from './components/AuthGuard'
+import AdminGuard from './components/AdminGuard'
+import RequireEmailVerified from './components/RequireEmailVerified'
 import { AuthProvider, useAuth } from './lib/useAuth'
 import { loadAppState, clearAppState } from './lib/storage'
 import { useDebouncedSave } from './lib/useDebouncedSave'
@@ -238,12 +241,14 @@ function AppRoutes() {
   return (
     <I18nSync state={state}>
       {state.onboarded && <PwaInstallPrompt />}
+      <RequireEmailVerified>
       <Routes>
         {/* ── Auth routes (public) ── */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/auth/confirm" element={<AuthConfirmPage />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
 
         {/* ── Onboarding / setup (requires Supabase session) ── */}
@@ -390,6 +395,7 @@ function AppRoutes() {
         />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </RequireEmailVerified>
     </I18nSync>
   )
 }

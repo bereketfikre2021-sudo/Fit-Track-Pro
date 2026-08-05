@@ -1,41 +1,104 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+/**
+ * useAuth.jsx
+ *
+ * Full authentication context for FitTrack Pro.
+ *
+ * Covers:
+ *   - Email/password sign-up + sign-in
+ *   - Google OAuth (PKCE flow)
+ *   - Magic link (passwordless)
+ *   - Password reset + update
+ *   - Email verification check
+ *   - Role-based access (user / moderator / admin / super_admin)
+ *   - Session persistence + auto token refresh (handled by Supabase client)
+ *   - Secure sign-out (clears local state + offline queue)
+ */
+
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
 
 const AuthContext = createContext(null)
 
-/**
- * Provides Supabase auth state to the whole app.
- * session  — current Supabase session (null = signed out)
- * user     — convenience shortcut to session.user
- * loading  — true while the initial session check is in flight
- * signUp   — (email, password) → { error }
- * signIn   — (email, password) → { error }
- * signOut  — () → void
- */
-export function AuthProvider({ children }) {
-  const [session, setSession] = useState(null)
-  const [loading, setLoading] = useState(true)
+// ─────────────────────────────────────────────────────────────────────────────
+//  Role helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
+const ROLE_HIERARCHY = { user: 0, moderator: 1, admin: 2, super_admin: 3 }
+
+/** Returns true if the user has at least the given role. */
+export function hasRole(roles, required) {
+  if (!roles || roles.length === 0) return false
+  const maxLevel = Math.max(...roles.map((r) => ROLE_HIERARCHY[r] ?? 0))
+  return maxLevel >= (ROLE_HIERARCHY[required] ?? 999)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Provider
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function AuthProvider({ children }) {
+  const [session, setSession]   = useState(null)
+  const [loading, setLoading]   = useState(true)
+  const [roles,   setRoles]     = useState([])        // ['user'] | ['admin'] etc.
+  const rolesLoadedFor          = useRef(null)
+
+  // ── Load roles from public.user_roles ──────────────────────────────────────
+  const loadRoles = useCallback(async (userId) => {
+    if (!userId || rolesLoadedFor.current === userId) return
+    rolesLoadedFor.current = userId
+    try {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+      setRoles(data?.map((r) => r.role) ?? ['user'])
+    } catch {
+      setRoles(['user'])
+    }
+  }, [])
+
+  // ── Session bootstrap ───────────────────────────────────────────────────────
   useEffect(() => {
-    // Get the current session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
+      if (session?.user?.id) loadRoles(session.user.id)
       setLoading(false)
     })
 
-    // Keep session state in sync with Supabase events
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
+      if (session?.user?.id) {
+        loadRoles(session.user.id)
+      } else {
+        setRoles([])
+        rolesLoadedFor.current = null
+      }
       setLoading(false)
+
+      // Log sign-in / sign-out events to audit_logs (best-effort)
+      if (event === 'SIGNED_IN' && session?.user?.id) {
+        supabase.from('audit_logs').insert({
+          user_id: session.user.id,
+          action: 'login',
+          metadata: { provider: session.user.app_metadata?.provider ?? 'email' },
+        }).then(() => {})
+      }
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [loadRoles])
+
+  // ── Auth methods ────────────────────────────────────────────────────────────
 
   const signUp = async (email, password) => {
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        // Email confirmation link returns here
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
+      },
+    })
     return { error }
   }
 
@@ -44,35 +107,24 @@ export function AuthProvider({ children }) {
     return { error }
   }
 
+  /** Signs out and clears all local state. */
   const signOut = async () => {
     await supabase.auth.signOut()
+    setRoles([])
+    rolesLoadedFor.current = null
   }
 
-  /**
-   * Sign in with Google OAuth.
-   * Opens the Google consent screen in the same tab.
-   * Supabase redirects back to `redirectTo` after success.
-   */
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
+        queryParams: { access_type: 'offline', prompt: 'consent' },
       },
     })
     return { error }
   }
 
-  /**
-   * Send a magic link (passwordless email sign-in).
-   * The user clicks the link in their email and is signed in automatically.
-   *
-   * @param {string} email
-   */
   const signInWithMagicLink = async (email) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -84,54 +136,55 @@ export function AuthProvider({ children }) {
     return { error }
   }
 
-  /**
-   * Send a password-reset email.
-   * Supabase emails a link that redirects to SITE_URL/auth/reset-password
-   * (configure SITE_URL in Supabase Dashboard → Auth → URL Configuration).
-   *
-   * @param {string} email
-   * @returns {{ error: AuthError | null }}
-   */
   const resetPassword = async (email) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      // After clicking the email link, Supabase redirects here with the
-      // access token in the URL hash so the user can set a new password.
       redirectTo: `${window.location.origin}/auth/reset-password`,
     })
     return { error }
   }
 
-  /**
-   * Set a new password. Call this after the user arrives from the reset email
-   * and Supabase has automatically restored the session from the URL hash.
-   *
-   * @param {string} newPassword
-   * @returns {{ error: AuthError | null }}
-   */
   const updatePassword = async (newPassword) => {
     const { error } = await supabase.auth.updateUser({ password: newPassword })
     return { error }
   }
 
   /**
-   * Register an email+password account for a user who was previously using
-   * the app without an account (localStorage-only mode).
-   * Creates the account and immediately signs in — no page reload, no data loss.
-   * The caller should then push all local state to Supabase.
-   *
-   * @param {string} email
-   * @param {string} password
-   * @returns {{ error: AuthError | null }}
+   * Resend the confirmation email for users who haven't verified yet.
+   */
+  const resendVerificationEmail = async (email) => {
+    const { error } = await supabase.auth.resend({ type: 'signup', email })
+    return { error }
+  }
+
+  /**
+   * Register an existing localStorage-only user to cloud.
    */
   const registerExistingUser = async (email, password) => {
     const { error } = await supabase.auth.signUp({ email, password })
     return { error }
   }
 
+  // ── Derived helpers ─────────────────────────────────────────────────────────
+
+  const isEmailVerified = session?.user?.email_confirmed_at != null
+  const isAdmin         = hasRole(roles, 'admin')
+  const isSuperAdmin    = hasRole(roles, 'super_admin')
+  const isModerator     = hasRole(roles, 'moderator')
+
   const value = {
     session,
-    user: session?.user ?? null,
+    user:    session?.user ?? null,
     loading,
+    roles,
+
+    // Role helpers
+    isEmailVerified,
+    isAdmin,
+    isSuperAdmin,
+    isModerator,
+    hasRole: (required) => hasRole(roles, required),
+
+    // Auth methods
     signUp,
     signIn,
     signInWithGoogle,
@@ -139,6 +192,7 @@ export function AuthProvider({ children }) {
     signOut,
     resetPassword,
     updatePassword,
+    resendVerificationEmail,
     registerExistingUser,
   }
 
