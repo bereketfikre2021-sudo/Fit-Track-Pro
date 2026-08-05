@@ -16,6 +16,7 @@ import {
   Sparkles,
   CheckCircle2,
   Cloud,
+  Home,
 } from 'lucide-react'
 import { getAppSettings, updateAppSettings, SUPPORTED_LOCALES } from '@/lib/appSettings'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -78,6 +79,27 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
 
   return (
     <div className="p-4 md:p-6 pb-20 md:pb-6 max-w-2xl mx-auto">
+      {/* Breadcrumb */}
+      <nav aria-label="breadcrumb" className="mb-4">
+        <ol className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <li>
+            <Link
+              to="/profile"
+              className="flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              <Home className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              Profile
+            </Link>
+          </li>
+          <li aria-hidden>
+            <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+          </li>
+          <li className="text-foreground font-medium" aria-current="page">
+            {t('settings.title')}
+          </li>
+        </ol>
+      </nav>
+
       <h1 className="text-2xl font-bold mb-6">{t('settings.title')}</h1>
 
       <Card className="mb-6">
