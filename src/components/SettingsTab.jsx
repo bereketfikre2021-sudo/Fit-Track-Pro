@@ -16,7 +16,6 @@ import {
   Sparkles,
   CheckCircle2,
   Cloud,
-  Home,
 } from 'lucide-react'
 import { getAppSettings, updateAppSettings, SUPPORTED_LOCALES } from '@/lib/appSettings'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -87,7 +86,7 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
               to="/profile"
               className="flex items-center gap-1 hover:text-foreground transition-colors"
             >
-              <Home className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <User className="h-3.5 w-3.5 shrink-0" aria-hidden />
               Profile
             </Link>
           </li>
