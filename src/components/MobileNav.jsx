@@ -59,10 +59,6 @@ function MobileNav({ currentPath, state }) {
               )}>
                 {tab.label}
               </span>
-
-              {active && (
-                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-4 rounded-full bg-primary" />
-              )}
             </Link>
           )
         })}

@@ -93,7 +93,7 @@ export default function NotificationBell() {
       {/* Backdrop — closes panel on outside click */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40"
+          className="fixed inset-0 z-40 bg-black/40"
           onClick={closePanel}
           aria-hidden
         />
@@ -122,9 +122,9 @@ export default function NotificationBell() {
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               </div>
             ) : notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10">
+              <div className="flex flex-col items-center justify-center py-10 gap-2">
                 <Bell className="h-8 w-8 text-muted-foreground" aria-hidden />
-                <p className="text-sm text-muted-foreground mt-2">No notifications yet</p>
+                <p className="text-sm text-muted-foreground">No notifications yet</p>
               </div>
             ) : (
               notifications.map((notification) => (

@@ -13,6 +13,7 @@ import {
   startWorkoutSession,
   todayDateString,
 } from '@/lib/workoutSession'
+
 import { translateWeekday } from '@/lib/i18nHelpers'
 import { getDailyMotivation } from '@/lib/dailyMotivation'
 
@@ -116,7 +117,14 @@ function HomePage({ state, updateState }) {
       [targetDateStr]: { fromDay, toDay, transferredAt: Date.now() },
     }
 
-    updateState({ transferredWorkouts: updatedTransfers })
+    // Also mark today's session as skipped with reason 'transfer'
+    // so the Start / Skip buttons hide and the card shows the transferred message
+    const skipUpdate = skipWorkoutForToday(state, fromDay, 'transfer', today)
+
+    updateState({
+      ...skipUpdate,
+      transferredWorkouts: updatedTransfers,
+    })
 
     toast.success(
       `Workout moved to ${translateWeekday(toDay)} (${targetDateStr.slice(5).replace('-', '/')}). Your streak is safe!`,

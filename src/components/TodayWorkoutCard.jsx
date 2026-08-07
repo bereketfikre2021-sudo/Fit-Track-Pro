@@ -157,7 +157,7 @@ function TodayWorkoutCard({
                   className="text-xs border-amber-500/50 bg-amber-500/10 text-amber-400"
                 >
                   {todaySession.skipReason === 'transfer'
-                    ? `Transferred to ${translateWeekday(Object.values(transferredWorkouts || {}).find(t => t.fromDay === focusDay)?.toDay || '')}`
+                    ? `Transferred to ${translateWeekday(Object.values(transferredWorkouts || {}).find(tr => tr.fromDay === focusDay)?.toDay || 'rest day')}`
                     : todaySession.skipReason === 'injury'
                     ? 'Skipped — Injury / Pain'
                     : todaySession.skipReason === 'busy'
@@ -212,7 +212,7 @@ function TodayWorkoutCard({
                   : todaySession.skipReason === 'busy'
                   ? "No worries — catch it next time."
                   : todaySession.skipReason === 'transfer'
-                  ? `Moved to ${translateWeekday(Object.values(transferredWorkouts || {}).find(t => t.fromDay === focusDay)?.toDay || 'another day')} — keep it up!`
+                  ? `Moved to ${translateWeekday(Object.values(transferredWorkouts || {}).find(tr => tr.fromDay === focusDay)?.toDay || 'another day')} — keep it up!`
                   : 'Workout skipped for today.'}
               </p>
             )}
