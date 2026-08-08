@@ -248,7 +248,7 @@ export function downloadExerciseExport(state) {
 }
 
 function normalizeImportedExercise(raw, id, createdAt) {
-  const name = String(raw?.name || '').trim()
+  const name = String(raw?.name || raw?.name_en || '').trim()
   if (!name) return null
 
   const phase = normalizeExercisePhase(
@@ -287,6 +287,8 @@ function normalizeImportedExercise(raw, id, createdAt) {
       instructions: raw.instructions || '',
       tips: raw.tips || '',
       createdAt,
+      ...(raw.name_en ? { name_en: String(raw.name_en).trim() } : {}),
+      ...(raw.name_am ? { name_am: String(raw.name_am).trim() } : {}),
     }
   }
 
@@ -333,6 +335,8 @@ function normalizeImportedExercise(raw, id, createdAt) {
     tips: raw.tips || '',
     target: raw.target || buildExerciseTarget(parsed),
     createdAt,
+    ...(raw.name_en ? { name_en: String(raw.name_en).trim() } : {}),
+    ...(raw.name_am ? { name_am: String(raw.name_am).trim() } : {}),
   }
 }
 

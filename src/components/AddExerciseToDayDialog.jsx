@@ -26,6 +26,7 @@ import { translateWeekday } from '@/lib/i18nHelpers'
 import ExercisePickerRow from './ExercisePickerRow'
 import { FULLSCREEN_DIALOG_CONTENT_CLASS } from './dialogStyles'
 import ExerciseDetailSheet from './ExerciseDetailSheet'
+import { useLocalizedName } from '@/lib/localizedField'
 
 const selectClassName =
   'flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
@@ -49,6 +50,7 @@ function defaultFields(ex) {
 
 function AddExerciseToDayDialog({ day, customExercises, onClose, onAdd }) {
   const { t } = useTranslation()
+  const getLocalizedName = useLocalizedName()
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [phaseFilter, setPhaseFilter] = useState('all')
@@ -235,7 +237,7 @@ function AddExerciseToDayDialog({ day, customExercises, onClose, onAdd }) {
                     return (
                       <ExercisePickerRow
                         key={ex.id}
-                        title={ex.name}
+                        title={getLocalizedName(ex)}
                         subtitle={subtitle}
                         badges={[getExercisePhaseLabel(phase)]}
                         selected={!!selections[ex.id]}
@@ -270,7 +272,7 @@ function AddExerciseToDayDialog({ day, customExercises, onClose, onAdd }) {
                       <div key={exId} className="rounded-lg border border-border/60 bg-muted/30 overflow-hidden">
                         {/* Row header */}
                         <div className="flex items-center gap-2 px-3 py-2">
-                          <p className="flex-1 text-sm font-medium truncate">{ex.name}</p>
+                          <p className="flex-1 text-sm font-medium truncate">{getLocalizedName(ex)}</p>
                           <button
                             type="button"
                             onClick={() => toggleExpanded(exId)}

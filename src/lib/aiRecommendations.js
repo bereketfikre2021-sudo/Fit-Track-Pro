@@ -252,7 +252,13 @@ const EXERCISE_SYSTEM = `You are a certified strength coach. Output ONLY valid J
 
 The "Training goal (authoritative)" field in the user profile is derived from BMI and weight trajectory — it overrides any conflicting profile selection. You MUST follow the MANDATORY training rules for that goal. Never output a muscle-gain/bulking program when the goal is Fat loss, and never output a fat-loss/cardio-only program when the goal is Muscle building.
 
-Design complete, varied weekly programs — not minimal or repetitive lists. Use realistic exercise names, equipment, muscle groups, and prescriptions matched to the authoritative training goal, fitness level, and weight direction. Include warmup and cooldown on every training day.`
+Design complete, varied weekly programs — not minimal or repetitive lists. Use realistic exercise names, equipment, muscle groups, and prescriptions matched to the authoritative training goal, fitness level, and weight direction. Include warmup and cooldown on every training day.
+
+BILINGUAL REQUIREMENT: Each exercise in the "exercises" array MUST include BOTH language fields:
+- "name_en": the exercise name in English (e.g. "Goblet Squat")
+- "name_am": the exercise name in Amharic (e.g. "ጎብሌት ስኩዋት")
+- "name": same as name_en (for backward compatibility)
+Schedule entries reference exercises by "name" (English). Always include all three name fields on every exercise library entry.`
 
 const MEAL_SYSTEM = `You are an Ethiopian meal planner and sports nutritionist. Output ONLY valid JSON for a weekly meal plan import. No markdown, no commentary outside JSON.
 
@@ -262,9 +268,20 @@ Every meal must use affordable, commonly available Ethiopian foods (home cooking
 
 Avoid expensive imports (protein powder, salmon, specialty cheeses, packaged Western diet foods) unless minimal. Use clear local dish names in food "name" fields. Provide realistic calories and protein (numbers).
 
-Target weight and weight direction must align with the authoritative training goal — do not contradict them.`
+Target weight and weight direction must align with the authoritative training goal — do not contradict them.
 
-const SHOPPING_SYSTEM = `You are an Ethiopian grocery and meal-prep planner. Output ONLY valid JSON for a shopping list import. No markdown, no commentary outside JSON. Items must be affordable and commonly found in Ethiopia (Addis markets, local shops, supermarkets). Prefer local staples: teff flour, injera, shiro powder, berbere, lentils (messir), chickpeas, eggs, chicken, beef (lean cuts), oil, onions, garlic, tomato, potato, cabbage, carrot, gomen, avocado, banana, milk/ayib, etc. Consolidate duplicates; weekly budget-conscious quantities in item names when helpful (e.g. "Teff flour 2 kg"). Each item: { "name": string, "checked": false }.`
+BILINGUAL REQUIREMENT: Each food item MUST include BOTH language fields:
+- "name_en": the food name in English (e.g. "Injera with shiro wot")
+- "name_am": the food name in Amharic (e.g. "እንጀራ ከሽሮ ወጥ")
+- "name": same as name_en (for backward compatibility)
+Always provide all three fields for every food item.`
+
+const SHOPPING_SYSTEM = `You are an Ethiopian grocery and meal-prep planner. Output ONLY valid JSON for a shopping list import. No markdown, no commentary outside JSON. Items must be affordable and commonly found in Ethiopia (Addis markets, local shops, supermarkets). Prefer local staples: teff flour, injera, shiro powder, berbere, lentils (messir), chickpeas, eggs, chicken, beef (lean cuts), oil, onions, garlic, tomato, potato, cabbage, carrot, gomen, avocado, banana, milk/ayib, etc. Consolidate duplicates; weekly budget-conscious quantities in item names when helpful (e.g. "Teff flour 2 kg"). Each item must have:
+- "name_en": item name in English (e.g. "Teff flour 2 kg")
+- "name_am": item name in Amharic (e.g. "ጤፍ ዱቄት 2 ኪ.ግ")
+- "name": same as name_en (for backward compatibility)
+- "checked": false
+Always provide all three name fields for every item.`
 
 function summarizeMealPlanForAi(mealPlan) {
   const summary = {}

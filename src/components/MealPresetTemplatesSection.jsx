@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronUp, Flame, TrendingUp, Sparkles, Check, X, Play, Sunrise, Apple, Utensils, Coffee, UtensilsCrossed, Moon, AlertTriangle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
@@ -11,6 +12,7 @@ import {
   buildPresetMealPlanDays,
   getRecommendedMealPlanId,
   getRelevantMealPlans,
+  localizedPreset,
 } from '@/lib/presetMealPlans'
 import { buildPresetShoppingList } from '@/lib/presetShoppingLists'
 import { calculateBmi, getBmiCategory } from '@/lib/profileUtils'
@@ -39,11 +41,13 @@ const MEAL_SLOT_LABELS = {
 
 /** Confirm dialog before overwriting an existing meal plan */
 function ApplyConfirmDialog({ preset, onClose, onConfirm }) {
+  const { i18n } = useTranslation()
+  const lp = localizedPreset(preset, i18n.language)
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Apply "{preset.name}"</DialogTitle>
+          <DialogTitle>Apply "{lp.name}"</DialogTitle>
           <DialogDescription>
             This will <strong>replace</strong> your current meal plan and shopping list completely.
           </DialogDescription>
@@ -71,6 +75,8 @@ function ApplyConfirmDialog({ preset, onClose, onConfirm }) {
 
 /** Single preset meal plan card */
 function MealPresetCard({ preset, isRecommended, onApply }) {
+  const { i18n } = useTranslation()
+  const lp = localizedPreset(preset, i18n.language)
   const [expanded, setExpanded] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [previewDay, setPreviewDay] = useState('Monday')
@@ -96,21 +102,21 @@ function MealPresetCard({ preset, isRecommended, onApply }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xl leading-none">{preset.emoji}</span>
-                <CardTitle className="text-sm">{preset.name}</CardTitle>
+                <CardTitle className="text-sm">{lp.name}</CardTitle>
                 {isRecommended && (
                   <Badge className="text-[10px] px-1.5 py-0 h-4 gap-0.5 bg-primary text-primary-foreground">
                     <Sparkles className="h-2.5 w-2.5" />
                     Recommended
                   </Badge>
                 )}
-                {preset.tags.map((tag) => (
+                {lp.tags.map((tag) => (
                   <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
                     {tag}
                   </Badge>
                 ))}
               </div>
               <CardDescription className="text-xs mt-0.5 line-clamp-2">
-                {preset.description}
+                {lp.description}
               </CardDescription>
             </div>
             <div className="flex gap-1 shrink-0">
@@ -176,14 +182,19 @@ function MealPresetCard({ preset, isRecommended, onApply }) {
                   <div key={slotId}>
                     <p className="text-[11px] font-semibold text-muted-foreground mb-1">{label}</p>
                     <div className="flex flex-wrap gap-1">
-                      {foods.map((food) => (
+                      {foods.map((food) => {
+                        const displayName = i18n.language === 'am'
+                          ? (food.name_am || food.name_en || food.name)
+                          : (food.name_en || food.name)
+                        return (
                         <Badge key={food.name} variant="outline" className="text-[10px]">
-                          {food.name.split(' (')[0]}
+                          {displayName.split(' (')[0]}
                           {food.calories > 0 && (
                             <span className="ml-1 text-muted-foreground">{food.calories} kcal</span>
                           )}
                         </Badge>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 )
@@ -212,6 +223,7 @@ function MealPresetCard({ preset, isRecommended, onApply }) {
  * Detects the user's BMI / goal and visually highlights the recommended plan.
  */
 function MealPresetTemplatesSection({ state, updateState, onAfterApply }) {
+  const { i18n } = useTranslation()
   const profile = state.profile || {}
   const bmi = calculateBmi(profile.currentWeight, profile.height)
   const bmiCategory = getBmiCategory(bmi)
@@ -241,8 +253,8 @@ function MealPresetTemplatesSection({ state, updateState, onAfterApply }) {
 
     toast.success(
       shoppingList
-        ? `Applied "${preset.name}" — meal plan and shopping list updated.`
-        : `Applied "${preset.name}" to your meal plan.`
+        ? `Applied "${localizedPreset(preset, i18n.language).name}" — meal plan and shopping list updated.`
+        : `Applied "${localizedPreset(preset, i18n.language).name}" to your meal plan.`
     )
     onAfterApply?.()
   }

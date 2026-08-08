@@ -7,10 +7,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { cn } from '@/lib/utils'
 import { formatExerciseTarget, buildExerciseTarget, normalizeHoldFields } from '@/lib/exerciseFormat'
 import { EXERCISE_PHASE, inferExercisePhase, getExercisePhaseLabel } from '@/lib/exercisePhase'
+import { useLocalizedName } from '@/lib/localizedField'
 
 /** Small dialog to edit the per-day sets / reps / rest for a scheduled exercise. */
 function EditScheduleEntryDialog({ exercise, onClose, onSave }) {
   const { t } = useTranslation()
+  const getLocalizedName = useLocalizedName()
   const isTimeBased = exercise.isTimeBased ?? false
 
   const [sets, setSets] = useState(String(exercise.sets ?? '3'))
@@ -46,7 +48,7 @@ function EditScheduleEntryDialog({ exercise, onClose, onSave }) {
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle className="truncate">{exercise.name}</DialogTitle>
+          <DialogTitle className="truncate">{getLocalizedName(exercise)}</DialogTitle>
           <DialogDescription>
             {t('custom.editScheduleEntryDesc', {
               defaultValue: 'Adjust sets, reps, and rest time for this day.',
@@ -154,6 +156,7 @@ function EditScheduleEntryDialog({ exercise, onClose, onSave }) {
 
 function ScheduleExerciseList({ exercises, onReorder, onRemove, onUpdate }) {
   const { t } = useTranslation()
+  const getLocalizedName = useLocalizedName()
   const [dragIndex, setDragIndex] = useState(null)
   const [editingExercise, setEditingExercise] = useState(null)
 
@@ -209,7 +212,7 @@ function ScheduleExerciseList({ exercises, onReorder, onRemove, onUpdate }) {
                   <GripVertical className="h-4 w-4 text-muted-foreground shrink-0 cursor-grab active:cursor-grabbing" />
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{ex.name}</p>
+                    <p className="text-sm font-medium truncate">{getLocalizedName(ex)}</p>
                     <p className="text-xs text-muted-foreground truncate">
                       {ex.target || formatExerciseTarget(ex)}
                     </p>

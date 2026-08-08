@@ -83,6 +83,7 @@ import {
   MUSCLE_I18N_KEYS,
   translateWeekday,
 } from '@/lib/i18nHelpers'
+import { localizedName } from '@/lib/localizedField'
 
 const sharedRadius = 'rounded-md'
 
@@ -590,8 +591,8 @@ function CustomTab({ state, updateState }) {
     if (
       !confirm(
         i18n.t('custom.confirmDeleteExercise', {
-          name: exercise.name,
-          defaultValue: `Delete "${exercise.name}"? This will remove it from all workout days.`,
+          name: localizedName(exercise),
+          defaultValue: `Delete "${localizedName(exercise)}"? This will remove it from all workout days.`,
         })
       )
     )
@@ -612,7 +613,7 @@ function CustomTab({ state, updateState }) {
       customExercises: updated,
       workoutSchedule: updatedSchedule
     })
-    toast.success(t('custom.toastDeleted', { name: exercise.name }))
+    toast.success(t('custom.toastDeleted', { name: localizedName(exercise) }))
   }
 }
 
@@ -1562,7 +1563,7 @@ function ScheduleManager({
     updateState({ workoutSchedule: newSchedule })
     toast.success(
       t('custom.scheduleAddedToDay', {
-        name: exercise.name,
+        name: localizedName(exercise),
         day: translateWeekday(day),
       })
     )
@@ -1572,13 +1573,16 @@ function ScheduleManager({
     const daySchedule = workoutSchedule[day]
     if (!daySchedule) return
 
-    const exercise = daySchedule.exercises.find(ex => ex.id === exerciseId)
-    if (!exercise) return
+    const schedEntry = daySchedule.exercises.find(ex => ex.id === exerciseId)
+    if (!schedEntry) return
+
+    // Resolve full library exercise for localized name
+    const libExercise = customExercises.find(ex => ex.id === (schedEntry.exerciseId || schedEntry.id)) || schedEntry
 
     if (
       !confirm(
         i18n.t('custom.scheduleConfirmRemoveEx', {
-          name: exercise.name,
+          name: localizedName(libExercise),
           day: translateWeekday(day),
         })
       )
@@ -1591,7 +1595,7 @@ function ScheduleManager({
     updateState({ workoutSchedule: newSchedule })
     toast.success(
       t('custom.scheduleRemovedFromDay', {
-        name: exercise.name,
+        name: localizedName(libExercise),
         day: translateWeekday(day),
       })
     )
@@ -1654,8 +1658,8 @@ function ScheduleManager({
     updateState({ workoutSchedule: newSchedule })
     toast.success(
       t('custom.scheduleEntryUpdated', {
-        name: updatedEntry.name,
-        defaultValue: `Updated ${updatedEntry.name}`,
+        name: localizedName(updatedEntry),
+        defaultValue: `Updated ${localizedName(updatedEntry)}`,
       })
     )
   }

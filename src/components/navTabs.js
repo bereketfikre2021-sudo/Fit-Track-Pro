@@ -15,7 +15,7 @@ export function getNavTabs(t) {
   return [
     {
       id:    'home',
-      label: 'Home',
+      label: t('nav.home') || 'Home',
       icon:  Home,
       path:  '/',
       exact: true,
@@ -28,7 +28,7 @@ export function getNavTabs(t) {
     },
     {
       id:    'exercises',
-      label: 'Library',
+      label: t('nav.exercises') || 'Library',
       icon:  ListChecks,
       path:  '/exercises',
     },

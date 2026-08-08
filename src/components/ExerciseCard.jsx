@@ -41,11 +41,13 @@ import {
 import { todayDateString, completionKey } from '@/lib/workoutSession'
 import { getSkipReasonLabel, isSkippedEntry } from '@/lib/exerciseSkip'
 import { useRef } from 'react'
+import { useLocalizedName } from '@/lib/localizedField'
 
 const sharedRadius = 'rounded-md'
 
 function ExerciseThumbnail({ exercise, isCompleted, className, onClick }) {
   const { t } = useTranslation()
+  const getLocalizedName = useLocalizedName()
   return (
     <div
       className={cn(
@@ -69,7 +71,7 @@ function ExerciseThumbnail({ exercise, isCompleted, className, onClick }) {
       {exercise.imageUrl ? (
         <img
           src={exercise.imageUrl}
-          alt={exercise.name}
+          alt={getLocalizedName(exercise)}
           className={cn(
             'w-full h-full',
             // GIFs: contain so animation isn't cropped; static images: cover
@@ -128,6 +130,7 @@ export function ExerciseLibraryCard({
   onHistory,
 }) {
   const { t } = useTranslation()
+  const getLocalizedName = useLocalizedName()
   const phase = inferExercisePhase(exercise)
   const isSimple = isSimplePhase(phase)
   const fileInputRef = useRef(null)
@@ -162,7 +165,7 @@ export function ExerciseLibraryCard({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm font-semibold leading-tight">
-                  {exercise.name}
+                  {getLocalizedName(exercise)}
                 </h3>
                 <span
                   className={cn(
@@ -248,6 +251,7 @@ export function ExerciseWorkoutCard({
   onStartHold,
 }) {
   const { t } = useTranslation()
+  const getLocalizedName = useLocalizedName()
   const fullExercise =
     customExercises.find((ex) => ex.id === exercise.exerciseId || ex.id === exercise.id) ||
     exercise
@@ -307,7 +311,7 @@ export function ExerciseWorkoutCard({
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm font-semibold leading-tight">{exercise.name}</h3>
+                <h3 className="text-sm font-semibold leading-tight">{getLocalizedName(fullExercise) || getLocalizedName(exercise)}</h3>
                 {phase !== 'main' && (
                   <span
                     className={cn(
@@ -376,7 +380,7 @@ export function ExerciseWorkoutCard({
               {isHold && !skipped && onStartHold && !readOnly && (
                 <button
                   type="button"
-                  onClick={() => onStartHold(holdSeconds, exercise.name)}
+                  onClick={() => onStartHold(holdSeconds, getLocalizedName(fullExercise) || getLocalizedName(exercise))}
                   className="h-8 w-8 rounded-full flex items-center justify-center text-amber-600 hover:text-amber-500 transition-colors"
                   aria-label={t('exerciseCard.holdAria', { sec: holdSeconds })}
                   title={t('exerciseCard.holdAria', { sec: holdSeconds })}

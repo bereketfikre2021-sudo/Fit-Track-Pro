@@ -40,12 +40,14 @@
     "jsonFileActions": "የ JSON ፋይል ተግባሮች",
     "jsonTemplate": "አብነት",
     "jsonExport": "ላክ",
-    "jsonImport": "አስመጣ"
+    "jsonImport": "አስመጣ",
+    "and": "እና"
   },
   "nav": {
+    "home": "መነሻ ገፅ",
     "workout": "ልምምድ",
-    "report": "እድገት",
-    "exercises": "ልምምዶች",
+    "report": "ሪፖርት",
+    "exercises": "ላይብረሪ",
     "meals": "ምግብ",
     "mealPlan": "የምግብ እቅድ",
     "profile": "መገለጫ",
@@ -698,7 +700,9 @@
     "restComplete": "እረፍት አለቀ — ቀጣይ ሴት!",
     "stopRest": "የእረፍት ታይመር አቁም",
     "phaseAdvance": "ወደ {{phase}} በመሄድ ላይ",
-    "phaseLocked": "መጀመሪያ ሁሉንም {{phase}} የአካል ብቃት ያጠናቁ ወይም ይዘልሉ"
+    "phaseLocked": "መጀመሪያ ሁሉንም {{phase}} የአካል ብቃት ያጠናቁ ወይም ይዘልሉ",
+    "celebrateTitle": "ልምምድ ተጠናቋል!",
+    "celebrateSubtitle": "እጅግ ጥሩ ሥራ — ደምስሰሃል! 💪"
   },
   "profile": {
     "settingsAria": "ቅንብሮች",
@@ -832,7 +836,23 @@
     "skipDay": {
       "title": "የዛሬን ልምምድ ዝለል",
       "description": "የ{{day}} የአካል ብቃቶችን ዛሬ ማድረግ አይችሉም? ምክንያት ይምረጡ — ሁሉም ተዘልሏል ተብሎ ይሰረዛል።",
-      "confirm": "ዛሬ ዝለል"
+      "confirm": "ዛሬ ዝለል",
+      "chooseReason": "ምክንያት ይምረጡ ወይም ልምምዱን ለዚህ ሳምንት የእረፍት ቀን ያዛውሩ።",
+      "skipWorkout": "ልምምድ ዝለል",
+      "cancel": "ሰርዝ",
+      "back": "ተመለስ",
+      "transferTitle": "ወደ የእረፍት ቀን አዛውር",
+      "transferDesc": "ቀጣይ የእረፍት ቀን ምረጡ — {{day}} ልምምድ በዚያ ቀን ይሠራል። ተከታታይነትዎ ሳይቋረጥ ይቆያል።",
+      "transferTo": "ወደ {{day}} አዛውር",
+      "transferPending": "ወደ…",
+      "noRestDays": "በዚህ ሳምንት ምንም የእረፍት ቀን የለም — ሁሉም ቀናት የልምምድ ቀናት ናቸው።",
+      "restDayLabel": "የእረፍት ቀን",
+      "reasonInjury": "ጉዳት / ህመም",
+      "reasonInjuryDesc": "ሰውነትዎ ማገገሚያ ጊዜ ያስፈልጋል",
+      "reasonBusy": "ጊዜ አጠረ",
+      "reasonBusyDesc": "ዛሬ ለማስተናገድ አልቻለም",
+      "reasonTransfer": "ወደ የእረፍት ቀን አዛውር",
+      "reasonTransferDesc": "ይህን ልምምድ በዚህ ሳምንት ወደ ሌላ ቀን ያዘዋዉሩ"
     },
     "importExercises": {
       "title": "የአካል ብቃት አስመጣ",
@@ -943,7 +963,16 @@
     "workoutDaysCount": "{{count}} የልምምድ ቀን",
     "workoutDaysCount_plural": "{{count}} የልምምድ ቀናት",
     "holdExerciseType": "ጊዜ/መያዣ የአካል ብቃት (ለምሳ. 5 ደቂቃ ሩጫ፣ ፕላንክ)",
-    "holdExerciseLabel": "ጊዜ/መያዣ የአካል ብቃት (ለምሳ. 5 ደቂቃ ሩጫ፣ ፕላንክ)"
+    "holdExerciseLabel": "ጊዜ/መያዣ የአካል ብቃት (ለምሳ. 5 ደቂቃ ሩጫ፣ ፕላንክ)",
+    "addWorkoutDay": "የልምምድ ቀን ጨምር",
+    "addDay": "ቀን ጨምር",
+    "noExercisesOnDay": "ገና ልምምዶች አልተጨመሩም",
+    "alreadyAdded": "አስቀድሞ ተጨምሯል",
+    "selectDayForSchedule": "ወደ የልምምድ መርሃግብርዎ ለመጨመር ቀን ይምረጡ",
+    "confirmDeleteExercise": "\"{{name}}\" ይሰረዝ? ከሁሉም የልምምድ ቀናት ይወጣል።",
+    "mainLiftHint": "ዋና ክብደት ማከል ይፈልጋሉ? ሙሉ የአካል ብቃት ቅጽ ይጠቀሙ",
+    "toastImportedAi": "AI {{parts}} ጨምሯል",
+    "toastImportedSchedule": "{{count}} የመርሃግብር ምደባ"
   },
   "exerciseCard": {
     "pr": "PR: {{label}}",

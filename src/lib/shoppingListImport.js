@@ -75,18 +75,22 @@ function normalizeItem(raw, baseTime, idx) {
     }
   }
 
-  const name = String(raw?.name || '').trim()
+  const name = String(raw?.name || raw?.name_en || '').trim()
   if (!name) return null
   const checked = Boolean(raw?.checked)
   const createdAt = typeof raw?.createdAt === 'number' ? raw.createdAt : baseTime + idx
   const id = raw?.id ? String(raw.id) : `import-shop-${createdAt}-${idx}`
-  return {
+  const item = {
     id,
     name,
     checked,
     createdAt,
     ...(typeof raw?.updatedAt === 'number' ? { updatedAt: raw.updatedAt } : {}),
   }
+  // Preserve bilingual fields from AI-generated content
+  if (raw?.name_en) item.name_en = String(raw.name_en).trim()
+  if (raw?.name_am) item.name_am = String(raw.name_am).trim()
+  return item
 }
 
 function normalizeCategoryItems(items, baseTime, startIndex) {

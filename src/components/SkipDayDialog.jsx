@@ -4,19 +4,18 @@
  * Step 1: Pick a reason
  *   - Injury / Pain
  *   - Short on time
- *   - Transfer to another day   ← new option (replaces "Equipment unavailable")
+ *   - Transfer to another day
  *
  * Step 2 (only when "Transfer" chosen): Pick a rest day from this week
- *   Shows the user's upcoming rest days (days NOT in workoutDays).
- *   Selecting one schedules the workout there instead of skipping it.
  *
  * Callbacks:
- *   onConfirm(reason)           — actual skip (marks session skipped)
- *   onTransfer(targetDay)       — transfer (does NOT mark as skipped)
+ *   onConfirm(reason)       — actual skip
+ *   onTransfer(targetDay)   — transfer (does NOT mark as skipped)
  */
 
 import { useState } from 'react'
-import { ArrowRight, Calendar, Clock, AlertCircle, X } from 'lucide-react'
+import { ArrowRight, Calendar, Clock, AlertCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
@@ -30,52 +29,49 @@ import { translateWeekday } from '@/lib/i18nHelpers'
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
-// Days from today (inclusive of tomorrow) up to and including next Sunday
 function getUpcomingRestDays(todayName, workoutDays) {
   const todayIdx = DAYS_OF_WEEK.indexOf(todayName)
   if (todayIdx === -1) return []
-
   const upcoming = []
-  // Check the next 6 days (tomorrow through +6)
   for (let i = 1; i <= 6; i++) {
     const day = DAYS_OF_WEEK[(todayIdx + i) % 7]
-    if (!workoutDays.includes(day)) {
-      upcoming.push(day)
-    }
+    if (!workoutDays.includes(day)) upcoming.push(day)
   }
   return upcoming
 }
 
-const SKIP_OPTIONS = [
-  {
-    value: 'injury',
-    label: 'Injury / Pain',
-    description: 'Your body needs recovery time',
-    icon: AlertCircle,
-    isTransfer: false,
-  },
-  {
-    value: 'busy',
-    label: 'Short on time',
-    description: "Can't fit it in today",
-    icon: Clock,
-    isTransfer: false,
-  },
-  {
-    value: 'transfer',
-    label: 'Transfer to a rest day',
-    description: 'Move this workout to another day this week',
-    icon: ArrowRight,
-    isTransfer: true,
-  },
-]
-
 function SkipDayDialog({ open, onOpenChange, dayLabel, todayName, workoutDays = [], onConfirm, onTransfer }) {
-  const [step, setStep]           = useState('reason')   // 'reason' | 'transfer'
+  const { t } = useTranslation()
+  const [step, setStep]           = useState('reason')
   const [reason, setReason]       = useState(null)
   const [targetDay, setTargetDay] = useState(null)
 
   const restDays = getUpcomingRestDays(todayName || 'Monday', workoutDays)
+
+  // Build options using translated strings
+  const SKIP_OPTIONS = [
+    {
+      value: 'injury',
+      label: t('dialogs.skipDay.reasonInjury'),
+      description: t('dialogs.skipDay.reasonInjuryDesc'),
+      icon: AlertCircle,
+      isTransfer: false,
+    },
+    {
+      value: 'busy',
+      label: t('dialogs.skipDay.reasonBusy'),
+      description: t('dialogs.skipDay.reasonBusyDesc'),
+      icon: Clock,
+      isTransfer: false,
+    },
+    {
+      value: 'transfer',
+      label: t('dialogs.skipDay.reasonTransfer'),
+      description: t('dialogs.skipDay.reasonTransferDesc'),
+      icon: ArrowRight,
+      isTransfer: true,
+    },
+  ]
 
   const handleClose = () => {
     setStep('reason')
@@ -86,9 +82,7 @@ function SkipDayDialog({ open, onOpenChange, dayLabel, todayName, workoutDays = 
 
   const handleOptionSelect = (option) => {
     setReason(option.value)
-    if (option.isTransfer) {
-      setStep('transfer')
-    }
+    if (option.isTransfer) setStep('transfer')
   }
 
   const handleConfirmSkip = () => {
@@ -113,10 +107,10 @@ function SkipDayDialog({ open, onOpenChange, dayLabel, todayName, workoutDays = 
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-primary" aria-hidden />
-                Skip {dayLabel}?
+                {t('dialogs.skipDay.title', { day: dayLabel })}
               </DialogTitle>
               <DialogDescription>
-                Choose a reason or transfer this workout to a rest day this week.
+                {t('dialogs.skipDay.chooseReason')}
               </DialogDescription>
             </DialogHeader>
 
@@ -160,21 +154,20 @@ function SkipDayDialog({ open, onOpenChange, dayLabel, todayName, workoutDays = 
               })}
             </div>
 
-            {/* Only show confirm button for non-transfer options */}
             {reason && reason !== 'transfer' && (
               <div className="flex gap-2 pt-1">
                 <Button variant="outline" className="flex-1" onClick={handleClose}>
-                  Cancel
+                  {t('dialogs.skipDay.cancel')}
                 </Button>
                 <Button variant="destructive" className="flex-1" onClick={handleConfirmSkip}>
-                  Skip workout
+                  {t('dialogs.skipDay.skipWorkout')}
                 </Button>
               </div>
             )}
 
             {!reason && (
               <Button variant="outline" className="w-full" onClick={handleClose}>
-                Cancel
+                {t('dialogs.skipDay.cancel')}
               </Button>
             )}
           </>
@@ -186,11 +179,10 @@ function SkipDayDialog({ open, onOpenChange, dayLabel, todayName, workoutDays = 
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <ArrowRight className="h-4 w-4 text-primary" aria-hidden />
-                Transfer to a rest day
+                {t('dialogs.skipDay.transferTitle')}
               </DialogTitle>
               <DialogDescription>
-                Pick an upcoming rest day to do {dayLabel}&apos;s workout instead.
-                Your streak and progress stay intact.
+                {t('dialogs.skipDay.transferDesc', { day: dayLabel })}
               </DialogDescription>
             </DialogHeader>
 
@@ -198,7 +190,7 @@ function SkipDayDialog({ open, onOpenChange, dayLabel, todayName, workoutDays = 
               {restDays.length === 0 ? (
                 <div className="rounded-lg border border-border bg-muted/20 p-4 text-center">
                   <p className="text-sm text-muted-foreground">
-                    No rest days available this week — all days are scheduled workout days.
+                    {t('dialogs.skipDay.noRestDays')}
                   </p>
                 </div>
               ) : (
@@ -216,7 +208,9 @@ function SkipDayDialog({ open, onOpenChange, dayLabel, todayName, workoutDays = 
                     )}
                   >
                     <span>{translateWeekday(day)}</span>
-                    <span className="text-xs text-muted-foreground font-normal">Rest day</span>
+                    <span className="text-xs text-muted-foreground font-normal">
+                      {t('dialogs.skipDay.restDayLabel')}
+                    </span>
                   </button>
                 ))
               )}
@@ -228,14 +222,16 @@ function SkipDayDialog({ open, onOpenChange, dayLabel, todayName, workoutDays = 
                 className="flex-1"
                 onClick={() => { setStep('reason'); setTargetDay(null) }}
               >
-                Back
+                {t('dialogs.skipDay.back')}
               </Button>
               <Button
                 className="flex-1"
                 disabled={!targetDay}
                 onClick={handleConfirmTransfer}
               >
-                Transfer to {targetDay ? translateWeekday(targetDay) : '…'}
+                {targetDay
+                  ? t('dialogs.skipDay.transferTo', { day: translateWeekday(targetDay) })
+                  : t('dialogs.skipDay.transferPending')}
               </Button>
             </div>
           </>

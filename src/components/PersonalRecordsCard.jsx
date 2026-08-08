@@ -3,6 +3,7 @@ import { Trophy, ChevronDown, ChevronUp, Dumbbell } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card'
 import { Badge } from './ui/badge'
 import { getPersonalRecord } from '@/lib/personalRecords'
+import { localizedName } from '@/lib/localizedField'
 
 function PersonalRecordsCard({ state }) {
   const [expanded, setExpanded] = useState(false)
@@ -17,7 +18,7 @@ function PersonalRecordsCard({ state }) {
       .map((ex) => {
         const pr = getPersonalRecord(completedExercises, ex.id)
         if (!pr) return null
-        return { id: ex.id, name: ex.name, label: pr.label, date: pr.date, muscleGroups: ex.muscleGroups || [] }
+        return { id: ex.id, name: localizedName(ex), label: pr.label, date: pr.date, muscleGroups: ex.muscleGroups || [] }
       })
       .filter(Boolean)
       .sort((a, b) => a.name.localeCompare(b.name))

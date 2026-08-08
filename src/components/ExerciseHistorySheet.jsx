@@ -14,6 +14,7 @@ import {
   Tooltip,
   Filler,
 } from 'chart.js'
+import { localizedName } from '@/lib/localizedField'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler)
 
@@ -139,7 +140,7 @@ export default function ExerciseHistorySheet({ exercise, completedExercises, onC
           <div className="min-w-0">
             <h2 className="text-base font-semibold truncate flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-primary shrink-0" />
-              {exercise?.name}
+              {localizedName(exercise)}
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">Exercise history — last 20 sessions</p>
           </div>

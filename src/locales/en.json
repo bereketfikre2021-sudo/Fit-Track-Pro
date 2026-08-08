@@ -44,6 +44,7 @@
     "jsonImport": "Import"
   },
   "nav": {
+    "home": "Home",
     "workout": "Workout",
     "report": "Progress",
     "exercises": "Library",
@@ -834,7 +835,23 @@
     "skipDay": {
       "title": "Skip today's workout",
       "description": "Can't do {{day}}'s exercises today? Pick a reason — everything will be marked skipped.",
-      "confirm": "Skip today"
+      "confirm": "Skip today",
+      "chooseReason": "Choose a reason or transfer this workout to a rest day this week.",
+      "skipWorkout": "Skip workout",
+      "cancel": "Cancel",
+      "back": "Back",
+      "transferTitle": "Transfer to a rest day",
+      "transferDesc": "Pick an upcoming rest day to do {{day}}'s workout instead. Your streak and progress stay intact.",
+      "transferTo": "Transfer to {{day}}",
+      "transferPending": "Transfer to…",
+      "noRestDays": "No rest days available this week — all days are scheduled workout days.",
+      "restDayLabel": "Rest day",
+      "reasonInjury": "Injury / Pain",
+      "reasonInjuryDesc": "Your body needs recovery time",
+      "reasonBusy": "Short on time",
+      "reasonBusyDesc": "Can't fit it in today",
+      "reasonTransfer": "Transfer to a rest day",
+      "reasonTransferDesc": "Move this workout to another day this week"
     },
     "importExercises": {
       "title": "Import exercises",

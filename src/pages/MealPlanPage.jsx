@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n'
+import { useLocalizedName } from '../lib/localizedField'
 import {
   Calendar,
   Plus,
@@ -31,6 +32,7 @@ import {
   Flame,
   FileText,
   Share2,
+  AlertTriangle,
 } from 'lucide-react'
 import { getDayMacroTotals, formatMacroSummary } from '../lib/mealPlan'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
@@ -82,6 +84,7 @@ import {
   buildPresetShoppingList,
   getRecommendedShoppingListId,
   getRelevantShoppingLists,
+  localizedShoppingPreset,
 } from '../lib/presetShoppingLists'
 import { calculateBmi, getBmiCategory, resolveEffectiveTrainingGoal } from '../lib/profileUtils'
 import { hasAnyExercises, isMealPlanEmpty, isShoppingListEmpty } from '../lib/planEmpty'
@@ -110,6 +113,7 @@ function getTodayWeekdayName() {
 
 function MealPlanPage({ state, updateState }) {
   const { t } = useTranslation()
+  const getLocalizedName = useLocalizedName()
   const [activeTab, setActiveTab] = useState('meals')
   const [selectedDay, setSelectedDay] = useState(() => getTodayWeekdayName())
   const [selectedMeal, setSelectedMeal] = useState(null)
@@ -125,6 +129,12 @@ function MealPlanPage({ state, updateState }) {
   const [showMealPresets, setShowMealPresets] = useState(false)
   const [showShoppingTemplates, setShowShoppingTemplates] = useState(false)
   const [showShoppingPresets, setShowShoppingPresets] = useState(false)
+  // Branded confirm dialog state for shopping preset apply
+  const [confirmShoppingPreset, setConfirmShoppingPreset] = useState(null) // preset object | null
+  // Bulk selection for meal plan
+  const [bulkSelectMode, setBulkSelectMode] = useState(false)
+  // Set of "day|mealTime|foodId" strings
+  const [selectedFoodIds, setSelectedFoodIds] = useState(new Set())
 
   const mealPlan = state.mealPlan || {}
   const showAiMealRecommend = isMealPlanEmpty(mealPlan)
@@ -199,13 +209,13 @@ function MealPlanPage({ state, updateState }) {
     toast.success(t('mealToasts.exportMeals'))
   }
 
-  const handleDownloadMealPDF = () => {
-    downloadMealPlanPDF(state.mealPlan, state.profile?.name)
+  const handleDownloadMealPDF = async () => {
+    await downloadMealPlanPDF(state.mealPlan, state.profile?.name)
     toast.success('Meal plan PDF downloaded!')
   }
 
   const handleShareMealPDF = async () => {
-    const blob = getMealPlanPDFBlob(state.mealPlan, state.profile?.name)
+    const blob = await getMealPlanPDFBlob(state.mealPlan, state.profile?.name)
     const filename = `fittrack-meal-plan-${new Date().toISOString().slice(0, 10)}.pdf`
     await sharePDF(blob, filename)
   }
@@ -285,13 +295,13 @@ function MealPlanPage({ state, updateState }) {
     toast.success(t('mealToasts.shoppingExported'))
   }
 
-  const handleDownloadShoppingPDF = () => {
-    downloadShoppingListPDF(state.shoppingList, state.profile?.name)
+  const handleDownloadShoppingPDF = async () => {
+    await downloadShoppingListPDF(state.shoppingList, state.profile?.name)
     toast.success('Shopping list PDF downloaded!')
   }
 
   const handleShareShoppingPDF = async () => {
-    const blob = getShoppingListPDFBlob(state.shoppingList, state.profile?.name)
+    const blob = await getShoppingListPDFBlob(state.shoppingList, state.profile?.name)
     const filename = `fittrack-shopping-list-${new Date().toISOString().slice(0, 10)}.pdf`
     await sharePDF(blob, filename)
   }
@@ -367,8 +377,8 @@ function MealPlanPage({ state, updateState }) {
     if (
       !confirm(
         i18n.t('meals.confirmDeleteFood', {
-          name: food.name,
-          defaultValue: `Delete "${food.name}"?`,
+          name: getLocalizedName(food),
+          defaultValue: `Delete "${getLocalizedName(food)}"?`,
         })
       )
     )
@@ -378,10 +388,65 @@ function MealPlanPage({ state, updateState }) {
     newMealPlan[day][mealTime] = newMealPlan[day][mealTime].filter(f => f.id !== foodId)
 
     updateState({ mealPlan: newMealPlan })
-    toast.success(t('mealToasts.foodDeleted', { name: food.name }))
+    toast.success(t('mealToasts.foodDeleted', { name: getLocalizedName(food) }))
   }
 
-  // Shopping List Functions
+  // ── Bulk selection helpers ─────────────────────────────────────────────────
+
+  const makeFoodKey = (day, mealTime, foodId) => `${day}|${mealTime}|${foodId}`
+
+  const handleToggleFoodSelection = (day, mealTime, foodId) => {
+    const key = makeFoodKey(day, mealTime, foodId)
+    setSelectedFoodIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  const handleSelectAllForDay = (day) => {
+    const dayMeals = mealPlan[day] || {}
+    const allKeys = []
+    for (const slot of MEAL_SLOTS) {
+      const foods = dayMeals[slot.id] || []
+      foods.forEach((f) => allKeys.push(makeFoodKey(day, slot.id, f.id)))
+    }
+    const allSelected = allKeys.every((k) => selectedFoodIds.has(k))
+    setSelectedFoodIds((prev) => {
+      const next = new Set(prev)
+      if (allSelected) {
+        allKeys.forEach((k) => next.delete(k))
+      } else {
+        allKeys.forEach((k) => next.add(k))
+      }
+      return next
+    })
+  }
+
+  const handleDeleteSelected = () => {
+    const count = selectedFoodIds.size
+    if (count === 0) return
+    if (!confirm(`Delete ${count} selected item${count !== 1 ? 's' : ''}?`)) return
+
+    const newMealPlan = { ...mealPlan }
+    selectedFoodIds.forEach((key) => {
+      const [day, mealTime, foodId] = key.split('|')
+      if (!newMealPlan[day]?.[mealTime]) return
+      newMealPlan[day] = { ...newMealPlan[day] }
+      newMealPlan[day][mealTime] = newMealPlan[day][mealTime].filter((f) => f.id !== foodId)
+    })
+
+    updateState({ mealPlan: newMealPlan })
+    setSelectedFoodIds(new Set())
+    setBulkSelectMode(false)
+    toast.success(`Deleted ${count} item${count !== 1 ? 's' : ''}`)
+  }
+
+  const handleExitBulkSelect = () => {
+    setBulkSelectMode(false)
+    setSelectedFoodIds(new Set())
+  }
   const handleAddShoppingItem = (itemData) => {
     const newShoppingList = { ...shoppingList }
     
@@ -424,8 +489,8 @@ function MealPlanPage({ state, updateState }) {
     if (
       !confirm(
         i18n.t('meals.confirmDeleteItem', {
-          name: item.name,
-          defaultValue: `Delete "${item.name}"?`,
+          name: getLocalizedName(item),
+          defaultValue: `Delete "${getLocalizedName(item)}"?`,
         })
       )
     )
@@ -434,7 +499,7 @@ function MealPlanPage({ state, updateState }) {
     const newShoppingList = { ...shoppingList }
     newShoppingList[category] = newShoppingList[category].filter(i => i.id !== itemId)
     updateState({ shoppingList: newShoppingList })
-    toast.success(t('mealToasts.shopDeleted', { item: item.name }))
+    toast.success(t('mealToasts.shopDeleted', { item: getLocalizedName(item) }))
   }
 
   const handleToggleShoppingItem = (category, itemId) => {
@@ -706,6 +771,14 @@ function MealPlanPage({ state, updateState }) {
 
               return (
                 <TabsContent key={day} value={day} className="space-y-3 mt-4">
+                  {(() => {
+                    const dayAllFoodKeys = MEAL_SLOTS.flatMap((s) =>
+                      (dayMeals[s.id] || []).map((f) => makeFoodKey(day, s.id, f.id))
+                    )
+                    const daySelectedCount = dayAllFoodKeys.filter((k) => selectedFoodIds.has(k)).length
+                    const dayAllSelected = dayAllFoodKeys.length > 0 && daySelectedCount === dayAllFoodKeys.length
+
+                    return (
                   <Card className="border">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-3">
@@ -720,6 +793,44 @@ function MealPlanPage({ state, updateState }) {
                               {macroLabel ? ` · ${macroLabel}` : ''}
                             </CardDescription>
                           </div>
+                        </div>
+                        {/* Select mode controls */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {bulkSelectMode ? (
+                            <>
+                              {dayAllFoodKeys.length > 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={() => handleSelectAllForDay(day)}
+                                >
+                                  {dayAllSelected ? 'Deselect all' : 'Select all'}
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs text-muted-foreground"
+                                onClick={handleExitBulkSelect}
+                              >
+                                <X className="h-3.5 w-3.5 mr-1" />
+                                Cancel
+                              </Button>
+                            </>
+                          ) : (
+                            totalItems > 0 && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs"
+                                onClick={() => setBulkSelectMode(true)}
+                              >
+                                <CheckSquare className="h-3.5 w-3.5 mr-1" />
+                                Select
+                              </Button>
+                            )
+                          )}
                         </div>
                       </div>
                     </CardHeader>
@@ -761,16 +872,38 @@ function MealPlanPage({ state, updateState }) {
                               </div>
                             ) : (
                               <div className="space-y-1">
-                                {foods.map((food, index) => (
+                                {foods.map((food, index) => {
+                                  const foodKey = makeFoodKey(day, mealTime.id, food.id)
+                                  const isChecked = selectedFoodIds.has(foodKey)
+                                  return (
                                   <div
                                     key={food.id}
-                                    className="flex items-center gap-3 group py-2 px-3 rounded hover:bg-muted/50 transition-colors border-b last:border-b-0"
+                                    className={cn(
+                                      'flex items-center gap-3 group py-2 px-3 rounded transition-colors border-b last:border-b-0',
+                                      bulkSelectMode
+                                        ? isChecked
+                                          ? 'bg-primary/10 border-primary/20 cursor-pointer'
+                                          : 'hover:bg-muted/50 cursor-pointer'
+                                        : 'hover:bg-muted/50'
+                                    )}
+                                    onClick={bulkSelectMode ? () => handleToggleFoodSelection(day, mealTime.id, food.id) : undefined}
                                   >
-                                    <span className="text-xs font-semibold text-muted-foreground min-w-[20px]">
-                                      {index + 1}.
-                                    </span>
+                                    {bulkSelectMode ? (
+                                      <span className={cn(
+                                        'flex items-center justify-center h-4 w-4 rounded border transition-colors shrink-0',
+                                        isChecked
+                                          ? 'bg-primary border-primary text-primary-foreground'
+                                          : 'border-muted-foreground/40 bg-background'
+                                      )}>
+                                        {isChecked && <CheckSquare className="h-3 w-3" />}
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs font-semibold text-muted-foreground min-w-[20px]">
+                                        {index + 1}.
+                                      </span>
+                                    )}
                                     <span className="text-sm flex-1">
-                                      {food.name}
+                                      {getLocalizedName(food)}
                                       {(Number(food.calories) > 0 || Number(food.protein) > 0 || Number(food.carbs) > 0 || Number(food.fat) > 0) && (
                                         <span className="text-[10px] text-muted-foreground ml-2">
                                           {Number(food.calories) > 0 ? `${food.calories} ${t('common.kcal')}` : ''}
@@ -783,6 +916,7 @@ function MealPlanPage({ state, updateState }) {
                                         </span>
                                       )}
                                     </span>
+                                    {!bulkSelectMode && (
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                       <Button
                                         size="icon"
@@ -804,8 +938,10 @@ function MealPlanPage({ state, updateState }) {
                                         <Trash2 className="h-3 w-3 text-destructive" />
                                       </Button>
                                     </div>
+                                    )}
                                   </div>
-                                ))}
+                                  )
+                                })}
                               </div>
                             )}
                           </div>
@@ -813,10 +949,30 @@ function MealPlanPage({ state, updateState }) {
                       })}
                     </CardContent>
                   </Card>
+                    )
+                  })()}
                 </TabsContent>
               )
             })}
           </Tabs>
+
+          {/* Floating bulk delete bar */}
+          {bulkSelectMode && selectedFoodIds.size > 0 && (
+            <div className="sticky bottom-20 md:bottom-4 z-20 flex items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-background/95 backdrop-blur px-4 py-3 shadow-lg">
+              <span className="text-sm font-medium">
+                {selectedFoodIds.size} item{selectedFoodIds.size !== 1 ? 's' : ''} selected
+              </span>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={handleExitBulkSelect}>
+                  Cancel
+                </Button>
+                <Button size="sm" variant="destructive" className="h-8 text-xs gap-1.5" onClick={handleDeleteSelected}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete {selectedFoodIds.size}
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         {/* SHOPPING LIST TAB */}
@@ -874,34 +1030,32 @@ function MealPlanPage({ state, updateState }) {
                       const relevantLists = getRelevantShoppingLists(bmiCategory, profile.goal)
                       const recommended = relevantLists.find((p) => p.id === recommendedShoppingId) ?? relevantLists[0]
                       const others = relevantLists.filter((p) => p.id !== recommended?.id)
-                      const ShoppingCard = ({ preset }) => (
+                      const ShoppingCard = ({ preset }) => {
+                        const lsp = localizedShoppingPreset(preset, i18n.language)
+                        return (
                         <Card className={cn('border transition-all', preset.id === recommendedShoppingId ? 'border-primary/50 bg-primary/5' : 'border-border')}>
                           <CardContent className="p-4">
                             <p className="text-sm font-semibold flex items-center gap-1.5 mb-1">
                               {preset.id === 'weight-gain'
                                 ? <Dumbbell className="h-4 w-4 text-primary shrink-0" />
                                 : <Flame className="h-4 w-4 text-primary shrink-0" />}
-                              {preset.name}
+                              {lsp.name}
                             </p>
                             {preset.id === recommendedShoppingId && (
                               <span className="text-[10px] text-primary font-medium block mb-1">Recommended for your goal</span>
                             )}
-                            <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{preset.description}</p>
+                            <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{lsp.description}</p>
                             <Button size="sm" variant={preset.id === recommendedShoppingId ? 'default' : 'outline'} className="w-full"
                               onClick={() => {
-                                if (!confirm('This will replace your current shopping list. Continue?')) return
-                                const items = buildPresetShoppingList(preset.id)
-                                if (!items) return
-                                updateState({ shoppingList: items })
-                                setShowShoppingPresets(false)
-                                toast.success(`${preset.name} applied`)
+                                setConfirmShoppingPreset(preset)
                               }}>
                               <LayoutTemplate className="h-3.5 w-3.5 mr-1.5" />
                               Use this list
                             </Button>
                           </CardContent>
                         </Card>
-                      )
+                        )
+                      }
                       return (
                         <>
                           <ShoppingCard preset={recommended} />
@@ -985,7 +1139,7 @@ function MealPlanPage({ state, updateState }) {
                                 ? <CheckSquare className="h-3.5 w-3.5 shrink-0" />
                                 : <Square className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                               }
-                              <span className="font-medium">{item.name}</span>
+                              <span className="font-medium">{getLocalizedName(item)}</span>
                               <button
                                 type="button"
                                 className="ml-0.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
@@ -1006,6 +1160,48 @@ function MealPlanPage({ state, updateState }) {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Branded confirm dialog — replace shopping list with preset */}
+      {confirmShoppingPreset && (
+        <Dialog open onOpenChange={(open) => { if (!open) setConfirmShoppingPreset(null) }}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {confirmShoppingPreset.id === 'weight-gain'
+                  ? <Dumbbell className="h-4 w-4 text-primary shrink-0" />
+                  : <Flame className="h-4 w-4 text-primary shrink-0" />}
+                Apply "{localizedShoppingPreset(confirmShoppingPreset, i18n.language).name}"
+              </DialogTitle>
+              <DialogDescription>
+                This will <strong>replace</strong> your current shopping list completely.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 pt-1">
+              <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
+                <span>Your existing shopping list will be permanently replaced. This cannot be undone.</span>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setConfirmShoppingPreset(null)}>
+                  <X className="h-4 w-4 mr-1.5" />
+                  Cancel
+                </Button>
+                <Button className="flex-1" onClick={() => {
+                  const items = buildPresetShoppingList(confirmShoppingPreset.id)
+                  if (!items) return
+                  updateState({ shoppingList: items })
+                  setShowShoppingPresets(false)
+                  setConfirmShoppingPreset(null)
+                  toast.success(`${localizedShoppingPreset(confirmShoppingPreset, i18n.language).name} applied`)
+                }}>
+                  <LayoutTemplate className="h-4 w-4 mr-1.5" />
+                  Apply list
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Add/Edit Food Dialog */}
       {(isAddingFood || editingFood) && (

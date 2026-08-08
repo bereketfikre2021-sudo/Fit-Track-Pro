@@ -82,6 +82,7 @@ import {
   allowsTemplatePlanFeatures,
   getPlanSetupMethod,
 } from '@/lib/planSetup'
+import { localizedName } from '@/lib/localizedField'
 
 
 
@@ -916,7 +917,10 @@ function WorkoutTab({ state, updateState }) {
                                   readOnly={workoutLocked}
                                   onSaveEntry={workoutLocked ? undefined : (patch) => saveCompletionEntry(day, ex.id, patch)}
                                   onToggleComplete={workoutLocked ? undefined : () => toggleExerciseCompletion(day, ex.id)}
-                                  onSkip={workoutLocked ? undefined : () => setSkipExerciseTarget({ day, exerciseId: ex.id, name: ex.name })}
+                                  onSkip={workoutLocked ? undefined : () => {
+                                    const libEx = customExercises.find(e => e.id === (ex.exerciseId || ex.id)) || ex
+                                    setSkipExerciseTarget({ day, exerciseId: ex.id, name: localizedName(libEx) })
+                                  }}
                                   onUnskip={workoutLocked ? undefined : () => handleUnskipExercise(day, ex.id)}
                                   onStartRest={workoutLocked ? undefined : (seconds, label) => startRestTimer(seconds, label)}
                                   onStartHold={workoutLocked ? undefined : (seconds, label) => startHoldTimer(seconds, label, { day, exerciseId: ex.id, locked: workoutLocked })}

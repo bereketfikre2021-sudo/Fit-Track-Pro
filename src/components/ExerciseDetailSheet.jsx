@@ -14,6 +14,7 @@ import {
   getExercisePhaseLabel,
   inferExercisePhase,
 } from '@/lib/exercisePhase'
+import { useLocalizedName } from '@/lib/localizedField'
 
 /* ─── GIF / image fetching ────────────────────────────────────────────────── *
  * We try two completely free, no-key APIs in order:
@@ -119,6 +120,7 @@ function Section({ title, icon: Icon, children }) {
 
 export default function ExerciseDetailSheet({ exercise, open, onClose, personalRecord }) {
   const { t } = useTranslation()
+  const getLocalizedName = useLocalizedName()
   const [mediaUrl, setMediaUrl] = useState(null)
   const [mediaLoading, setMediaLoading] = useState(false)
 
@@ -194,7 +196,7 @@ export default function ExerciseDetailSheet({ exercise, open, onClose, personalR
           <div className="flex items-start gap-3 px-5 pt-4 pb-3 border-b border-border/60 shrink-0">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg font-bold leading-tight">{exercise.name}</h2>
+                <h2 className="text-lg font-bold leading-tight">{getLocalizedName(exercise)}</h2>
                 <span className={cn(
                   'text-[10px] px-2 py-0.5 rounded-full border font-medium shrink-0',
                   getExercisePhaseBadgeClass(phase)
@@ -226,7 +228,7 @@ export default function ExerciseDetailSheet({ exercise, open, onClose, personalR
               {!mediaLoading && mediaUrl && (
                 <img
                   src={mediaUrl}
-                  alt={`${exercise.name} demonstration`}
+                  alt={`${getLocalizedName(exercise)} demonstration`}
                   className={cn(
                     'w-full h-full',
                     // GIFs (remote URL or base64 data URL) and API-fetched animations:

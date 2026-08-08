@@ -15,9 +15,16 @@ import { Button } from './ui/button'
 import { Card } from './ui/card'
 import { useAuth } from '../lib/useAuth'
 
+// On localhost dev, skip email verification gate entirely.
+const IS_LOCALHOST = window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1'
+
 function RequireEmailVerified({ children }) {
   const { user, isEmailVerified, signOut, resendVerificationEmail } = useAuth()
   const [sending, setSending] = useState(false)
+
+  // Localhost bypass — always pass through in dev
+  if (IS_LOCALHOST) return children
 
   // OAuth users (Google) are always verified — skip this gate
   const isOAuth = user?.app_metadata?.provider !== 'email'

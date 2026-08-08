@@ -91,20 +91,24 @@ function normalizeFoodsList(list, baseTime, startIndex) {
   let idx = startIndex
   return list
     .map((raw) => {
-      const name = String(raw?.name || '').trim()
+      const name = String(raw?.name || raw?.name_en || '').trim()
       if (!name) return null
       const calories = raw?.calories ?? ''
       const protein = raw?.protein ?? ''
       const createdAt = baseTime + idx
       const id = `import-meal-${createdAt}-${idx}`
       idx += 1
-      return {
+      const item = {
         id,
         name,
         calories,
         protein,
         createdAt,
       }
+      // Preserve bilingual fields from AI-generated content
+      if (raw?.name_en) item.name_en = String(raw.name_en).trim()
+      if (raw?.name_am) item.name_am = String(raw.name_am).trim()
+      return item
     })
     .filter(Boolean)
 }

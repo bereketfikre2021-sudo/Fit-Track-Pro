@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import i18n from '@/i18n'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card'
 import { Calendar, Dumbbell, TrendingUp, CheckCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatExerciseTarget } from '@/lib/exerciseFormat'
@@ -236,9 +237,10 @@ function HistoryTab({ state, updateState }) {
                       const isExpanded = expandedDates.has(date)
                       const [y, m, d] = date.split('-').map(Number)
                       const dateObj = new Date(y, m - 1, d)
-                      const formattedDate = dateObj.toLocaleDateString('en-US', {
-                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-                      })
+                      const formattedDate = dateObj.toLocaleDateString(
+                        i18n.language === 'am' ? 'am-ET' : 'en-US',
+                        { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
+                      )
 
                       return (
                         <div key={date} className="rounded-lg border border-border overflow-hidden">

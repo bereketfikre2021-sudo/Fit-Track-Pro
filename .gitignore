@@ -48,3 +48,12 @@ desktop.ini
 *.backup.json
 backups/
 .local/
+
+# Admin panel — separate repo, never commit here
+admin/
+
+# Test/temp font files
+public/inter-test.woff2
+
+# Kiro spec workspace files
+.kiro/
