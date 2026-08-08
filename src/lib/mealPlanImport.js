@@ -108,6 +108,9 @@ function normalizeFoodsList(list, baseTime, startIndex) {
       // Preserve bilingual fields from AI-generated content
       if (raw?.name_en) item.name_en = String(raw.name_en).trim()
       if (raw?.name_am) item.name_am = String(raw.name_am).trim()
+      // Preserve image URL (from admin DB or user upload)
+      if (raw?.imageUrl) item.imageUrl = String(raw.imageUrl)
+      if (raw?.image_url) item.imageUrl = String(raw.image_url)
       return item
     })
     .filter(Boolean)

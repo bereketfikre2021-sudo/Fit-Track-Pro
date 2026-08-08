@@ -90,6 +90,9 @@ function normalizeItem(raw, baseTime, idx) {
   // Preserve bilingual fields from AI-generated content
   if (raw?.name_en) item.name_en = String(raw.name_en).trim()
   if (raw?.name_am) item.name_am = String(raw.name_am).trim()
+  // Preserve image URL
+  if (raw?.imageUrl) item.imageUrl = String(raw.imageUrl)
+  if (raw?.image_url) item.imageUrl = String(raw.image_url)
   return item
 }
 

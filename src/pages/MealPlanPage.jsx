@@ -1,7 +1,8 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n'
 import { useLocalizedName } from '../lib/localizedField'
+import { compressImageFile } from '../lib/imageUtils'
 import {
   Calendar,
   Plus,
@@ -33,74 +34,84 @@ import {
   FileText,
   Share2,
   AlertTriangle,
+  Camera,
+  ImageIcon,
 } from 'lucide-react'
 
-// ── Food thumbnail helpers ────────────────────────────────────────────────────
+// ── Food/Shopping item image thumbnail ───────────────────────────────────────
 
-const FOOD_EMOJI_MAP = [
-  { keywords: ['injera', 'firfir', 'genfo', 'teff', 'ambasha', 'dabo', 'kocho'], emoji: '🫓' },
-  { keywords: ['rice', 'pasta', 'macaroni', 'noodle'], emoji: '🍚' },
-  { keywords: ['doro', 'chicken', 'poultry'], emoji: '🍗' },
-  { keywords: ['tibs', 'beef', 'kitfo', 'lamb', 'goat', 'meat', 'dulet', 'ground beef'], emoji: '🥩' },
-  { keywords: ['asa', 'fish', 'tilapia', 'tuna', 'sardine'], emoji: '🐟' },
-  { keywords: ['egg', 'enkulal'], emoji: '🥚' },
-  { keywords: ['shiro', 'misir', 'lentil', 'ater', 'chickpea', 'messer', 'ful', 'fava', 'legume'], emoji: '🫘' },
-  { keywords: ['gomen', 'spinach', 'kale', 'collard', 'fosolia', 'bean', 'tikel', 'cabbage', 'vegetable', 'atkilt', 'carrot', 'beetroot', 'potato', 'onion', 'tomato'], emoji: '🥗' },
-  { keywords: ['avocado', 'juice'], emoji: '🥑' },
-  { keywords: ['banana', 'mango', 'papaya', 'orange', 'apple', 'guava', 'watermelon', 'fruit'], emoji: '🍎' },
-  { keywords: ['milk', 'yogurt', 'ergo', 'ayib', 'cheese', 'dairy'], emoji: '🥛' },
-  { keywords: ['honey', 'mar'], emoji: '🍯' },
-  { keywords: ['coffee', 'tea', 'buna', 'water'], emoji: '☕' },
-  { keywords: ['sambusa', 'chechebsa', 'dabo kolo', 'snack'], emoji: '🥙' },
-]
+/**
+ * Clickable image thumbnail for a food item or shopping item.
+ * - Shows the image if imageUrl is set
+ * - Shows a camera/upload placeholder if no image
+ * - Clicking opens a file picker and compresses/stores the image on the item
+ * - onImageChange(newDataUrl) is called with the compressed image
+ * - size: 'md' (40px, meal rows) | 'sm' (32px, shopping pills)
+ */
+function ItemThumbnail({ imageUrl, onImageChange, alt = '', size = 'md', disabled = false }) {
+  const { t } = useTranslation()
+  const inputRef = useRef(null)
 
-const SLOT_EMOJI = {
-  breakfast: '🌅',
-  morningSnack: '🍎',
-  lunch: '🍽️',
-  afternoonSnack: '☕',
-  dinner: '🌙',
-  beforeBed: '💤',
-}
+  const sizeClass = size === 'sm'
+    ? 'w-8 h-8 rounded-md text-xs'
+    : 'w-10 h-10 rounded-md text-sm'
 
-const CATEGORY_EMOJI = {
-  'Protein Sources': '🥩',
-  'Carb Sources': '🫓',
-  'Healthy Fats': '🥑',
-  'Fruits & Vegetables': '🥗',
-  'Other': '🛒',
-}
-
-function getFoodEmoji(name = '', slot = '') {
-  const lower = name.toLowerCase()
-  for (const { keywords, emoji } of FOOD_EMOJI_MAP) {
-    if (keywords.some((kw) => lower.includes(kw))) return emoji
+  const handleClick = (e) => {
+    if (disabled) return
+    e.stopPropagation()
+    inputRef.current?.click()
   }
-  return SLOT_EMOJI[slot] || '🍴'
-}
 
-/** Thumbnail square for a food item — matches exercise card thumbnail style */
-function FoodThumbnail({ food, slot, className }) {
-  const emoji = getFoodEmoji(food?.name_en || food?.name || '', slot)
+  const handleFile = useCallback(async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      const dataUrl = await compressImageFile(file, { maxWidth: 200, maxHeight: 200, quality: 0.8 })
+      onImageChange?.(dataUrl)
+    } catch {
+      // ignore
+    }
+  }, [onImageChange])
+
   return (
     <div
-      className={`w-10 h-10 rounded-md bg-muted flex items-center justify-center shrink-0 text-xl select-none ${className || ''}`}
-      aria-hidden
+      className={`${sizeClass} shrink-0 overflow-hidden relative group cursor-pointer select-none`}
+      onClick={handleClick}
+      title={disabled ? undefined : t('meals.clickToUploadImage', { defaultValue: 'Click to add image' })}
+      role={disabled ? undefined : 'button'}
+      tabIndex={disabled ? undefined : 0}
+      onKeyDown={disabled ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') handleClick(e) }}
+      aria-label={disabled ? alt : t('meals.clickToUploadImage', { defaultValue: 'Click to add image' })}
     >
-      {emoji}
-    </div>
-  )
-}
-
-/** Thumbnail for a shopping item */
-function ShoppingThumbnail({ item, category }) {
-  const emoji = getFoodEmoji(item?.name_en || item?.name || '', '') || CATEGORY_EMOJI[category] || '🛒'
-  return (
-    <div
-      className="w-6 h-6 rounded flex items-center justify-center text-sm select-none shrink-0"
-      aria-hidden
-    >
-      {emoji}
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt={alt}
+          className="w-full h-full object-cover rounded-md"
+          loading="lazy"
+          onError={(e) => { e.target.style.display = 'none' }}
+        />
+      ) : (
+        <div className="w-full h-full bg-muted rounded-md flex items-center justify-center text-muted-foreground/40 group-hover:bg-muted/70 group-hover:text-muted-foreground transition-colors">
+          <Camera className={size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
+        </div>
+      )}
+      {/* Hover overlay when image exists */}
+      {imageUrl && !disabled && (
+        <div className="absolute inset-0 rounded-md bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <Camera className={size === 'sm' ? 'h-3 w-3 text-white' : 'h-3.5 w-3.5 text-white'} />
+        </div>
+      )}
+      {!disabled && (
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFile}
+        />
+      )}
     </div>
   )
 }
@@ -517,6 +528,26 @@ function MealPlanPage({ state, updateState }) {
     setBulkSelectMode(false)
     setSelectedFoodIds(new Set())
   }
+
+  // Update imageUrl on a specific food item
+  const handleFoodImageChange = useCallback((day, mealTime, foodId, dataUrl) => {
+    const newMealPlan = { ...mealPlan }
+    if (!newMealPlan[day]?.[mealTime]) return
+    newMealPlan[day] = { ...newMealPlan[day] }
+    newMealPlan[day][mealTime] = newMealPlan[day][mealTime].map((f) =>
+      f.id === foodId ? { ...f, imageUrl: dataUrl } : f
+    )
+    updateState({ mealPlan: newMealPlan })
+  }, [mealPlan, updateState])
+
+  // Update imageUrl on a shopping item
+  const handleShoppingItemImageChange = useCallback((category, itemId, dataUrl) => {
+    const newShoppingList = { ...shoppingList }
+    newShoppingList[category] = newShoppingList[category].map((i) =>
+      i.id === itemId ? { ...i, imageUrl: dataUrl } : i
+    )
+    updateState({ shoppingList: newShoppingList })
+  }, [shoppingList, updateState])
   const handleAddShoppingItem = (itemData) => {
     const newShoppingList = { ...shoppingList }
     
@@ -968,7 +999,13 @@ function MealPlanPage({ state, updateState }) {
                                         {isChecked && <CheckSquare className="h-3 w-3" />}
                                       </span>
                                     ) : (
-                                      <FoodThumbnail food={food} slot={mealTime.id} />
+                                      <ItemThumbnail
+                                        imageUrl={food.imageUrl}
+                                        alt={getLocalizedName(food)}
+                                        size="md"
+                                        disabled={bulkSelectMode}
+                                        onImageChange={(dataUrl) => handleFoodImageChange(day, mealTime.id, food.id, dataUrl)}
+                                      />
                                     )}
                                     <span className="text-sm flex-1">
                                       {getLocalizedName(food)}
@@ -1196,22 +1233,31 @@ function MealPlanPage({ state, updateState }) {
                             <div
                               key={item.id}
                               className={cn(
-                                'group flex items-center gap-2 rounded-lg border px-2.5 py-2 text-sm transition-all cursor-pointer select-none',
+                                'group flex items-center gap-2 rounded-lg border px-2.5 py-2 text-sm transition-all select-none',
                                 item.checked
                                   ? 'border-primary/30 bg-primary/10 text-primary opacity-60'
                                   : 'border-border bg-muted/30 hover:border-primary/40'
                               )}
-                              onClick={() => handleToggleShoppingItem(category, item.id)}
                             >
-                              <ShoppingThumbnail item={item} category={category} />
-                              {item.checked
-                                ? <CheckSquare className="h-3.5 w-3.5 shrink-0" />
-                                : <Square className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                              }
-                              <span className={cn('font-medium', item.checked && 'line-through')}>{getLocalizedName(item)}</span>
+                              <ItemThumbnail
+                                imageUrl={item.imageUrl}
+                                alt={getLocalizedName(item)}
+                                size="sm"
+                                onImageChange={(dataUrl) => handleShoppingItemImageChange(category, item.id, dataUrl)}
+                              />
+                              <div
+                                className="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0"
+                                onClick={() => handleToggleShoppingItem(category, item.id)}
+                              >
+                                {item.checked
+                                  ? <CheckSquare className="h-3.5 w-3.5 shrink-0" />
+                                  : <Square className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                }
+                                <span className={cn('font-medium truncate', item.checked && 'line-through')}>{getLocalizedName(item)}</span>
+                              </div>
                               <button
                                 type="button"
-                                className="ml-0.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+                                className="ml-0.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all shrink-0"
                                 onClick={(e) => { e.stopPropagation(); handleDeleteShoppingItem(category, item.id) }}
                                 aria-label="Remove"
                               >
@@ -1328,6 +1374,7 @@ function FoodFormDialog({ food, onClose, onSave }) {
       protein: String(item.protein),
       carbs: String(item.carbs),
       fat: String(item.fat),
+      imageUrl: item.imageUrl || item.image_url || '',
     })
     setSearchQuery('')
   }
