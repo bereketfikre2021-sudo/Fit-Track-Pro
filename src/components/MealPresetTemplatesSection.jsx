@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, Flame, TrendingUp, Sparkles, Check, X, Play, Sunrise, Apple, Utensils, Coffee, UtensilsCrossed, Moon, AlertTriangle } from 'lucide-react'
+import { ChevronDown, ChevronUp, Flame, TrendingUp, Sparkles, Check, X, Play, Sunrise, Apple, Utensils, Coffee, UtensilsCrossed, Moon, AlertTriangle, Camera } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card'
 import { Button } from './ui/button'
@@ -8,13 +8,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import {
-  PRESET_MEAL_PLANS,
   buildPresetMealPlanDays,
   getRecommendedMealPlanId,
   getRelevantMealPlans,
   localizedPreset,
 } from '@/lib/presetMealPlans'
 import { buildPresetShoppingList } from '@/lib/presetShoppingLists'
+import { useMergedMealPlans, buildMergedMealPlanDays, buildMergedShoppingList } from '@/lib/usePresets'
 import { calculateBmi, getBmiCategory } from '@/lib/profileUtils'
 import { getDayMacroTotals, formatMacroSummary } from '@/lib/mealPlan'
 import { translateWeekday } from '@/lib/i18nHelpers'
@@ -98,6 +98,12 @@ function MealPresetCard({ preset, isRecommended, onApply }) {
         )}
       >
         <CardHeader className="pb-2 pt-3 px-4">
+          {/* Admin-uploaded thumbnail — shown as full-width strip when present */}
+          {preset.image_url && (
+            <div className="w-full h-24 overflow-hidden rounded-lg mb-3 -mx-0">
+              <img src={preset.image_url} alt={lp.name} className="w-full h-full object-cover" />
+            </div>
+          )}
           <div className="flex items-start gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
@@ -224,16 +230,19 @@ function MealPresetCard({ preset, isRecommended, onApply }) {
  */
 function MealPresetTemplatesSection({ state, updateState, onAfterApply }) {
   const { i18n } = useTranslation()
+  const mergedPresets = useMergedMealPlans()
   const profile = state.profile || {}
   const bmi = calculateBmi(profile.currentWeight, profile.height)
   const bmiCategory = getBmiCategory(bmi)
   const recommendedId = getRecommendedMealPlanId(bmiCategory, profile.goal)
 
-  const handleApply = (preset, mode) => {
-    const freshDays = buildPresetMealPlanDays(preset)
-    // Apply the matching shopping list automatically (same id — weight-gain or weight-loss)
-    const shoppingList = buildPresetShoppingList(preset.id)
+  // Use merged presets filtered by relevance
+  const relevantIds = getRelevantMealPlans(bmiCategory, profile.goal).map(p => p.id)
+  const relevant = mergedPresets.filter(p => relevantIds.includes(p.id))
 
+  const handleApply = (preset, mode) => {
+    const freshDays = buildMergedMealPlanDays(preset)
+    const shoppingList = buildMergedShoppingList(preset)
     if (mode === 'replace') {
       updateState({ mealPlan: freshDays, ...(shoppingList ? { shoppingList } : {}) })
     } else {
@@ -242,15 +251,11 @@ function MealPresetTemplatesSection({ state, updateState, onAfterApply }) {
       for (const day of DAYS_OF_WEEK) {
         merged[day] = merged[day] || {}
         for (const slot of Object.keys(MEAL_SLOT_LABELS)) {
-          merged[day][slot] = [
-            ...(merged[day][slot] || []),
-            ...(freshDays[day]?.[slot] || []),
-          ]
+          merged[day][slot] = [...(merged[day][slot] || []), ...(freshDays[day]?.[slot] || [])]
         }
       }
       updateState({ mealPlan: merged, ...(shoppingList ? { shoppingList } : {}) })
     }
-
     toast.success(
       shoppingList
         ? `Applied "${localizedPreset(preset, i18n.language).name}" — meal plan and shopping list updated.`
@@ -266,9 +271,8 @@ function MealPresetTemplatesSection({ state, updateState, onAfterApply }) {
       </p>
 
       {(() => {
-        const relevantPlans = getRelevantMealPlans(bmiCategory, profile.goal)
-        const recommended = relevantPlans.find((p) => p.id === recommendedId) ?? relevantPlans[0]
-        const others = relevantPlans.filter((p) => p.id !== recommended?.id)
+        const recommended = relevant.find((p) => p.id === recommendedId) ?? relevant[0]
+        const others = relevant.filter((p) => p.id !== recommended?.id)
         return (
           <>
             <MealPresetCard

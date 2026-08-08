@@ -167,6 +167,7 @@ import {
   getRelevantShoppingLists,
   localizedShoppingPreset,
 } from '../lib/presetShoppingLists'
+import { useMergedShoppingLists, buildMergedShoppingList } from '../lib/usePresets'
 import { calculateBmi, getBmiCategory, resolveEffectiveTrainingGoal } from '../lib/profileUtils'
 import { hasAnyExercises, isMealPlanEmpty, isShoppingListEmpty } from '../lib/planEmpty'
 import { allowsAiPlanFeatures, allowsTemplatePlanFeatures } from '@/lib/planSetup'
@@ -195,6 +196,7 @@ function getTodayWeekdayName() {
 function MealPlanPage({ state, updateState }) {
   const { t } = useTranslation()
   const getLocalizedName = useLocalizedName()
+  const mergedShoppingLists = useMergedShoppingLists()
   const [activeTab, setActiveTab] = useState('meals')
   const [selectedDay, setSelectedDay] = useState(() => getTodayWeekdayName())
   const [selectedMeal, setSelectedMeal] = useState(null)
@@ -1132,7 +1134,9 @@ function MealPlanPage({ state, updateState }) {
                       {t('meals.recommendedForGoalDesc')}
                     </p>
                     {(() => {
-                      const relevantLists = getRelevantShoppingLists(bmiCategory, profile.goal)
+                      // Use merged presets (DB overrides + JS fallback)
+                      const relevantIds = getRelevantShoppingLists(bmiCategory, profile.goal).map(p => p.id)
+                      const relevantLists = mergedShoppingLists.filter(p => relevantIds.includes(p.id))
                       const recommended = relevantLists.find((p) => p.id === recommendedShoppingId) ?? relevantLists[0]
                       const others = relevantLists.filter((p) => p.id !== recommended?.id)
                       const ShoppingCard = ({ preset }) => {
@@ -1140,6 +1144,11 @@ function MealPlanPage({ state, updateState }) {
                         return (
                         <Card className={cn('border transition-all', preset.id === recommendedShoppingId ? 'border-primary/50 bg-primary/5' : 'border-border')}>
                           <CardContent className="p-4">
+                            {/* Admin-uploaded thumbnail */}
+                            {preset.image_url && (
+                              <img src={preset.image_url} alt={lsp.name}
+                                className="w-full h-28 object-cover rounded-md mb-3" />
+                            )}
                             <p className="text-sm font-semibold flex items-center gap-1.5 mb-1">
                               {preset.id === 'weight-gain'
                                 ? <Dumbbell className="h-4 w-4 text-primary shrink-0" />
@@ -1302,7 +1311,7 @@ function MealPlanPage({ state, updateState }) {
                   {t('common.cancel')}
                 </Button>
                 <Button className="flex-1" onClick={() => {
-                  const items = buildPresetShoppingList(confirmShoppingPreset.id)
+                  const items = buildMergedShoppingList(confirmShoppingPreset)
                   if (!items) return
                   updateState({ shoppingList: items })
                   setShowShoppingPresets(false)
