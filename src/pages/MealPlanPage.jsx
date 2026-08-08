@@ -34,6 +34,76 @@ import {
   Share2,
   AlertTriangle,
 } from 'lucide-react'
+
+// ── Food thumbnail helpers ────────────────────────────────────────────────────
+
+const FOOD_EMOJI_MAP = [
+  { keywords: ['injera', 'firfir', 'genfo', 'teff', 'ambasha', 'dabo', 'kocho'], emoji: '🫓' },
+  { keywords: ['rice', 'pasta', 'macaroni', 'noodle'], emoji: '🍚' },
+  { keywords: ['doro', 'chicken', 'poultry'], emoji: '🍗' },
+  { keywords: ['tibs', 'beef', 'kitfo', 'lamb', 'goat', 'meat', 'dulet', 'ground beef'], emoji: '🥩' },
+  { keywords: ['asa', 'fish', 'tilapia', 'tuna', 'sardine'], emoji: '🐟' },
+  { keywords: ['egg', 'enkulal'], emoji: '🥚' },
+  { keywords: ['shiro', 'misir', 'lentil', 'ater', 'chickpea', 'messer', 'ful', 'fava', 'legume'], emoji: '🫘' },
+  { keywords: ['gomen', 'spinach', 'kale', 'collard', 'fosolia', 'bean', 'tikel', 'cabbage', 'vegetable', 'atkilt', 'carrot', 'beetroot', 'potato', 'onion', 'tomato'], emoji: '🥗' },
+  { keywords: ['avocado', 'juice'], emoji: '🥑' },
+  { keywords: ['banana', 'mango', 'papaya', 'orange', 'apple', 'guava', 'watermelon', 'fruit'], emoji: '🍎' },
+  { keywords: ['milk', 'yogurt', 'ergo', 'ayib', 'cheese', 'dairy'], emoji: '🥛' },
+  { keywords: ['honey', 'mar'], emoji: '🍯' },
+  { keywords: ['coffee', 'tea', 'buna', 'water'], emoji: '☕' },
+  { keywords: ['sambusa', 'chechebsa', 'dabo kolo', 'snack'], emoji: '🥙' },
+]
+
+const SLOT_EMOJI = {
+  breakfast: '🌅',
+  morningSnack: '🍎',
+  lunch: '🍽️',
+  afternoonSnack: '☕',
+  dinner: '🌙',
+  beforeBed: '💤',
+}
+
+const CATEGORY_EMOJI = {
+  'Protein Sources': '🥩',
+  'Carb Sources': '🫓',
+  'Healthy Fats': '🥑',
+  'Fruits & Vegetables': '🥗',
+  'Other': '🛒',
+}
+
+function getFoodEmoji(name = '', slot = '') {
+  const lower = name.toLowerCase()
+  for (const { keywords, emoji } of FOOD_EMOJI_MAP) {
+    if (keywords.some((kw) => lower.includes(kw))) return emoji
+  }
+  return SLOT_EMOJI[slot] || '🍴'
+}
+
+/** Thumbnail square for a food item — matches exercise card thumbnail style */
+function FoodThumbnail({ food, slot, className }) {
+  const emoji = getFoodEmoji(food?.name_en || food?.name || '', slot)
+  return (
+    <div
+      className={`w-10 h-10 rounded-md bg-muted flex items-center justify-center shrink-0 text-xl select-none ${className || ''}`}
+      aria-hidden
+    >
+      {emoji}
+    </div>
+  )
+}
+
+/** Thumbnail for a shopping item */
+function ShoppingThumbnail({ item, category }) {
+  const emoji = getFoodEmoji(item?.name_en || item?.name || '', '') || CATEGORY_EMOJI[category] || '🛒'
+  return (
+    <div
+      className="w-6 h-6 rounded flex items-center justify-center text-sm select-none shrink-0"
+      aria-hidden
+    >
+      {emoji}
+    </div>
+  )
+}
 import { getDayMacroTotals, formatMacroSummary } from '../lib/mealPlan'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
@@ -898,9 +968,7 @@ function MealPlanPage({ state, updateState }) {
                                         {isChecked && <CheckSquare className="h-3 w-3" />}
                                       </span>
                                     ) : (
-                                      <span className="text-xs font-semibold text-muted-foreground min-w-[20px]">
-                                        {index + 1}.
-                                      </span>
+                                      <FoodThumbnail food={food} slot={mealTime.id} />
                                     )}
                                     <span className="text-sm flex-1">
                                       {getLocalizedName(food)}
@@ -1128,18 +1196,19 @@ function MealPlanPage({ state, updateState }) {
                             <div
                               key={item.id}
                               className={cn(
-                                'group flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-all cursor-pointer select-none',
+                                'group flex items-center gap-2 rounded-lg border px-2.5 py-2 text-sm transition-all cursor-pointer select-none',
                                 item.checked
-                                  ? 'border-primary/30 bg-primary/10 text-primary line-through opacity-60'
+                                  ? 'border-primary/30 bg-primary/10 text-primary opacity-60'
                                   : 'border-border bg-muted/30 hover:border-primary/40'
                               )}
                               onClick={() => handleToggleShoppingItem(category, item.id)}
                             >
+                              <ShoppingThumbnail item={item} category={category} />
                               {item.checked
                                 ? <CheckSquare className="h-3.5 w-3.5 shrink-0" />
                                 : <Square className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                               }
-                              <span className="font-medium">{getLocalizedName(item)}</span>
+                              <span className={cn('font-medium', item.checked && 'line-through')}>{getLocalizedName(item)}</span>
                               <button
                                 type="button"
                                 className="ml-0.5 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
