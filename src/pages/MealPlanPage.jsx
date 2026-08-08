@@ -427,7 +427,7 @@ function MealPlanPage({ state, updateState }) {
   const handleDeleteSelected = () => {
     const count = selectedFoodIds.size
     if (count === 0) return
-    if (!confirm(`Delete ${count} selected item${count !== 1 ? 's' : ''}?`)) return
+    if (!confirm(t('common.itemsSelected', { count }) + '?')) return
 
     const newMealPlan = { ...mealPlan }
     selectedFoodIds.forEach((key) => {
@@ -440,7 +440,7 @@ function MealPlanPage({ state, updateState }) {
     updateState({ mealPlan: newMealPlan })
     setSelectedFoodIds(new Set())
     setBulkSelectMode(false)
-    toast.success(`Deleted ${count} item${count !== 1 ? 's' : ''}`)
+    toast.success(t('common.deleteCount', { count }))
   }
 
   const handleExitBulkSelect = () => {
@@ -597,7 +597,7 @@ function MealPlanPage({ state, updateState }) {
             >
               <span className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
-                Update meal plan
+                {t('meals.updateMealPlan')}
               </span>
               {showPresets
                 ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -606,8 +606,8 @@ function MealPlanPage({ state, updateState }) {
             {showPresets && (
               <div className="rounded-lg border border-border/60 bg-muted/10 p-4 space-y-3">
                 <p className="text-xs text-muted-foreground">
-                  Generate a new meal plan with AI or apply a preset. This replaces the current plan.
-                  {!hasAnyExercises(state) && ' Add exercises to your Library first — AI uses your workout plan to tailor meals.'}
+                  {t('meals.generateMealPlanDesc')}
+                  {!hasAnyExercises(state) && ' ' + t('meals.aiNeedsExercises')}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {allowsAiPlanFeatures(state) && (
@@ -626,7 +626,7 @@ function MealPlanPage({ state, updateState }) {
                       onClick={() => setShowMealPresets((v) => !v)}
                     >
                       <LayoutTemplate className="h-4 w-4 mr-2" />
-                      Preset plans
+                      {t('meals.presetPlans')}
                       {showMealPresets
                         ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
                         : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
@@ -805,7 +805,7 @@ function MealPlanPage({ state, updateState }) {
                                   className="h-7 px-2 text-xs"
                                   onClick={() => handleSelectAllForDay(day)}
                                 >
-                                  {dayAllSelected ? 'Deselect all' : 'Select all'}
+                                  {dayAllSelected ? t('common.deselectAll') : t('common.selectAll')}
                                 </Button>
                               )}
                               <Button
@@ -815,7 +815,7 @@ function MealPlanPage({ state, updateState }) {
                                 onClick={handleExitBulkSelect}
                               >
                                 <X className="h-3.5 w-3.5 mr-1" />
-                                Cancel
+                                {t('common.cancel')}
                               </Button>
                             </>
                           ) : (
@@ -827,7 +827,7 @@ function MealPlanPage({ state, updateState }) {
                                 onClick={() => setBulkSelectMode(true)}
                               >
                                 <CheckSquare className="h-3.5 w-3.5 mr-1" />
-                                Select
+                                {t('common.select')}
                               </Button>
                             )
                           )}
@@ -960,15 +960,15 @@ function MealPlanPage({ state, updateState }) {
           {bulkSelectMode && selectedFoodIds.size > 0 && (
             <div className="sticky bottom-20 md:bottom-4 z-20 flex items-center justify-between gap-3 rounded-xl border border-destructive/40 bg-background/95 backdrop-blur px-4 py-3 shadow-lg">
               <span className="text-sm font-medium">
-                {selectedFoodIds.size} item{selectedFoodIds.size !== 1 ? 's' : ''} selected
+                {t('common.itemsSelected', { count: selectedFoodIds.size })}
               </span>
               <div className="flex items-center gap-2">
                 <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={handleExitBulkSelect}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button size="sm" variant="destructive" className="h-8 text-xs gap-1.5" onClick={handleDeleteSelected}>
                   <Trash2 className="h-3.5 w-3.5" />
-                  Delete {selectedFoodIds.size}
+                  {t('common.deleteCount', { count: selectedFoodIds.size })}
                 </Button>
               </div>
             </div>
@@ -987,7 +987,7 @@ function MealPlanPage({ state, updateState }) {
             >
               <span className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
-                Update shopping list
+                {t('meals.updateShoppingList')}
               </span>
               {showShoppingTemplates
                 ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -996,8 +996,8 @@ function MealPlanPage({ state, updateState }) {
             {showShoppingTemplates && (
               <div className="rounded-lg border border-border/60 bg-muted/10 p-4 space-y-3">
                 <p className="text-xs text-muted-foreground">
-                  Generate a shopping list with AI or apply a preset. This replaces the current list.
-                  {isMealPlanEmpty(mealPlan) && ' Fill your meal plan first — AI uses your meals to build a tailored list.'}
+                  {t('meals.generateShoppingDesc')}
+                  {isMealPlanEmpty(mealPlan) && ' ' + t('meals.aiShoppingNeedsMeals')}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <AiRecommendButton
@@ -1014,7 +1014,7 @@ function MealPlanPage({ state, updateState }) {
                       onClick={() => setShowShoppingPresets((v) => !v)}
                     >
                       <LayoutTemplate className="h-4 w-4 mr-2" />
-                      Preset lists
+                      {t('meals.presetLists')}
                       {showShoppingPresets
                         ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" />
                         : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
@@ -1024,7 +1024,7 @@ function MealPlanPage({ state, updateState }) {
                 {showShoppingPresets && showTemplateShoppingFeatures && (
                   <div className="space-y-3 pt-1 border-t border-border/60">
                     <p className="text-xs text-muted-foreground">
-                      Recommended for your goal. Applying will <span className="font-semibold text-foreground">replace</span> your current shopping list.
+                      {t('meals.recommendedForGoalDesc')}
                     </p>
                     {(() => {
                       const relevantLists = getRelevantShoppingLists(bmiCategory, profile.goal)
@@ -1042,7 +1042,7 @@ function MealPlanPage({ state, updateState }) {
                               {lsp.name}
                             </p>
                             {preset.id === recommendedShoppingId && (
-                              <span className="text-[10px] text-primary font-medium block mb-1">Recommended for your goal</span>
+                              <span className="text-[10px] text-primary font-medium block mb-1">{t('meals.recommendedForGoal')}</span>
                             )}
                             <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{lsp.description}</p>
                             <Button size="sm" variant={preset.id === recommendedShoppingId ? 'default' : 'outline'} className="w-full"
@@ -1050,7 +1050,7 @@ function MealPlanPage({ state, updateState }) {
                                 setConfirmShoppingPreset(preset)
                               }}>
                               <LayoutTemplate className="h-3.5 w-3.5 mr-1.5" />
-                              Use this list
+                              {t('meals.useThisList')}
                             </Button>
                           </CardContent>
                         </Card>
@@ -1062,7 +1062,7 @@ function MealPlanPage({ state, updateState }) {
                           {others.length > 0 && (
                             <details>
                               <summary className="text-xs text-primary hover:underline cursor-pointer list-none">
-                                See other options ({others.length} more)
+                                {t('meals.seeOtherOptions', { count: others.length })}
                               </summary>
                               <div className="space-y-3 mt-3">
                                 {others.map((p) => <ShoppingCard key={p.id} preset={p} />)}
@@ -1179,12 +1179,12 @@ function MealPlanPage({ state, updateState }) {
             <div className="space-y-4 pt-1">
               <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
-                <span>Your existing shopping list will be permanently replaced. This cannot be undone.</span>
+                <span>{t('meals.replaceShoppingWarning')}</span>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={() => setConfirmShoppingPreset(null)}>
                   <X className="h-4 w-4 mr-1.5" />
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button className="flex-1" onClick={() => {
                   const items = buildPresetShoppingList(confirmShoppingPreset.id)
@@ -1195,7 +1195,7 @@ function MealPlanPage({ state, updateState }) {
                   toast.success(`${localizedShoppingPreset(confirmShoppingPreset, i18n.language).name} applied`)
                 }}>
                   <LayoutTemplate className="h-4 w-4 mr-1.5" />
-                  Apply list
+                  {t('meals.applyList')}
                 </Button>
               </div>
             </div>

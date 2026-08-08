@@ -26,6 +26,7 @@ import {
   CheckCircle2,
   Loader2,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card, CardContent } from './ui/card'
@@ -50,6 +51,7 @@ const DEFAULT_PREFS = {
 }
 
 export function NotificationSettings() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const { permissionState, token, requesting, enableNotifications, disableNotifications } =
     useFcm(user?.id)
@@ -121,18 +123,18 @@ export function NotificationSettings() {
         <div className="min-w-0">
           <p className="text-base font-semibold flex items-center gap-2">
             <Bell className="h-4 w-4 shrink-0" aria-hidden />
-            Push Notifications
+            {t('settings.pushNotifications.title')}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5 truncate">
             {!isConfigured
-              ? 'Not configured'
+              ? t('settings.pushNotifications.notConfigured')
               : isUnsupported
-              ? 'Not supported in this browser'
+              ? t('settings.pushNotifications.unsupported')
               : isDenied
-              ? 'Blocked — update browser settings to enable'
+              ? t('settings.pushNotifications.denied')
               : isGranted && prefs.notifications_enabled
-              ? 'Active'
-              : 'Tap to configure'}
+              ? t('settings.pushNotifications.active')
+              : t('settings.pushNotifications.tapToConfigure')}
           </p>
         </div>
         {open
@@ -153,28 +155,25 @@ export function NotificationSettings() {
               {/* ── Not configured banner ── */}
               {!isConfigured && (
                 <InfoBanner icon={AlertTriangle} variant="warning" className="mt-3">
-                  Firebase is not configured. Add your{' '}
-                  <code className="text-xs bg-muted/50 px-1 rounded">VITE_FIREBASE_*</code>{' '}
-                  environment variables to enable push notifications.
+                  {t('settings.pushNotifications.firebaseNotConfigured')}
                 </InfoBanner>
               )}
 
               {/* ── Unsupported browser banner ── */}
               {isConfigured && isUnsupported && (
                 <InfoBanner icon={BellOff} variant="warning" className="mt-3">
-                  Push notifications are not supported in this browser. Try Chrome,
-                  Edge, or Firefox on desktop or Android.
+                  {t('settings.pushNotifications.browserUnsupported')}
                 </InfoBanner>
               )}
 
               {/* ── Permission denied banner ── */}
               {isConfigured && isDenied && (
                 <InfoBanner icon={AlertTriangle} variant="destructive" className="mt-3">
-                  Notifications are blocked by your browser. To enable:
+                  {t('settings.pushNotifications.permissionDenied')}
                   <ol className="mt-1.5 ml-4 list-decimal space-y-0.5 text-xs">
-                    <li>Click the lock/info icon in the address bar</li>
-                    <li>Set Notifications to Allow</li>
-                    <li>Reload the page</li>
+                    <li>{t('settings.pushNotifications.deniedStep1')}</li>
+                    <li>{t('settings.pushNotifications.deniedStep2')}</li>
+                    <li>{t('settings.pushNotifications.deniedStep3')}</li>
                   </ol>
                 </InfoBanner>
               )}
@@ -183,9 +182,9 @@ export function NotificationSettings() {
               {isConfigured && !isUnsupported && (
                 <div className="flex items-center justify-between gap-4 pt-3">
                   <div>
-                    <p className="text-sm font-medium">Enable push notifications</p>
+                    <p className="text-sm font-medium">{t('settings.pushNotifications.enableTitle')}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Receive reminders even when the app is closed
+                      {t('settings.pushNotifications.enableDesc')}
                     </p>
                   </div>
                   <ToggleSwitch
@@ -193,7 +192,7 @@ export function NotificationSettings() {
                     disabled={isDenied || isUnsupported || requesting}
                     loading={requesting}
                     onChange={handleMasterToggle}
-                    aria-label="Enable push notifications"
+                    aria-label={t('settings.pushNotifications.enableTitle')}
                   />
                 </div>
               )}
@@ -205,15 +204,15 @@ export function NotificationSettings() {
                   {/* Workout reminders */}
                   <ReminderRow
                     icon={Dumbbell}
-                    label="Workout reminders"
-                    description="Daily reminder to complete your workout"
+                    label={t('settings.pushNotifications.workoutReminders')}
+                    description={t('settings.pushNotifications.workoutRemindersDesc')}
                     checked={prefs.workout_reminders_enabled}
                     onChange={(v) => patch({ workout_reminders_enabled: v })}
                     saving={saving}
                   >
                     {prefs.workout_reminders_enabled && (
                       <TimeInput
-                        label="Reminder time"
+                        label={t('settings.pushNotifications.reminderTime')}
                         value={prefs.workout_reminder_time}
                         onChange={(v) => patch({ workout_reminder_time: v })}
                       />
@@ -223,8 +222,8 @@ export function NotificationSettings() {
                   {/* Meal reminders */}
                   <ReminderRow
                     icon={UtensilsCrossed}
-                    label="Meal reminders"
-                    description="Reminders for each meal slot in your plan"
+                    label={t('settings.pushNotifications.mealReminders')}
+                    description={t('settings.pushNotifications.mealRemindersDesc')}
                     checked={prefs.meal_reminders_enabled}
                     onChange={(v) => patch({ meal_reminders_enabled: v })}
                     saving={saving}
@@ -233,8 +232,8 @@ export function NotificationSettings() {
                   {/* Water reminders */}
                   <ReminderRow
                     icon={Droplets}
-                    label="Water reminders"
-                    description="Periodic nudges to hit your daily water goal"
+                    label={t('settings.pushNotifications.waterReminders')}
+                    description={t('settings.pushNotifications.waterRemindersDesc')}
                     checked={prefs.water_reminders_enabled}
                     onChange={(v) => patch({ water_reminders_enabled: v })}
                     saving={saving}
@@ -242,7 +241,7 @@ export function NotificationSettings() {
                     {prefs.water_reminders_enabled && (
                       <div>
                         <label className="text-xs font-medium text-muted-foreground">
-                          Remind every
+                          {t('settings.pushNotifications.remindEvery')}
                         </label>
                         <div className="flex items-center gap-2 mt-1">
                           <Input
@@ -258,7 +257,7 @@ export function NotificationSettings() {
                             }
                             className="w-20 h-8 text-sm"
                           />
-                          <span className="text-sm text-muted-foreground">hours</span>
+                          <span className="text-sm text-muted-foreground">{t('settings.pushNotifications.hours')}</span>
                         </div>
                       </div>
                     )}
@@ -267,8 +266,8 @@ export function NotificationSettings() {
                   {/* Progress reminders */}
                   <ReminderRow
                     icon={TrendingUp}
-                    label="Progress check-in reminders"
-                    description="Weekly reminder to log your weight"
+                    label={t('settings.pushNotifications.progressReminders')}
+                    description={t('settings.pushNotifications.progressRemindersDesc')}
                     checked={prefs.progress_reminders_enabled}
                     onChange={(v) => patch({ progress_reminders_enabled: v })}
                     saving={saving}
@@ -286,7 +285,7 @@ export function NotificationSettings() {
               {/* Granted + master off — show activate hint */}
               {isConfigured && isGranted && !prefs.notifications_enabled && !isDenied && (
                 <InfoBanner icon={CheckCircle2} variant="info" className="mt-3">
-                  Permission granted. Toggle the switch above to activate reminders.
+                  {t('settings.pushNotifications.permissionGrantedHint')}
                 </InfoBanner>
               )}
             </>

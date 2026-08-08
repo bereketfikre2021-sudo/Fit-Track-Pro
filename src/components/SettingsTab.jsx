@@ -87,7 +87,7 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
               className="flex items-center gap-1 hover:text-foreground transition-colors"
             >
               <User className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              Profile
+              {t('settings.accountData.profile')}
             </Link>
           </li>
           <li aria-hidden>
@@ -110,10 +110,10 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
           <div className="min-w-0">
             <p className="text-base font-semibold flex items-center gap-2">
               <User className="h-4 w-4 shrink-0" />
-              Account &amp; Data
+              {t('settings.accountData.title', { defaultValue: 'Account & Data' })}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5 truncate">
-              {user ? `Signed in as ${user.email}` : 'Sign in to sync your data across devices'}
+              {user ? t('settings.accountData.signedInAs', { email: user.email }) : t('settings.accountData.signInPrompt')}
             </p>
           </div>
           {showAccountData ? (
@@ -131,12 +131,12 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
               <div className="flex items-start gap-3 rounded-md border border-primary/30 bg-primary/5 px-3 py-3 mt-3">
                 <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden />
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-primary">Cloud sync active</p>
+                  <p className="text-sm font-medium text-primary">{t('settings.accountData.cloudActive')}</p>
                   <p className="text-xs text-muted-foreground mt-0.5 break-all">
                     {user.email || 'Google account'}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Your workouts, meals, and progress sync automatically across devices.
+                    {t('settings.accountData.cloudActiveDesc')}
                   </p>
                 </div>
               </div>
@@ -144,13 +144,13 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
               <div className="flex items-start gap-3 rounded-md border border-border bg-muted/20 px-3 py-3 mt-3">
                 <Cloud className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" aria-hidden />
                 <div>
-                  <p className="text-sm font-medium">Not signed in</p>
+                  <p className="text-sm font-medium">{t('settings.accountData.notSignedIn')}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Data is stored on this device only.{' '}
+                    {t('settings.accountData.notSignedInDesc')}{' '}
                     <Link to="/login" className="text-primary hover:underline font-medium">
-                      Sign in
+                      {t('settings.accountData.signIn')}
                     </Link>{' '}
-                    to enable cloud sync.
+                    {t('settings.accountData.signInToSync')}
                   </p>
                 </div>
               </div>
@@ -159,23 +159,23 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
             {/* ── Sign out ── */}
             {user && (
               <div className="space-y-2 border-t border-border/60 pt-4">
-                <p className="text-sm font-medium">Session</p>
+                <p className="text-sm font-medium">{t('settings.accountData.session')}</p>
                 <p className="text-xs text-muted-foreground">
-                  Sign out to switch accounts or use a different device.
+                  {t('settings.accountData.sessionDesc')}
                 </p>
                 <Button variant="outline" className="w-full sm:w-auto" onClick={onLogout}>
                   <LogOut className="h-4 w-4 mr-2" />
-                  Sign out
+                  {t('settings.accountData.signOut')}
                 </Button>
               </div>
             )}
 
             {/* ── Data portability ── */}
             <div className="space-y-2 border-t border-border/60 pt-4">
-              <p className="text-sm font-medium">Data portability</p>
+              <p className="text-sm font-medium">{t('settings.accountData.dataPortability')}</p>
               <p className="text-xs text-muted-foreground">
-                Export a full backup of your data as JSON. Import a backup to restore or migrate from another device.
-                {user && ' Your cloud data remains safe even if you clear local storage.'}
+                {t('settings.accountData.dataPortabilityDesc')}
+                {user && ' ' + t('settings.accountData.dataPortabilityDescCloud')}
               </p>
               <JsonFileActions
                 showTemplate={false}
@@ -189,20 +189,13 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
 
             {/* ── Clear local device cache ── */}
             <div className="space-y-2 border-t border-border/60 pt-4">
-              <p className="text-sm font-medium">Clear local device cache</p>
+              <p className="text-sm font-medium">{t('settings.accountData.clearCache')}</p>
               <p className="text-xs text-muted-foreground">
-                {user
-                  ? 'Removes all data from this device. Your cloud backup is unaffected — sign back in to restore everything.'
-                  : 'Permanently removes all data from this device. This cannot be undone.'}
+                {user ? t('settings.accountData.clearCacheDesc') : t('settings.accountData.clearCacheDescNoCloud')}
               </p>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="w-full sm:w-auto"
-                onClick={openClearDialog}
-              >
+              <Button variant="destructive" size="sm" className="w-full sm:w-auto" onClick={openClearDialog}>
                 <Trash2 className="h-4 w-4 mr-2" />
-                Clear device data
+                {t('settings.accountData.clearDeviceData')}
               </Button>
             </div>
 
@@ -215,16 +208,14 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
-              Clear device data?
+              {t('settings.accountData.clearDialogTitle')}
             </DialogTitle>
             <DialogDescription className="text-left pt-2 space-y-2">
               <span className="block">
-                This removes all FitTrack Pro data stored on <strong>this device</strong>.
+                {t('settings.clearDialog.body1')}
               </span>
               <span className="block font-medium text-foreground">
-                {user
-                  ? 'Your cloud backup is safe — sign back in to restore everything instantly.'
-                  : 'You are not signed in. This cannot be undone. Export a backup first.'}
+                {user ? t('settings.accountData.clearDialogBodyCloud') : t('settings.accountData.clearDialogBodyNoCloud')}
               </span>
             </DialogDescription>
           </DialogHeader>
@@ -269,7 +260,7 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
               onClick={handleConfirmClear}
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Clear device data
+              {t('settings.accountData.clearDeviceData')}
             </Button>
             <Button
               variant="outline"
@@ -469,7 +460,7 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
             >
               <span className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />
-                Advanced
+                {t('settings.accountData.advanced')}
               </span>
               {showAdvanced
                 ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -565,7 +556,7 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
               to="/privacy-policy"
               className="text-xs text-primary hover:underline underline-offset-2"
             >
-              Privacy Policy
+              {t('settings.accountData.privacyPolicy')}
             </Link>
           </div>
           <div className="pt-4 border-t border-border">

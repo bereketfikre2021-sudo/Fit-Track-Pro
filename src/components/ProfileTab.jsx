@@ -194,7 +194,7 @@ function ProfileTab({ state, updateState }) {
           <div className="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors rounded-xl">
             <div className="flex items-center gap-2.5">
               <Settings className="h-4 w-4 text-primary shrink-0" />
-              <span className="text-sm font-semibold">Settings</span>
+              <span className="text-sm font-semibold">{t('settings.title')}</span>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </div>

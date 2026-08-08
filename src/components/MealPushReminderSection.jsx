@@ -16,7 +16,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Bell, BellOff, Loader2, AlertTriangle, CheckCircle2, Info } from 'lucide-react'
+
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 import { Button } from './ui/button'
 import { cn } from '../lib/utils'
 import { useAuth } from '../lib/useAuth'
@@ -59,6 +61,7 @@ function ToggleSwitch({ checked, onChange, disabled, loading }) {
 }
 
 export function MealPushReminderSection({ appSettings, patchSettings }) {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const [permState,  setPermState]  = useState(() => getPermissionState())
   const [loading,    setLoading]    = useState(false)
@@ -97,7 +100,7 @@ export function MealPushReminderSection({ appSettings, patchSettings }) {
 
       if (perm === 'denied') {
         setLoading(false)
-        toast.error('Notifications blocked. Enable them in your browser settings, then try again.')
+        toast.error(t('settings.mealPushReminders.denied'))
         return
       }
       if (perm !== 'granted') {
@@ -127,7 +130,7 @@ export function MealPushReminderSection({ appSettings, patchSettings }) {
 
       // Also update local app settings
       patchSettings({ mealPushRemindersEnabled: true })
-      toast.success('Meal push reminders enabled! You\'ll be notified even when the app is closed.')
+      toast.success(t('settings.mealPushReminders.activeDesc'))
     } else {
       // Disable
       if (user?.id) {
@@ -135,7 +138,7 @@ export function MealPushReminderSection({ appSettings, patchSettings }) {
         setCloudSaved(false)
       }
       patchSettings({ mealPushRemindersEnabled: false })
-      toast.info('Meal push reminders disabled.')
+      toast.info(t('settings.mealPushReminders.notConfigured'))
     }
 
     setLoading(false)
@@ -158,17 +161,17 @@ export function MealPushReminderSection({ appSettings, patchSettings }) {
         <div className="flex items-start gap-2 min-w-0">
           <Bell className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden />
           <div className="min-w-0">
-            <p className="text-sm font-medium leading-tight">Push notifications</p>
+            <p className="text-sm font-medium leading-tight">{t('settings.mealPushReminders.title')}</p>
             <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
               {isUnsupported
-                ? 'Not supported in this browser'
+                ? t('settings.mealPushReminders.unsupported')
                 : isDenied
-                ? 'Blocked — update browser settings to allow'
+                ? t('settings.mealPushReminders.denied')
                 : !isConfigured
-                ? 'Not configured'
+                ? t('settings.mealPushReminders.notConfigured')
                 : isEnabled && cloudSaved
-                ? 'Active — fires even when the app is closed'
-                : 'Works when app is closed (recommended)'}
+                ? t('settings.mealPushReminders.activeDesc')
+                : t('settings.mealPushReminders.inactiveDesc')}
             </p>
           </div>
         </div>
@@ -185,7 +188,7 @@ export function MealPushReminderSection({ appSettings, patchSettings }) {
         <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
           <p>
-            Sign in to save your notification preferences to the cloud so they work on all your devices.
+            {t('settings.mealPushReminders.signInNudge')}
           </p>
         </div>
       )}
@@ -195,9 +198,9 @@ export function MealPushReminderSection({ appSettings, patchSettings }) {
         <div className="flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
           <BellOff className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
           <div>
-            <p className="font-medium">Notifications are blocked</p>
+            <p className="font-medium">{t('settings.mealPushReminders.blockedTitle')}</p>
             <p className="mt-0.5 text-red-300">
-              Click the lock icon in your browser address bar → set Notifications to Allow → reload.
+              {t('settings.mealPushReminders.blockedDesc')}
             </p>
           </div>
         </div>
@@ -207,7 +210,7 @@ export function MealPushReminderSection({ appSettings, patchSettings }) {
       {isEnabled && cloudSaved && isSignedIn && (
         <div className="flex items-center gap-2 text-xs text-primary">
           <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          <span>Preferences saved — the notification service will send reminders on schedule.</span>
+          <span>{t('settings.mealPushReminders.savedDesc')}</span>
         </div>
       )}
 
@@ -216,8 +219,7 @@ export function MealPushReminderSection({ appSettings, patchSettings }) {
         <div className="flex items-start gap-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
           <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
           <p>
-            Push reminders are delivered by the FitTrack Pro notification service.
-            In-app reminders (while the app is open) still fire from your local settings below.
+            {t('settings.mealPushReminders.infoDesc')}
           </p>
         </div>
       )}
