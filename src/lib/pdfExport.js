@@ -121,7 +121,6 @@ const HDR_H   = 32    // page header height
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
 function addPageHeader(doc, title, subtitle, isAmharic) {
-  const font = bodyFont(isAmharic)
   // Full-width dark banner
   doc.setFillColor(...DARK)
   doc.rect(0, 0, PAGE_W, HDR_H, 'F')
@@ -200,7 +199,6 @@ function addSectionBadge(doc, text, y, isAmharic) {
 
 /** Draw a single table row with optional alternating background */
 function drawTableRow(doc, cols, y, rowH, isHeader, isEven, isAmharic) {
-  const font = bodyFont(isAmharic)
   // Row background
   if (isHeader) {
     doc.setFillColor(...GREEN)
@@ -294,7 +292,6 @@ async function buildMealPlanDoc(doc, mealPlan, name) {
     try { await loadInterFonts(); registerInterFont(doc) }
     catch (e) { console.warn('Inter font load failed', e) }
   }
-  const font = bodyFont(isAmharic)
   const subtitle = `${name ? name + ' · ' : ''}${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`
   let y = addPageHeader(doc, isAmharic ? 'የሳምንት የምግብ እቅድ' : 'Weekly Meal Plan', subtitle, isAmharic)
 
@@ -320,7 +317,7 @@ async function buildMealPlanDoc(doc, mealPlan, name) {
       { text: isAmharic ? 'ፕ' : 'Prot', width: MEAL_COLS.protein, align: 'right' },
       { text: isAmharic ? 'ካር' : 'Carb', width: MEAL_COLS.carbs, align: 'right' },
       { text: isAmharic ? 'ስብ' : 'Fat', width: MEAL_COLS.fat, align: 'right' },
-    ], y, ROW_H, true, false, false)
+    ], y, ROW_H, true, false, isAmharic)
     y += ROW_H
 
     let rowIdx = 0
@@ -381,7 +378,6 @@ async function buildShoppingListDoc(doc, shoppingList, name) {
     try { await loadInterFonts(); registerInterFont(doc) }
     catch (e) { console.warn('Inter font load failed', e) }
   }
-  const font = bodyFont(isAmharic)
   const subtitle = `${name ? name + ' · ' : ''}${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`
   let y = addPageHeader(doc, isAmharic ? 'አስቤዛ' : 'Shopping List', subtitle, isAmharic)
 
