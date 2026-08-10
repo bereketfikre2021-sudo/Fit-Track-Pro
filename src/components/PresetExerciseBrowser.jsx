@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useExerciseImageMap } from '@/lib/usePresets'
 import { Plus, Library, Search, Info } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog'
 import { Button } from './ui/button'
@@ -26,6 +27,7 @@ export default function PresetExerciseBrowser({
   profileEquipment = [],
 }) {
   const { t } = useTranslation()
+  const exerciseImageMap = useExerciseImageMap()
   const presets = useMemo(() => getPresetExercises(), [])
   const [searchQuery, setSearchQuery] = useState('')
   const [detailExercise, setDetailExercise] = useState(null)
@@ -189,6 +191,7 @@ export default function PresetExerciseBrowser({
                       title={preset.name}
                       subtitle={subtitle}
                       disabled={inLibrary}
+                      imageUrl={exerciseImageMap[preset.id] ?? null}
                       onClick={() => handleAddOne(preset)}
                       trailing={
                         <div className="flex items-center gap-1">

@@ -10,7 +10,7 @@
  *   - The user is not signed in
  *
  * The fetched data is cached in localStorage under 'presetCache_<type>'
- * so it works offline after the first successful fetch.
+ * and invalidated automatically via Supabase Realtime when admin saves.
  */
 
 import { useEffect, useState } from 'react'
@@ -26,7 +26,7 @@ import {
   localizedShoppingPreset,
 } from './presetShoppingLists'
 
-const CACHE_TTL = 1000 * 60 * 60 // 1 hour
+const CACHE_TTL = 1000 * 60 * 5 // 5 minutes — short enough to pick up admin changes quickly
 
 function readCache(key) {
   try {
@@ -42,9 +42,36 @@ function writeCache(key, data) {
   try { localStorage.setItem(key, JSON.stringify({ data, ts: Date.now() })) } catch {}
 }
 
+function clearCache(type) {
+  try { localStorage.removeItem(`presetCache_${type}`) } catch {}
+}
+
+/**
+ * Subscribe to Realtime changes on preset_plans.
+ * When admin saves a preset, the cache is cleared so the next read
+ * fetches fresh data from Supabase.
+ */
+function subscribeToPresetChanges(onInvalidate) {
+  const channel = supabase
+    .channel('preset_plans_changes')
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'preset_plans',
+    }, (payload) => {
+      const type = payload.new?.type || payload.old?.type
+      if (type) {
+        clearCache(type)
+        onInvalidate(type)
+      }
+    })
+    .subscribe()
+  return () => supabase.removeChannel(channel)
+}
+
 /**
  * Fetch preset_plans rows from Supabase for a given type.
- * Returns an array of rows or null on failure.
+ * Returns an array of rows or null on failure (triggers static fallback).
  */
 async function fetchPresetRows(type) {
   const cached = readCache(`presetCache_${type}`)
@@ -87,18 +114,25 @@ function mergePresetRow(jsPreset, dbRow) {
 /**
  * Hook: returns merged meal plan presets (JS + any admin overrides from DB).
  * Each preset also carries `image_url` for the card thumbnail.
+ * Realtime: cache is cleared when admin saves — next render refetches.
  */
 export function useMergedMealPlans() {
   const [presets, setPresets] = useState(PRESET_MEAL_PLANS)
 
-  useEffect(() => {
+  const load = () => {
     fetchPresetRows('meal').then((rows) => {
-      if (!rows) return
+      if (!rows) return // keep static fallback
       setPresets(PRESET_MEAL_PLANS.map((jsPreset) => {
         const dbRow = rows.find((r) => r.id === jsPreset.id)
         return mergePresetRow(jsPreset, dbRow)
       }))
     })
+  }
+
+  useEffect(() => {
+    load()
+    const unsub = subscribeToPresetChanges((type) => { if (type === 'meal') load() })
+    return unsub
   }, [])
 
   return presets
@@ -106,11 +140,12 @@ export function useMergedMealPlans() {
 
 /**
  * Hook: returns merged shopping list presets.
+ * Realtime: cache cleared on admin save.
  */
 export function useMergedShoppingLists() {
   const [presets, setPresets] = useState(PRESET_SHOPPING_LISTS)
 
-  useEffect(() => {
+  const load = () => {
     fetchPresetRows('shopping').then((rows) => {
       if (!rows) return
       setPresets(PRESET_SHOPPING_LISTS.map((jsPreset) => {
@@ -118,19 +153,26 @@ export function useMergedShoppingLists() {
         return mergePresetRow(jsPreset, dbRow)
       }))
     })
+  }
+
+  useEffect(() => {
+    load()
+    const unsub = subscribeToPresetChanges((type) => { if (type === 'shopping') load() })
+    return unsub
   }, [])
 
   return presets
 }
 
 /**
- * Hook: returns exercise image map { presetId → imageUrl } from DB.
+ * Hook: returns exercise image map { presetExId → imageUrl } from DB.
  * Used to show admin-uploaded thumbnails on preset exercise cards.
+ * Realtime: refreshes when admin uploads an exercise image.
  */
 export function useExerciseImageMap() {
   const [imageMap, setImageMap] = useState({})
 
-  useEffect(() => {
+  const load = () => {
     fetchPresetRows('exercise').then((rows) => {
       if (!rows) return
       const map = {}
@@ -141,6 +183,12 @@ export function useExerciseImageMap() {
       }
       setImageMap(map)
     })
+  }
+
+  useEffect(() => {
+    load()
+    const unsub = subscribeToPresetChanges((type) => { if (type === 'exercise') load() })
+    return unsub
   }, [])
 
   return imageMap

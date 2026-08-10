@@ -10,6 +10,7 @@ export default function ExercisePickerRow({
   disabled = false,
   onClick,
   trailing,
+  imageUrl = null,
 }) {
   return (
     <button
@@ -25,15 +26,21 @@ export default function ExercisePickerRow({
           : 'border-border/60 bg-background hover:bg-muted/40'
       )}
     >
-      <div
-        className={cn(
-          'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border',
-          selected ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/30'
-        )}
-        aria-hidden
-      >
-        {selected ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
-      </div>
+      {/* Admin-uploaded thumbnail — shown when available */}
+      {imageUrl ? (
+        <img src={imageUrl} alt={title}
+          className="w-8 h-8 rounded-md object-cover shrink-0 border border-border/40" />
+      ) : (
+        <div
+          className={cn(
+            'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border',
+            selected ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/30'
+          )}
+          aria-hidden
+        >
+          {selected ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
+        </div>
+      )}
 
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium leading-tight truncate">{title}</p>
