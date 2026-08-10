@@ -178,6 +178,8 @@ export function useExerciseImageMap() {
       const map = {}
       for (const row of rows) {
         for (const ex of (row.data?.exercises ?? [])) {
+          // Support both old format (id) and new format (key = templateId-exerciseName)
+          if (ex.key && ex.imageUrl) map[ex.key] = ex.imageUrl
           if (ex.id && ex.imageUrl) map[ex.id] = ex.imageUrl
         }
       }
