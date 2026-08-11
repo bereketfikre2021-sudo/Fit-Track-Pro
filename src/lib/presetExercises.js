@@ -149,7 +149,7 @@ export function getPresetExercises() {
     ...preset,
     equipment: normalizeEquipment(preset.equipment),
     location: inferPresetLocation(preset),
-    id: `preset-${index}`,
+    id: `p-${index}`,
   }))
 }
 

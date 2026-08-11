@@ -1371,7 +1371,7 @@ function FoodFormDialog({ food, onClose, onSave }) {
   const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const [formData, setFormData] = useState(
-    food || { name: '', calories: '', protein: '', carbs: '', fat: '' }
+    food || { name: '', calories: '', protein: '', carbs: '', fat: '', imageUrl: '' }
   )
 
   const suggestions = useMemo(() => searchFoods(searchQuery), [searchQuery])
@@ -1512,6 +1512,24 @@ function FoodFormDialog({ food, onClose, onSave }) {
               </div>
             </div>
 
+            {/* Image upload */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                Photo <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <div className="flex items-center gap-3">
+                <ItemThumbnail
+                  imageUrl={formData.imageUrl || ''}
+                  onImageChange={(dataUrl) => setFormData((prev) => ({ ...prev, imageUrl: dataUrl }))}
+                  alt={formData.name || 'Food image'}
+                  size="md"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Click the thumbnail to upload a photo of this food item. Saved locally on your device.
+                </p>
+              </div>
+            </div>
+
             <div className="flex gap-3 pt-2">
               <Button type="button" variant="outline" onClick={onClose} className="flex-1">
                 <X className="h-4 w-4 mr-2" />
@@ -1532,9 +1550,7 @@ function FoodFormDialog({ food, onClose, onSave }) {
 function ShoppingItemDialog({ item, category, onClose, onSave }) {
   const { t } = useTranslation()
   const [formData, setFormData] = useState(
-    item || {
-      name: ''
-    }
+    item || { name: '', imageUrl: '' }
   )
 
   const handleSubmit = (e) => {
@@ -1568,6 +1584,24 @@ function ShoppingItemDialog({ item, category, onClose, onSave }) {
               required
               autoFocus
             />
+          </div>
+
+          {/* Image upload */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">
+              Photo <span className="text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <div className="flex items-center gap-3">
+              <ItemThumbnail
+                imageUrl={formData.imageUrl || ''}
+                onImageChange={(dataUrl) => setFormData((prev) => ({ ...prev, imageUrl: dataUrl }))}
+                alt={formData.name || 'Item image'}
+                size="md"
+              />
+              <p className="text-xs text-muted-foreground">
+                Click to add a photo. Saved locally on your device.
+              </p>
+            </div>
           </div>
 
           <div className="flex gap-3 pt-4">

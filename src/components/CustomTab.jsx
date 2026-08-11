@@ -21,6 +21,8 @@ import {
   ChevronDown,
   Sparkles,
   ArrowLeftRight,
+  Search,
+  Info,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
@@ -66,10 +68,26 @@ import { showImportWarnings } from '@/lib/importWarnings'
 import ImportExerciseDialog from './ImportExerciseDialog'
 import AiRecommendButton from './AiRecommendButton'
 import JsonFileActions from './JsonFileActions'
-import PresetExerciseBrowser from './PresetExerciseBrowser'
 import ExerciseHistorySheet from './ExerciseHistorySheet'
-import { EXERCISE_CATEGORIES } from '@/lib/presetExercises'
-import { displayCategory } from '@/lib/exerciseFilterDisplay'
+import ExerciseDetailSheet from './ExerciseDetailSheet'
+import ExerciseFilterBar from './ExerciseFilterBar'
+import ExerciseSecondaryFilterBar from './ExerciseSecondaryFilterBar'
+import {
+  addPresetsToLibrary,
+  filterPresetExercises,
+  getPresetExercises,
+  isPresetInLibrary,
+  EXERCISE_CATEGORIES,
+} from '@/lib/presetExercises'
+import {
+  displayCategory,
+  displayDifficulty,
+  displayEquipment,
+  displayLocation,
+  displayMuscleList,
+} from '@/lib/exerciseFilterDisplay'
+import { normalizeMuscleGroup } from '@/lib/exerciseTaxonomy'
+import { useExerciseImageMap } from '@/lib/usePresets'
 import { fetchExerciseRecommendation } from '@/lib/aiRecommendations'
 import { getAiToastKey } from '@/lib/aiErrors'
 import { shouldShowExerciseSetupPrompt, hasAnyExercises, isMealPlanEmpty, isShoppingListEmpty } from '@/lib/planEmpty'
@@ -98,7 +116,6 @@ function CustomTab({ state, updateState }) {
   const [newExercisePhase, setNewExercisePhase] = useState(EXERCISE_PHASE.MAIN)
   const [exercisePhaseFilter, setExercisePhaseFilter] = useState(EXERCISE_PHASE.MAIN)
   const [editingExercise, setEditingExercise] = useState(null)
-  const [presetBrowserOpen, setPresetBrowserOpen] = useState(false)
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [importFile, setImportFile] = useState(null)
   const [addTypeOpen, setAddTypeOpen] = useState(false)
@@ -108,6 +125,19 @@ function CustomTab({ state, updateState }) {
   const [libraryOpen, setLibraryOpen] = useState(false)
   const [showUpdatePlan, setShowUpdatePlan] = useState(false)
   const [showPresetPlans, setShowPresetPlans] = useState(false)
+
+  // Preset exercise library inline state
+  const [presetLibraryOpen, setPresetLibraryOpen] = useState(false)
+  const [presetSearchQuery, setPresetSearchQuery] = useState('')
+  const [presetCategoryFilter, setPresetCategoryFilter] = useState('Strength')
+  const [presetMuscleFilter, setPresetMuscleFilter] = useState('')
+  const [presetEquipmentFilter, setPresetEquipmentFilter] = useState('')
+  const [presetDifficultyFilter, setPresetDifficultyFilter] = useState('')
+  const [presetLocationFilter, setPresetLocationFilter] = useState('')
+  const [presetDetailExercise, setPresetDetailExercise] = useState(null)
+
+  const exerciseImageMap = useExerciseImageMap()
+  const allPresets = useMemo(() => getPresetExercises(), [])
 
   const customExercises = state.customExercises || []
   const showExerciseSetupPrompt = shouldShowExerciseSetupPrompt(state)
@@ -135,6 +165,22 @@ function CustomTab({ state, updateState }) {
       }),
     [customExercises, exercisePhaseFilter]
   )
+
+  const filteredPresets = useMemo(
+    () =>
+      filterPresetExercises(allPresets, {
+        searchQuery: presetSearchQuery,
+        categoryFilter: presetCategoryFilter,
+        muscleFilter: presetMuscleFilter,
+        equipmentFilter: presetEquipmentFilter,
+        difficultyFilter: presetDifficultyFilter,
+        locationFilter: presetLocationFilter,
+        sortBy: 'name',
+      }),
+    [allPresets, presetSearchQuery, presetCategoryFilter, presetMuscleFilter, presetEquipmentFilter, presetDifficultyFilter, presetLocationFilter]
+  )
+
+  const presetHasSecondaryFilters = Boolean(presetEquipmentFilter || presetDifficultyFilter || presetLocationFilter)
 
   const handlePresetsAdded = (nextExercises, added) => {
     updateState({ customExercises: nextExercises })
@@ -286,7 +332,7 @@ function CustomTab({ state, updateState }) {
           />
         </div>
 
-        {/* ── EXERCISES (collapsible) ───────────────────── */}
+        {/* ── USER EXERCISES (collapsible) ─────────────── */}
         <div className="space-y-3">
           <button
             type="button"
@@ -295,7 +341,7 @@ function CustomTab({ state, updateState }) {
           >
             <span className="flex items-center gap-2">
               <Dumbbell className="h-4 w-4 text-primary" />
-              <span>Exercises</span>
+              <span>My Exercises</span>
               <span className="text-xs font-normal text-muted-foreground">
                 ({customExercises.length})
               </span>
@@ -392,6 +438,96 @@ function CustomTab({ state, updateState }) {
           )}
         </div>
 
+        {/* ── PRESET EXERCISES (collapsible inline browser) ── */}
+        <div className="space-y-3">
+          <button
+            type="button"
+            className="w-full flex items-center justify-between gap-2 rounded-lg border border-border px-4 py-3 text-sm font-semibold hover:bg-muted/30 transition-colors"
+            onClick={() => setPresetLibraryOpen((v) => !v)}
+          >
+            <span className="flex items-center gap-2">
+              <Library className="h-4 w-4 text-primary" />
+              <span>Preset Exercises</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                ({allPresets.length})
+              </span>
+            </span>
+            {presetLibraryOpen
+              ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+              : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+          </button>
+
+          {presetLibraryOpen && (
+            <div className="space-y-3">
+              {/* Search */}
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={presetSearchQuery}
+                  onChange={(e) => setPresetSearchQuery(e.target.value)}
+                  placeholder={t('exercises.searchPlaceholder')}
+                  className="h-9 pl-9 text-sm"
+                />
+              </div>
+
+              {/* Category + Muscle filter */}
+              <ExerciseFilterBar
+                categoryFilter={presetCategoryFilter}
+                onCategoryChange={setPresetCategoryFilter}
+                muscleFilter={presetMuscleFilter}
+                onMuscleChange={setPresetMuscleFilter}
+              />
+
+              {/* Secondary filters */}
+              <ExerciseSecondaryFilterBar
+                equipmentFilter={presetEquipmentFilter}
+                onEquipmentChange={setPresetEquipmentFilter}
+                difficultyFilter={presetDifficultyFilter}
+                onDifficultyChange={setPresetDifficultyFilter}
+                locationFilter={presetLocationFilter}
+                onLocationChange={setPresetLocationFilter}
+                hasActiveFilters={presetHasSecondaryFilters}
+                onClear={() => { setPresetEquipmentFilter(''); setPresetDifficultyFilter(''); setPresetLocationFilter('') }}
+              />
+
+              <p className="text-[10px] text-muted-foreground">
+                {t('exercises.shownSorted', { count: filteredPresets.length })}
+              </p>
+
+              {filteredPresets.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">{t('exercises.noMatch')}</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {filteredPresets.map((preset) => {
+                    const inLibrary = isPresetInLibrary(preset.name, customExercises)
+                    const nameKey = `name:${String(preset.name).toLowerCase().replace(/\s+/g, '-')}`
+                    const imageUrl = exerciseImageMap[preset.id] ?? exerciseImageMap[nameKey] ?? null
+                    return (
+                      <PresetExerciseCard
+                        key={preset.id}
+                        preset={preset}
+                        imageUrl={imageUrl}
+                        inLibrary={inLibrary}
+                        onAdd={() => {
+                          if (inLibrary) return
+                          const { customExercises: next, added } = addPresetsToLibrary(customExercises, [preset])
+                          if (added.length) {
+                            updateState({ customExercises: next })
+                            toast.success(t('custom.toastAdded', { name: added[0].name }))
+                            setLibraryOpen(true)
+                          }
+                        }}
+                        onPreview={() => setPresetDetailExercise(preset)}
+                        t={t}
+                      />
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* ── UPDATE PLAN ───────────────────────────────── */}
         <div className="space-y-3">
           <button
@@ -445,14 +581,6 @@ function CustomTab({ state, updateState }) {
 
       </div>
 
-      <PresetExerciseBrowser
-        open={presetBrowserOpen}
-        onOpenChange={setPresetBrowserOpen}
-        customExercises={customExercises}
-        onAdd={handlePresetsAdded}
-        profileEquipment={state.profile?.equipment || []}
-      />
-
       <ImportExerciseDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
@@ -468,17 +596,6 @@ function CustomTab({ state, updateState }) {
           </DialogHeader>
 
           <div className="grid gap-2">
-            <Button
-              variant="outline"
-              className="justify-start"
-              onClick={() => {
-                setAddTypeOpen(false)
-                setPresetBrowserOpen(true)
-              }}
-            >
-              <Library className="h-4 w-4 mr-2 shrink-0" />
-              {t('exercises.presetBrowse')}
-            </Button>
             <Button
               variant="outline"
               className="justify-start"
@@ -537,6 +654,13 @@ function CustomTab({ state, updateState }) {
           onClose={() => setHistoryExercise(null)}
         />
       )}
+
+      {/* Preset exercise detail/preview sheet */}
+      <ExerciseDetailSheet
+        exercise={presetDetailExercise}
+        open={!!presetDetailExercise}
+        onClose={() => setPresetDetailExercise(null)}
+      />
 
     </div>
   )
@@ -615,6 +739,110 @@ function CustomTab({ state, updateState }) {
     })
     toast.success(t('custom.toastDeleted', { name: localizedName(exercise) }))
   }
+}
+
+/** Preset exercise card — matches ExerciseLibraryCard style but read-only with an "Add" action */
+function PresetExerciseCard({ preset, imageUrl, inLibrary, onAdd, onPreview, t }) {
+  const phase = preset.exercisePhase || 'main'
+  const subtitle = [
+    preset.sets && preset.reps ? `${preset.sets} sets × ${preset.reps} reps` : null,
+    preset.isTimeBased && preset.duration ? `${preset.duration} ${preset.durationUnit || 'sec'}` : null,
+  ].filter(Boolean).join(' · ')
+
+  const muscles = Array.isArray(preset.muscleGroup) ? preset.muscleGroup : []
+  const tags = [
+    preset.difficulty,
+    preset.equipment,
+    preset.location,
+  ].filter(Boolean)
+
+  return (
+    <Card className="p-3 hover:shadow-md transition-shadow rounded-md">
+      <div className="flex gap-3">
+        {/* Thumbnail */}
+        <div className="w-16 h-16 md:w-[4.5rem] md:h-[4.5rem] flex-shrink-0 overflow-hidden rounded-md">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={preset.name}
+              className="w-full h-full object-cover rounded-md"
+              loading="lazy"
+              onError={(e) => { e.target.style.display = 'none' }}
+            />
+          ) : (
+            <div className="w-full h-full bg-muted flex items-center justify-center rounded-md">
+              <Dumbbell className="h-7 w-7 text-muted-foreground opacity-50" />
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold leading-tight truncate">{preset.name}</p>
+              {subtitle && (
+                <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
+              )}
+              {tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted border border-border text-muted-foreground leading-none"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {muscles.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {muscles.slice(0, 4).map((m) => (
+                    <span
+                      key={m}
+                      className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 leading-none"
+                    >
+                      {m}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-0.5 shrink-0">
+              {onPreview && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-primary"
+                  onClick={onPreview}
+                  title="Preview"
+                >
+                  <Info className="h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant={inLibrary ? 'outline' : 'default'}
+                disabled={inLibrary}
+                className="h-8 px-2.5 text-xs"
+                onClick={onAdd}
+              >
+                {inLibrary ? (
+                  t('exercises.presetInLibrary', { defaultValue: 'Added' })
+                ) : (
+                  <>
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    {t('exercises.presetAdd', { defaultValue: 'Add' })}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  )
 }
 
 function ExerciseFormDialog({ exercise, defaultPhase = EXERCISE_PHASE.MAIN, onClose, onSave }) {

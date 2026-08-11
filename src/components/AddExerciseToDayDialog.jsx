@@ -241,6 +241,7 @@ function AddExerciseToDayDialog({ day, customExercises, onClose, onAdd }) {
                         subtitle={subtitle}
                         badges={[getExercisePhaseLabel(phase)]}
                         selected={!!selections[ex.id]}
+                        imageUrl={ex.imageUrl || null}
                         onClick={() => toggleExercise(ex)}
                         trailing={
                           <button

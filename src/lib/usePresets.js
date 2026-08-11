@@ -26,7 +26,7 @@ import {
   localizedShoppingPreset,
 } from './presetShoppingLists'
 
-const CACHE_TTL = 1000 * 60 * 5 // 5 minutes — short enough to pick up admin changes quickly
+const CACHE_TTL = 1000 * 10 // 10 seconds — picks up admin changes near-instantly
 
 function readCache(key) {
   try {
@@ -71,7 +71,7 @@ function subscribeToPresetChanges(onInvalidate) {
 
 /**
  * Fetch preset_plans rows from Supabase for a given type.
- * Returns an array of rows or null on failure (triggers static fallback).
+ * Returns an array of rows (may be empty), or null only on hard error.
  */
 async function fetchPresetRows(type) {
   const cached = readCache(`presetCache_${type}`)
@@ -83,9 +83,10 @@ async function fetchPresetRows(type) {
       .select('*')
       .eq('type', type)
       .order('id')
-    if (error || !data?.length) return null
-    writeCache(`presetCache_${type}`, data)
-    return data
+    if (error) return null
+    // Even an empty array is valid — write it so we don't keep hitting DB
+    writeCache(`presetCache_${type}`, data ?? [])
+    return data ?? []
   } catch { return null }
 }
 
@@ -121,7 +122,7 @@ export function useMergedMealPlans() {
 
   const load = () => {
     fetchPresetRows('meal').then((rows) => {
-      if (!rows) return // keep static fallback
+      if (rows === null) return // hard error — keep current state
       setPresets(PRESET_MEAL_PLANS.map((jsPreset) => {
         const dbRow = rows.find((r) => r.id === jsPreset.id)
         return mergePresetRow(jsPreset, dbRow)
@@ -147,7 +148,7 @@ export function useMergedShoppingLists() {
 
   const load = () => {
     fetchPresetRows('shopping').then((rows) => {
-      if (!rows) return
+      if (rows === null) return // hard error — keep current state
       setPresets(PRESET_SHOPPING_LISTS.map((jsPreset) => {
         const dbRow = rows.find((r) => r.id === jsPreset.id)
         return mergePresetRow(jsPreset, dbRow)
@@ -166,7 +167,8 @@ export function useMergedShoppingLists() {
 
 /**
  * Hook: returns exercise image map { presetExId → imageUrl } from DB.
- * Used to show admin-uploaded thumbnails on preset exercise cards.
+ * Keys are matched by exercise id (p-0..p-59) and also by exercise name
+ * as a fallback so admin-uploaded images always resolve correctly.
  * Realtime: refreshes when admin uploads an exercise image.
  */
 export function useExerciseImageMap() {
@@ -174,13 +176,19 @@ export function useExerciseImageMap() {
 
   const load = () => {
     fetchPresetRows('exercise').then((rows) => {
-      if (!rows) return
+      if (rows === null) return // hard error — keep current state
       const map = {}
       for (const row of rows) {
         for (const ex of (row.data?.exercises ?? [])) {
-          // Support both old format (id) and new format (key = templateId-exerciseName)
-          if (ex.key && ex.imageUrl) map[ex.key] = ex.imageUrl
+          // Match by id (p-0, p-1, …)
           if (ex.id && ex.imageUrl) map[ex.id] = ex.imageUrl
+          // Match by key (legacy)
+          if (ex.key && ex.imageUrl) map[ex.key] = ex.imageUrl
+          // Match by name (case-insensitive normalised) as final fallback
+          if (ex.name && ex.imageUrl) {
+            const nameKey = String(ex.name).toLowerCase().replace(/\s+/g, '-')
+            map[`name:${nameKey}`] = ex.imageUrl
+          }
         }
       }
       setImageMap(map)
