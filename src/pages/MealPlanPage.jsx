@@ -172,6 +172,8 @@ import { calculateBmi, getBmiCategory, resolveEffectiveTrainingGoal } from '../l
 import { hasAnyExercises, isMealPlanEmpty, isShoppingListEmpty } from '../lib/planEmpty'
 import { allowsAiPlanFeatures, allowsTemplatePlanFeatures } from '@/lib/planSetup'
 import { searchFoods } from '../lib/ethiopianFoods'
+import { mergeMealsIntoShoppingList } from '../lib/shoppingFromMeals'
+import JsonFileActions from '../components/JsonFileActions'
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -225,6 +227,7 @@ function MealPlanPage({ state, updateState }) {
   const shoppingList = state.shoppingList || {}
   const showTemplateShoppingFeatures = allowsTemplatePlanFeatures(state)
   const appSettings = getAppSettings(state)
+  const showJsonControls = appSettings.enableJsonImportExport
 
   // Profile-level BMI and category — used for filtering presets
   const profile = state.profile || {}
@@ -258,6 +261,32 @@ function MealPlanPage({ state, updateState }) {
     const canonical = canonicalizeShoppingListCategories(shoppingList)
     if (JSON.stringify(canonical) === JSON.stringify(shoppingList)) return
     updateState({ shoppingList: canonical })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // One-time migration: deduplicate foods in the stored meal plan.
+  // Guards against previously-applied preset plans that had DB duplicates.
+  useEffect(() => {
+    if (!mealPlan || typeof mealPlan !== 'object') return
+    let changed = false
+    const deduped = {}
+    for (const [day, slots] of Object.entries(mealPlan)) {
+      deduped[day] = {}
+      for (const [slot, foods] of Object.entries(slots || {})) {
+        if (!Array.isArray(foods)) { deduped[day][slot] = foods; continue }
+        const seen = new Set()
+        const unique = foods.filter((food) => {
+          const key = food.id
+            ? food.id
+            : `${String(food.name || '').toLowerCase().trim()}|${food.calories ?? ''}`
+          if (seen.has(key)) { changed = true; return false }
+          seen.add(key)
+          return true
+        })
+        deduped[day][slot] = unique
+      }
+    }
+    if (changed) updateState({ mealPlan: deduped })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -312,8 +341,32 @@ function MealPlanPage({ state, updateState }) {
     try {
       const parsed = await fetchMealPlanRecommendation(state)
       const result = applyMealPlanImport(state, parsed, { replace: true })
-      updateState({ mealPlan: result.mealPlan })
-      toast.success(t('mealToasts.aiMealApplied'))
+      const newMealPlan = result.mealPlan
+
+      // Auto-sync shopping list from the new meal plan
+      const { shoppingList: newShoppingList, addedCount } = mergeMealsIntoShoppingList(
+        newMealPlan,
+        {} // start fresh — full rebuild from new AI meal plan
+      )
+
+      updateState({ mealPlan: newMealPlan, shoppingList: newShoppingList })
+
+      // Primary success toast
+      toast.success(t('mealToasts.aiMealApplied'), {
+        description: addedCount > 0
+          ? `🛒 Shopping list updated with ${addedCount} ingredient${addedCount !== 1 ? 's' : ''} from your new meal plan.`
+          : undefined,
+        duration: 5000,
+      })
+
+      // Dedicated shopping list notification
+      if (addedCount > 0) {
+        toast.success('Shopping list auto-updated', {
+          description: `${addedCount} ingredient${addedCount !== 1 ? 's' : ''} added from your AI meal plan. Check your Shopping List tab.`,
+          icon: '🛒',
+          duration: 6000,
+        })
+      }
     } catch (err) {
       toast.error(t(getAiToastKey(err)))
     } finally {
@@ -651,10 +704,18 @@ function MealPlanPage({ state, updateState }) {
             <h1 className="text-2xl font-bold mb-1">{t('meals.pageTitle')}</h1>
             <p className="text-sm text-muted-foreground">{t('meals.pageSubtitle')}</p>
           </div>
-          {/* PDF actions — shown based on active tab */}
+          {/* PDF + JSON actions — shown based on active tab */}
           <div className="flex items-center gap-1.5 shrink-0">
             {activeTab === 'meals' && (
               <>
+                {showJsonControls && (
+                  <JsonFileActions
+                    onTemplate={() => { downloadMealPlanTemplate(); toast.success('Meal plan template downloaded') }}
+                    onExport={handleExportMeals}
+                    onImportFileSelected={handleImportMealsFileSelected}
+                    size="sm"
+                  />
+                )}
                 <Button size="icon" variant="ghost" className="h-8 w-8" title="Download meal plan PDF" onClick={handleDownloadMealPDF}>
                   <FileText className="h-4 w-4" />
                 </Button>
@@ -665,6 +726,14 @@ function MealPlanPage({ state, updateState }) {
             )}
             {activeTab === 'shopping' && (
               <>
+                {showJsonControls && (
+                  <JsonFileActions
+                    onTemplate={() => { downloadShoppingListTemplate(); toast.success('Shopping list template downloaded') }}
+                    onExport={handleExportShoppingList}
+                    onImportFileSelected={handleImportShoppingListFileSelected}
+                    size="sm"
+                  />
+                )}
                 <Button size="icon" variant="ghost" className="h-8 w-8" title="Download shopping list PDF" onClick={handleDownloadShoppingPDF}>
                   <FileText className="h-4 w-4" />
                 </Button>
@@ -712,6 +781,11 @@ function MealPlanPage({ state, updateState }) {
                   {t('meals.generateMealPlanDesc')}
                   {!hasAnyExercises(state) && ' ' + t('meals.aiNeedsExercises')}
                 </p>
+                {/* Shopping list auto-update notice */}
+                <div className="flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-2 text-xs text-primary">
+                  <ShoppingCart className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
+                  <span>Your <strong>shopping list will be automatically updated</strong> when you apply a new meal plan.</span>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {allowsAiPlanFeatures(state) && (
                     <AiRecommendButton
@@ -1297,7 +1371,7 @@ function MealPlanPage({ state, updateState }) {
                 Apply "{localizedShoppingPreset(confirmShoppingPreset, i18n.language).name}"
               </DialogTitle>
               <DialogDescription>
-                This will <strong>replace</strong> your current shopping list completely.
+                This will <strong>replace</strong> your current shopping list with ingredients matched to this plan.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 pt-1">
@@ -1316,7 +1390,12 @@ function MealPlanPage({ state, updateState }) {
                   updateState({ shoppingList: items })
                   setShowShoppingPresets(false)
                   setConfirmShoppingPreset(null)
-                  toast.success(`${localizedShoppingPreset(confirmShoppingPreset, i18n.language).name} applied`)
+                  const presetName = localizedShoppingPreset(confirmShoppingPreset, i18n.language).name
+                  toast.success(`Shopping list updated to "${presetName}"`, {
+                    description: 'Your shopping list has been replaced with the preset ingredients.',
+                    icon: '🛒',
+                    duration: 5000,
+                  })
                 }}>
                   <LayoutTemplate className="h-4 w-4 mr-1.5" />
                   {t('meals.applyList')}

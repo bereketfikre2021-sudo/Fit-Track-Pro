@@ -197,7 +197,7 @@ export function presetToLibraryExercise(preset, baseTime = Date.now(), index = 0
     goals: preset.goals || [],
     category: preset.category || 'Strength',
     location: inferPresetLocation(preset),
-    imageUrl: '',
+    imageUrl: preset.imageUrl || '',
     instructions: '',
     tips: '',
     description: '',

@@ -99,17 +99,32 @@ function mergePresetRow(jsPreset, dbRow) {
   if (!dbRow) return jsPreset
   return {
     ...jsPreset,
-    name:          dbRow.name       ?? jsPreset.name,
-    name_am:       dbRow.name_am    ?? jsPreset.name_am,
-    description:   dbRow.description     ?? jsPreset.description,
+    name:           dbRow.name          ?? jsPreset.name,
+    name_am:        dbRow.name_am       ?? jsPreset.name_am,
+    description:    dbRow.description   ?? jsPreset.description,
     description_am: dbRow.description_am ?? jsPreset.description_am,
-    tags:          dbRow.tags       ?? jsPreset.tags,
-    tags_am:       dbRow.tags_am    ?? jsPreset.tags_am,
-    image_url:     dbRow.image_url  ?? null,
+    tags:           dbRow.tags          ?? jsPreset.tags,
+    tags_am:        dbRow.tags_am       ?? jsPreset.tags_am,
+    image_url:      dbRow.image_url     ?? null,
     // Replace days/categories with DB version if present
     ...(dbRow.data?.days       ? { days: dbRow.data.days }             : {}),
     ...(dbRow.data?.categories ? { categories: dbRow.data.categories } : {}),
   }
+}
+
+/**
+ * Find a matching DB row for a JS preset.
+ * Tries exact ID match first, then name-based match as fallback
+ * to survive any future admin ID changes.
+ */
+function findMatchingRow(rows, jsPreset) {
+  // 1. Exact ID match (the normal case)
+  const byId = rows.find((r) => r.id === jsPreset.id)
+  if (byId) return byId
+  // 2. Name match (fallback — guards against admin ID drift)
+  const normName = (s) => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim()
+  const jsName = normName(jsPreset.name)
+  return rows.find((r) => normName(r.name) === jsName) ?? null
 }
 
 /**
@@ -122,9 +137,9 @@ export function useMergedMealPlans() {
 
   const load = () => {
     fetchPresetRows('meal').then((rows) => {
-      if (rows === null) return // hard error — keep current state
+      if (rows === null) return
       setPresets(PRESET_MEAL_PLANS.map((jsPreset) => {
-        const dbRow = rows.find((r) => r.id === jsPreset.id)
+        const dbRow = findMatchingRow(rows, jsPreset)
         return mergePresetRow(jsPreset, dbRow)
       }))
     })
@@ -148,9 +163,9 @@ export function useMergedShoppingLists() {
 
   const load = () => {
     fetchPresetRows('shopping').then((rows) => {
-      if (rows === null) return // hard error — keep current state
+      if (rows === null) return
       setPresets(PRESET_SHOPPING_LISTS.map((jsPreset) => {
-        const dbRow = rows.find((r) => r.id === jsPreset.id)
+        const dbRow = findMatchingRow(rows, jsPreset)
         return mergePresetRow(jsPreset, dbRow)
       }))
     })
@@ -207,9 +222,48 @@ export function useExerciseImageMap() {
 /**
  * Build preset meal plan days — uses DB data if available, falls back to JS.
  */
+/**
+ * Deduplicate foods within a slot by id first, then by name+calories.
+ * Guards against admin double-saves that accumulate duplicate rows in the DB.
+ */
+function deduplicateFoods(foods) {
+  if (!Array.isArray(foods)) return foods
+  const seen = new Set()
+  return foods.filter((food) => {
+    // Use id if it exists and is unique
+    if (food.id) {
+      if (seen.has(food.id)) return false
+      seen.add(food.id)
+      return true
+    }
+    // Fallback: deduplicate by name+calories combination
+    const key = `${String(food.name || '').toLowerCase().trim()}|${food.calories ?? ''}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+/**
+ * Deduplicate all foods across all days and slots in a meal plan.
+ */
+function deduplicateMealPlanDays(days) {
+  if (!days || typeof days !== 'object') return days
+  const result = {}
+  for (const [day, slots] of Object.entries(days)) {
+    result[day] = {}
+    for (const [slot, foods] of Object.entries(slots)) {
+      result[day][slot] = deduplicateFoods(foods)
+    }
+  }
+  return result
+}
+
 export function buildMergedMealPlanDays(preset) {
-  // preset.days already contains merged DB data (from useMergedMealPlans)
-  return buildPresetMealPlanDays(preset)
+  // preset.days already contains merged DB data (from useMergedMealPlans).
+  // Deduplicate before returning to guard against admin double-saves.
+  const raw = buildPresetMealPlanDays(preset)
+  return deduplicateMealPlanDays(raw)
 }
 
 /**

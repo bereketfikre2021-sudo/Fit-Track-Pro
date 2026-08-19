@@ -65,80 +65,154 @@ export function getExerciseImportTemplate() {
   return {
     version: EXERCISE_IMPORT_VERSION,
     description:
-      'FitTrack Pro import file. Registers exercises in your library and can assign them to workout days. Unknown days in schedule are added to your week automatically.',
-    workoutDays: ['Monday', 'Tuesday', 'Thursday'],
+      'FitTrack Pro import file — full weekly plan. ' +
+      'Pick ANY days you want in "workoutDays" (any combination of Monday–Sunday, no fixed limit). ' +
+      'Define your exercises in the "exercises" array, then assign them to your chosen days in "schedule". ' +
+      'exercisePhase: warmup | main | cooldown. Import via the JSON button in the Library section.',
+
+    // ── CHOOSE YOUR WORKOUT DAYS — any combination, any number ───────────
+    // Options: "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday" "Sunday"
+    // 3-day example:  ["Monday", "Wednesday", "Friday"]
+    // 4-day example:  ["Monday", "Tuesday", "Thursday", "Friday"]
+    // 5-day example:  ["Monday", "Tuesday", "Thursday", "Friday", "Saturday"]
+    // 6-day example:  ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    // Just edit this array — any days not listed here are rest days.
+    workoutDays: ['Monday', 'Tuesday', 'Thursday', 'Friday'],
+
+    // ── Exercise Library ──────────────────────────────────────────────────
+    // All exercises used in the schedule must be defined here first.
+    // exercisePhase: "warmup" | "main" | "cooldown"
     exercises: [
-      {
-        name: 'Arm Circles',
-        exercisePhase: 'warmup',
-        duration: '5',
-        durationUnit: 'minutes',
-        description: 'Light shoulder mobility',
-        equipment: 'Bodyweight',
-        muscleGroups: ['Shoulders'],
-        assignToDays: [],
-      },
-      {
-        name: 'Goblet Squat',
-        exercisePhase: 'main',
-        sets: '3',
-        reps: '10',
-        restTime: '60',
-        equipment: 'Dumbbell',
-        difficulty: 'Beginner',
-        muscleGroups: ['Quads', 'Glutes'],
-        category: 'Strength',
-        description: 'Keep chest tall, sit between hips',
-        tips: 'Use a full range of motion',
-      },
-      {
-        name: 'Romanian Deadlift',
-        exercisePhase: 'main',
-        sets: '3',
-        reps: '8-10',
-        restTime: '90',
-        equipment: 'Barbell',
-        muscleGroups: ['Hamstrings', 'Glutes'],
-      },
-      {
-        name: 'Dead Hang',
-        exercisePhase: 'main',
-        prescription: '2×30 sec',
-        equipment: 'Bodyweight',
-        muscleGroups: ['Back', 'Grip'],
-        isTimeBased: true,
-      },
-      {
-        name: 'Hamstring Stretch',
-        exercisePhase: 'cooldown',
-        duration: '3',
-        durationUnit: 'minutes',
-        description: 'Hold each side, breathe steadily',
-        equipment: 'Bodyweight',
-        muscleGroups: ['Hamstrings'],
-      },
+      // ── Warm-up / Cool-down exercises ─────────────────────────────────
+      { name: 'Dead Hang',               exercisePhase: 'warmup',   isTimeBased: true,  duration: '25', durationUnit: 'seconds', equipment: 'Bodyweight', muscleGroups: ['Shoulders', 'Back'] },
+      { name: 'Push-Ups',                exercisePhase: 'warmup',   sets: '1', reps: '5-10',            equipment: 'Bodyweight', muscleGroups: ['Chest', 'Triceps'] },
+      { name: 'Bodyweight Squat',        exercisePhase: 'warmup',   sets: '1', reps: '10',              equipment: 'Bodyweight', muscleGroups: ['Legs'] },
+      { name: 'Leg Swings',              exercisePhase: 'warmup',   sets: '1', reps: '10 each',         equipment: 'Bodyweight', muscleGroups: ['Hips'] },
+      { name: 'Hamstring Stretch',       exercisePhase: 'cooldown', isTimeBased: true,  duration: '40', durationUnit: 'seconds', equipment: 'Bodyweight', muscleGroups: ['Hamstrings'] },
+      { name: 'Hip Flexor Stretch',      exercisePhase: 'cooldown', isTimeBased: true,  duration: '40', durationUnit: 'seconds', equipment: 'Bodyweight', muscleGroups: ['Hips'] },
+
+      // ── Main exercises ─────────────────────────────────────────────────
+      { name: 'Lat Pulldown',            exercisePhase: 'main', sets: '3', reps: '8-10',  restTime: '75',  equipment: 'Cable',      category: 'Strength', muscleGroups: ['Back'],              difficulty: 'Beginner'     },
+      { name: 'One-Arm Dumbbell Row',    exercisePhase: 'main', sets: '3', reps: '10',    restTime: '75',  equipment: 'Dumbbell',   category: 'Strength', muscleGroups: ['Back'],              difficulty: 'Intermediate' },
+      { name: 'Dumbbell Bench Press',    exercisePhase: 'main', sets: '3', reps: '8-10',  restTime: '75',  equipment: 'Dumbbell',   category: 'Strength', muscleGroups: ['Chest', 'Triceps'],  difficulty: 'Intermediate' },
+      { name: 'Dumbbell Shoulder Press', exercisePhase: 'main', sets: '2', reps: '8-10',  restTime: '75',  equipment: 'Dumbbell',   category: 'Strength', muscleGroups: ['Shoulders'],         difficulty: 'Beginner'     },
+      { name: 'Triceps Pushdown',        exercisePhase: 'main', sets: '2', reps: '12',    restTime: '60',  equipment: 'Cable',      category: 'Strength', muscleGroups: ['Triceps'],           difficulty: 'Beginner'     },
+      { name: 'Face Pull',               exercisePhase: 'main', sets: '2', reps: '15',    restTime: '45',  equipment: 'Cable',      category: 'Strength', muscleGroups: ['Shoulders', 'Back'], difficulty: 'Beginner'     },
+      { name: 'Plank',                   exercisePhase: 'main', sets: '2', reps: '',      restTime: '45',  equipment: 'Bodyweight', category: 'Strength', muscleGroups: ['Core'],              difficulty: 'Beginner', isTimeBased: true, duration: '40', durationUnit: 'seconds' },
+      { name: 'Goblet Squat',            exercisePhase: 'main', sets: '3', reps: '6-8',   restTime: '75',  equipment: 'Dumbbell',   category: 'Strength', muscleGroups: ['Legs'],              difficulty: 'Beginner'     },
+      { name: 'Romanian Deadlift',       exercisePhase: 'main', sets: '3', reps: '8',     restTime: '90',  equipment: 'Barbell',    category: 'Strength', muscleGroups: ['Hamstrings', 'Glutes'], difficulty: 'Intermediate' },
+      { name: 'Walking Lunge',           exercisePhase: 'main', sets: '2', reps: '10 each', restTime: '60', equipment: 'Dumbbell',  category: 'Strength', muscleGroups: ['Legs'],              difficulty: 'Beginner'     },
+      { name: 'Leg Press',               exercisePhase: 'main', sets: '2', reps: '10',    restTime: '75',  equipment: 'Machine',    category: 'Strength', muscleGroups: ['Legs'],              difficulty: 'Beginner'     },
+      { name: 'Standing Calf Raise',     exercisePhase: 'main', sets: '3', reps: '12-15', restTime: '45',  equipment: 'Machine',    category: 'Strength', muscleGroups: ['Calves'],            difficulty: 'Beginner'     },
+      { name: 'Hanging Knee Raise',      exercisePhase: 'main', sets: '3', reps: '10',    restTime: '60',  equipment: 'Bodyweight', category: 'Strength', muscleGroups: ['Core'],              difficulty: 'Intermediate' },
+      { name: 'Dead Bug',                exercisePhase: 'main', sets: '2', reps: '10 each', restTime: '45', equipment: 'Bodyweight', category: 'Strength', muscleGroups: ['Core'],             difficulty: 'Beginner'     },
+      { name: 'Machine Chest Press',     exercisePhase: 'main', sets: '3', reps: '8-10',  restTime: '75',  equipment: 'Machine',    category: 'Strength', muscleGroups: ['Chest'],             difficulty: 'Beginner'     },
+      { name: 'Machine Shoulder Press',  exercisePhase: 'main', sets: '2', reps: '10',    restTime: '60',  equipment: 'Machine',    category: 'Strength', muscleGroups: ['Shoulders'],         difficulty: 'Beginner'     },
+      { name: 'Lateral Raise',           exercisePhase: 'main', sets: '2', reps: '12-15', restTime: '45',  equipment: 'Dumbbell',   category: 'Strength', muscleGroups: ['Shoulders'],         difficulty: 'Beginner'     },
+      { name: 'Hammer Curl',             exercisePhase: 'main', sets: '2', reps: '10-12', restTime: '45',  equipment: 'Dumbbell',   category: 'Strength', muscleGroups: ['Biceps'],            difficulty: 'Beginner'     },
+      { name: "Farmer's Carry",          exercisePhase: 'main', sets: '3', reps: '',       restTime: '60', equipment: 'Dumbbell',   category: 'Strength', muscleGroups: ['Full Body'],         difficulty: 'Intermediate', isTimeBased: true, duration: '30', durationUnit: 'seconds' },
+      { name: 'Deadlift',                exercisePhase: 'main', sets: '3', reps: '5',     restTime: '120', equipment: 'Barbell',    category: 'Strength', muscleGroups: ['Back', 'Legs'],      difficulty: 'Advanced'     },
+      { name: 'Bulgarian Split Squat',   exercisePhase: 'main', sets: '2', reps: '8 each', restTime: '75', equipment: 'Dumbbell',   category: 'Strength', muscleGroups: ['Legs'],              difficulty: 'Intermediate' },
+      { name: 'Hip Thrust',              exercisePhase: 'main', sets: '2', reps: '10-12', restTime: '75',  equipment: 'Barbell',    category: 'Strength', muscleGroups: ['Glutes'],            difficulty: 'Intermediate' },
+      { name: 'Hip Abductor',            exercisePhase: 'main', sets: '2', reps: '12-15 each', restTime: '45', equipment: 'Machine', category: 'Strength', muscleGroups: ['Glutes', 'Hips'],   difficulty: 'Beginner'     },
+      { name: 'Leg Extension',           exercisePhase: 'main', sets: '2', reps: '12',    restTime: '45',  equipment: 'Machine',    category: 'Strength', muscleGroups: ['Legs'],              difficulty: 'Beginner'     },
+      { name: 'Bird Dog',                exercisePhase: 'main', sets: '2', reps: '10 each', restTime: '30', equipment: 'Bodyweight', category: 'Strength', muscleGroups: ['Core', 'Back'],     difficulty: 'Beginner'     },
     ],
+
+    // ── Weekly Schedule ───────────────────────────────────────────────────
+    // Add a key for EACH day you put in "workoutDays" above.
+    // You can also add rest days with empty exercises[] — they will NOT be added as workout days.
+    // "prescription" is shorthand like "3×8-10" or "2×30 sec" and overrides sets+reps.
+    // ADD OR REMOVE DAYS FREELY — there is no fixed limit or required structure.
     schedule: {
       Monday: {
-        note: 'Upper — strength base',
+        note: 'Upper A — Strength Base',
         exercises: [
-          { name: 'Arm Circles' },
-          { name: 'Dead Hang', prescription: '2×20-30 sec' },
-          { name: 'Goblet Squat', sets: '4', reps: '8' },
-          { name: 'Hamstring Stretch' },
+          { name: 'Dead Hang',               prescription: '1×20-30 sec' },
+          { name: 'Push-Ups',                prescription: '1×5-10' },
+          { name: 'Lat Pulldown',            sets: '3', reps: '8-10' },
+          { name: 'One-Arm Dumbbell Row',    sets: '3', reps: '10' },
+          { name: 'Dumbbell Bench Press',    sets: '3', reps: '8-10' },
+          { name: 'Dumbbell Shoulder Press', sets: '2', reps: '8-10' },
+          { name: 'Triceps Pushdown',        sets: '2', reps: '12' },
+          { name: 'Face Pull',               sets: '2', reps: '15' },
+          { name: 'Plank',                   prescription: '2×30-45 sec' },
         ],
       },
       Tuesday: {
-        note: 'Lower — growth',
+        note: 'Lower A — Squat Focus',
         exercises: [
-          { name: 'Goblet Squat' },
-          { name: 'Romanian Deadlift', prescription: '3×8-10' },
+          { name: 'Bodyweight Squat', prescription: '1×10' },
+          { name: 'Leg Swings',       prescription: '10 each leg' },
+          { name: 'Goblet Squat',            sets: '3', reps: '6-8' },
+          { name: 'Romanian Deadlift',       sets: '3', reps: '8' },
+          { name: 'Walking Lunge',           sets: '2', reps: '10 each' },
+          { name: 'Leg Press',               sets: '2', reps: '10' },
+          { name: 'Standing Calf Raise',     sets: '3', reps: '12-15' },
+          { name: 'Hanging Knee Raise',      sets: '3', reps: '10' },
+          { name: 'Dead Bug',                prescription: '2×10 each' },
+          { name: 'Hamstring Stretch' },
         ],
       },
-      Thursday: {
-        note: 'Upper — optional day (added even if not in workoutDays)',
-        exercises: [{ name: 'Goblet Squat', sets: '3', reps: '12' }],
+      Wednesday: {
+        note: 'Rest Day — light walk, stretch, eat well, sleep',
+        exercises: [],
       },
+      Thursday: {
+        note: 'Upper B — Balance & Stability',
+        exercises: [
+          { name: 'Dead Hang',               prescription: '1×20-30 sec' },
+          { name: 'Push-Ups',                prescription: '1×5-10' },
+          { name: 'Lat Pulldown',            sets: '2', reps: '10' },
+          { name: 'Machine Chest Press',     sets: '3', reps: '8-10' },
+          { name: 'Machine Shoulder Press',  sets: '2', reps: '10' },
+          { name: 'One-Arm Dumbbell Row',    sets: '3', reps: '8-12 each' },
+          { name: 'Face Pull',               sets: '2', reps: '15' },
+          { name: 'Lateral Raise',           sets: '2', reps: '12-15' },
+          { name: 'Hammer Curl',             sets: '2', reps: '10-12' },
+          { name: "Farmer's Carry",          prescription: '3×30 sec' },
+          { name: 'Plank',                   prescription: '2×30-45 sec' },
+        ],
+      },
+      Friday: {
+        note: 'Lower B — Power & Strength',
+        exercises: [
+          { name: 'Bodyweight Squat', prescription: '1×10' },
+          { name: 'Leg Swings',       prescription: '10 each leg' },
+          { name: 'Deadlift',                sets: '3', reps: '5' },
+          { name: 'Bulgarian Split Squat',   sets: '2', reps: '8 each' },
+          { name: 'Hip Thrust',              sets: '2', reps: '10-12' },
+          { name: 'Hip Abductor',            sets: '2', reps: '12-15 each' },
+          { name: 'Leg Extension',           sets: '2', reps: '12' },
+          { name: 'Standing Calf Raise',     sets: '2', reps: '12-15' },
+          { name: 'Bird Dog',                prescription: '2×10 each' },
+          { name: 'Plank',                   prescription: '2×30-45 sec' },
+          { name: 'Hip Flexor Stretch' },
+        ],
+      },
+      // ── ADD MORE DAYS BELOW AS NEEDED ─────────────────────────────────
+      // Remove the "//" to activate a day. Add it to "workoutDays" above too.
+      //
+      // Saturday: {
+      //   note: 'Full Body — optional 5th day',
+      //   exercises: [
+      //     { name: 'Goblet Squat',         sets: '3', reps: '10' },
+      //     { name: 'Dumbbell Bench Press', sets: '3', reps: '10' },
+      //     { name: 'Romanian Deadlift',    sets: '3', reps: '10' },
+      //     { name: 'Plank',                prescription: '2×30 sec' },
+      //   ],
+      // },
+      // Sunday: {
+      //   note: 'Rest or active recovery',
+      //   exercises: [],
+      // },
+      // Wednesday: {
+      //   note: 'Midweek — cardio or mobility',
+      //   exercises: [
+      //     { name: 'Hamstring Stretch' },
+      //     { name: 'Hip Flexor Stretch' },
+      //   ],
+      // },
     },
   }
 }

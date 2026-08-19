@@ -46,6 +46,8 @@ export const DEFAULT_APP_SETTINGS = {
   workoutReminderTime: '07:00',
   /** Meal push notification reminders (FCM-based) */
   mealPushRemindersEnabled: false,
+  /** Advanced: show JSON import/export controls in exercises, meals, shopping list */
+  enableJsonImportExport: false,
 }
 
 const MEAL_SLOT_IDS = [
@@ -114,6 +116,7 @@ export function normalizeAppSettings(settings) {
     workoutReminderEnabled: s.workoutReminderEnabled === true,
     workoutReminderTime: normalizeTimeString(s.workoutReminderTime, '07:00'),
     mealPushRemindersEnabled: s.mealPushRemindersEnabled === true,
+    enableJsonImportExport: s.enableJsonImportExport === true,
   }
 }
 

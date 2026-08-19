@@ -16,6 +16,10 @@ import {
   Sparkles,
   CheckCircle2,
   Cloud,
+  FileJson,
+  Dumbbell,
+  ShoppingCart,
+  UtensilsCrossed,
 } from 'lucide-react'
 import { getAppSettings, updateAppSettings, SUPPORTED_LOCALES } from '@/lib/appSettings'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -452,60 +456,6 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
           </div>
           </div>
 
-          <div className="space-y-3 border-t border-border/60 pt-4">
-            <button
-              type="button"
-              className="w-full flex items-center justify-between gap-2 text-sm font-medium hover:text-primary transition-colors"
-              onClick={() => setShowAdvanced((v) => !v)}
-            >
-              <span className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />
-                {t('settings.accountData.advanced')}
-              </span>
-              {showAdvanced
-                ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-            </button>
-            {showAdvanced && (
-              <div className="space-y-3 pt-1">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary shrink-0" />
-                  <p className="text-sm font-medium">{t('settings.ai.title')}</p>
-                </div>
-                <p className="text-xs text-muted-foreground">{t('settings.ai.description')}</p>
-                <div className="space-y-2">
-                  <label htmlFor="gemini-api-key" className="text-sm font-medium">
-                    {t('settings.ai.apiKeyLabel')}
-                  </label>
-                  <Input
-                    id="gemini-api-key"
-                    type="password"
-                    autoComplete="off"
-                    placeholder={t('settings.ai.apiKeyPlaceholder')}
-                    value={appSettings.geminiApiKey}
-                    onChange={(e) => patchSettings({ geminiApiKey: e.target.value })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {t('settings.ai.apiKeyHint')}{' '}
-                    <a
-                      href="https://aistudio.google.com/apikey"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      {t('settings.ai.getKeyLink')}
-                    </a>
-                  </p>
-                  {isGeminiConfigured() ? (
-                    <p className="text-xs text-primary font-medium">{t('settings.ai.configured')}</p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">{t('settings.ai.notConfigured')}</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
           <div className="space-y-2 border-t border-border/60 pt-4">
             <p className="text-sm font-medium">{t('settings.shortcuts.title')}</p>
             <Link
@@ -539,6 +489,119 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
             </Link>
           </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* ── Advanced Settings ── */}
+      <Card className="mb-6">
+        <button
+          type="button"
+          className="w-full flex items-center justify-between gap-2 p-4 text-left hover:bg-muted/30 rounded-t-lg transition-colors"
+          onClick={() => setShowAdvanced((v) => !v)}
+          aria-expanded={showAdvanced}
+        >
+          <div className="min-w-0">
+            <p className="text-base font-semibold flex items-center gap-2">
+              <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+              Advanced Settings
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Developer tools and power-user features
+            </p>
+          </div>
+          {showAdvanced
+            ? <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
+            : <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />}
+        </button>
+
+        {showAdvanced && (
+          <CardContent className="space-y-5 pt-0 pb-4 border-t border-border/60">
+
+            {/* ── JSON Import / Export ── */}
+            <div className="space-y-3 pt-3">
+              <div className="flex items-center gap-2">
+                <FileJson className="h-4 w-4 text-primary shrink-0" />
+                <p className="text-sm font-medium">JSON Import / Export</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                When enabled, JSON download template and import buttons appear in Exercises, Meal Plan, and Shopping List sections. Download a template, fill it in, then import it back to populate that section.
+              </p>
+              <label className="flex items-start gap-3 cursor-pointer rounded-md border border-border p-3 hover:bg-muted/30 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={appSettings.enableJsonImportExport}
+                  onChange={(e) => patchSettings({ enableJsonImportExport: e.target.checked })}
+                  className="mt-1 h-4 w-4 rounded border-input accent-primary"
+                />
+                <span className="text-sm">
+                  <span className="font-medium block">Enable JSON import/export</span>
+                  <span className="text-muted-foreground text-xs">
+                    Shows JSON controls in Exercises, Meals, and Shopping List
+                  </span>
+                </span>
+              </label>
+
+              {appSettings.enableJsonImportExport && (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+                  <p className="text-xs font-medium text-primary">JSON controls are now active in:</p>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Dumbbell className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <span><strong>Library → My Exercises</strong> — download template, export your exercises, import from JSON</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <UtensilsCrossed className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <span><strong>Meals → Weekly Meals</strong> — download template, export your meal plan, import from JSON</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <ShoppingCart className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <span><strong>Meals → Shopping List</strong> — download template, export your shopping list, import from JSON</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Gemini AI API Key ── */}
+            <div className="space-y-3 border-t border-border/60 pt-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                <p className="text-sm font-medium">{t('settings.ai.title')}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">{t('settings.ai.description')}</p>
+              <div className="space-y-2">
+                <label htmlFor="gemini-api-key" className="text-sm font-medium">
+                  {t('settings.ai.apiKeyLabel')}
+                </label>
+                <input
+                  id="gemini-api-key"
+                  type="password"
+                  autoComplete="off"
+                  placeholder={t('settings.ai.apiKeyPlaceholder')}
+                  value={appSettings.geminiApiKey}
+                  onChange={(e) => patchSettings({ geminiApiKey: e.target.value })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t('settings.ai.apiKeyHint')}{' '}
+                  <a
+                    href="https://aistudio.google.com/apikey"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    {t('settings.ai.getKeyLink')}
+                  </a>
+                </p>
+                {isGeminiConfigured() ? (
+                  <p className="text-xs text-primary font-medium">{t('settings.ai.configured')}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{t('settings.ai.notConfigured')}</p>
+                )}
+              </div>
+            </div>
+
           </CardContent>
         )}
       </Card>

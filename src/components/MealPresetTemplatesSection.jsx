@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, Flame, TrendingUp, Sparkles, Check, X, Play, Sunrise, Apple, Utensils, Coffee, UtensilsCrossed, Moon, AlertTriangle, Camera } from 'lucide-react'
+import { ChevronDown, ChevronUp, Flame, TrendingUp, Sparkles, Check, X, Play, Sunrise, Apple, Utensils, Coffee, UtensilsCrossed, Moon, AlertTriangle, ShoppingCart } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card'
 import { Button } from './ui/button'
@@ -49,13 +49,17 @@ function ApplyConfirmDialog({ preset, onClose, onConfirm }) {
         <DialogHeader>
           <DialogTitle>Apply "{lp.name}"</DialogTitle>
           <DialogDescription>
-            This will <strong>replace</strong> your current meal plan and shopping list completely.
+            This will <strong>replace</strong> your current meal plan and automatically update your shopping list to match.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 pt-1">
           <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
-            <span>Your existing meal plan and shopping list will be permanently replaced. This cannot be undone.</span>
+            <span>Your existing meal plan will be permanently replaced. Your shopping list will be updated to match the new plan.</span>
+          </div>
+          <div className="rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary flex items-start gap-2">
+            <ShoppingCart className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
+            <span>Shopping list will be <strong>automatically updated</strong> with ingredients from this meal plan.</span>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={onClose}>
@@ -256,18 +260,30 @@ function MealPresetTemplatesSection({ state, updateState, onAfterApply }) {
       }
       updateState({ mealPlan: merged, ...(shoppingList ? { shoppingList } : {}) })
     }
-    toast.success(
-      shoppingList
-        ? `Applied "${localizedPreset(preset, i18n.language).name}" — meal plan and shopping list updated.`
-        : `Applied "${localizedPreset(preset, i18n.language).name}" to your meal plan.`
-    )
+
+    const presetName = localizedPreset(preset, i18n.language).name
+    // Primary toast for meal plan
+    toast.success(`Meal plan updated to "${presetName}"`, {
+      description: shoppingList
+        ? '🛒 Shopping list has been updated to match your new meal plan.'
+        : undefined,
+      duration: 5000,
+    })
+    // Additional dedicated shopping list notification if shopping list was updated
+    if (shoppingList) {
+      toast.success('Shopping list updated', {
+        description: `Ingredients for "${presetName}" have been added to your shopping list.`,
+        icon: '🛒',
+        duration: 4000,
+      })
+    }
     onAfterApply?.()
   }
 
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Recommended for your goal and BMI. Applying will <span className="font-semibold text-foreground">replace</span> your current meal plan and automatically update the matching shopping list.
+        Recommended for your goal and BMI. Applying will <span className="font-semibold text-foreground">replace</span> your current meal plan and <span className="font-semibold text-foreground">automatically update</span> your shopping list with matching ingredients.
       </p>
 
       {(() => {

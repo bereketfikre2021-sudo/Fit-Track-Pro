@@ -96,6 +96,7 @@ import {
   allowsTemplatePlanFeatures,
   getPlanSetupMethod,
 } from '@/lib/planSetup'
+import { getAppSettings } from '@/lib/appSettings'
 import {
   EQUIPMENT_I18N_KEYS,
   MUSCLE_I18N_KEYS,
@@ -145,6 +146,8 @@ function CustomTab({ state, updateState }) {
   const showAiFeatures = allowsAiPlanFeatures(state)
   const showTemplateFeatures = allowsTemplatePlanFeatures(state)
   const completedExercises = state.completedExercises || {}
+  const appSettings = getAppSettings(state)
+  const showJsonControls = appSettings.enableJsonImportExport
 
   useEffect(() => {
     const tab = searchParams.get('tab')
@@ -224,6 +227,43 @@ function CustomTab({ state, updateState }) {
     setImportDialogOpen(true)
   }
 
+  const handleAiExerciseRecommend = async () => {
+    setAiLoading(true)
+    try {
+      const parsed = await fetchExerciseRecommendation(state)
+      const result = applyExerciseImport(state, parsed, IMPORT_MODE.REPLACE_LIBRARY)
+      updateState({
+        customExercises: result.customExercises,
+        workoutSchedule: result.workoutSchedule,
+        profile: result.profile,
+      })
+      const { exercisesAdded, scheduleEntriesAdded, warnings } = result.summary
+      const parts = []
+      if (exercisesAdded) parts.push(t('common.exercises', { count: exercisesAdded }))
+      if (scheduleEntriesAdded) {
+        parts.push(
+          t('custom.importScheduleEntries', {
+            count: scheduleEntriesAdded,
+            defaultValue: `${scheduleEntriesAdded} schedule assignment(s)`,
+          })
+        )
+      }
+      toast.success(
+        parts.length
+          ? t('custom.toastAiAdded', {
+              parts: parts.join(` ${t('common.and', { defaultValue: 'and' })} `),
+              defaultValue: `AI added ${parts.join(' and ')}`,
+            })
+          : t('custom.toastAiApplied')
+      )
+      showImportWarnings(warnings, { title: t('custom.aiNotesTitle') })
+    } catch (err) {
+      toast.error(t(getAiToastKey(err)))
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
   const runExerciseImport = (file, mode) => {
     const reader = new FileReader()
     reader.onload = (ev) => {
@@ -267,43 +307,6 @@ function CustomTab({ state, updateState }) {
     reader.readAsText(file)
   }
 
-  const handleAiExerciseRecommend = async () => {
-    setAiLoading(true)
-    try {
-      const parsed = await fetchExerciseRecommendation(state)
-      const result = applyExerciseImport(state, parsed, IMPORT_MODE.REPLACE_LIBRARY)
-      updateState({
-        customExercises: result.customExercises,
-        workoutSchedule: result.workoutSchedule,
-        profile: result.profile,
-      })
-      const { exercisesAdded, scheduleEntriesAdded, warnings } = result.summary
-      const parts = []
-      if (exercisesAdded) parts.push(t('common.exercises', { count: exercisesAdded }))
-      if (scheduleEntriesAdded) {
-        parts.push(
-          t('custom.importScheduleEntries', {
-            count: scheduleEntriesAdded,
-            defaultValue: `${scheduleEntriesAdded} schedule assignment(s)`,
-          })
-        )
-      }
-      toast.success(
-        parts.length
-          ? t('custom.toastAiAdded', {
-              parts: parts.join(` ${t('common.and', { defaultValue: 'and' })} `),
-              defaultValue: `AI added ${parts.join(' and ')}`,
-            })
-          : t('custom.toastAiApplied')
-      )
-      showImportWarnings(warnings, { title: t('custom.aiNotesTitle') })
-    } catch (err) {
-      toast.error(t(getAiToastKey(err)))
-    } finally {
-      setAiLoading(false)
-    }
-  }
-
   return (
     <div className="p-4 md:p-6 pb-20 md:pb-6">
       <div className="mb-6">
@@ -312,6 +315,17 @@ function CustomTab({ state, updateState }) {
             <h1 className="text-2xl font-bold mb-2">{t('exercises.pageTitle')}</h1>
             <p className="text-sm text-muted-foreground">{t('exercises.pageSubtitle')}</p>
           </div>
+          {/* JSON controls — shown in page header when enabled, matching MealPlan position */}
+          {showJsonControls && (
+            <div className="flex items-center gap-1.5 shrink-0 mt-1">
+              <JsonFileActions
+                onTemplate={handleDownloadTemplate}
+                onExport={handleExportExercises}
+                onImportFileSelected={handleImportFileSelected}
+                size="sm"
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -510,7 +524,10 @@ function CustomTab({ state, updateState }) {
                         inLibrary={inLibrary}
                         onAdd={() => {
                           if (inLibrary) return
-                          const { customExercises: next, added } = addPresetsToLibrary(customExercises, [preset])
+                          const nameKey = `name:${String(preset.name).toLowerCase().replace(/\s+/g, '-')}`
+                          const resolvedImageUrl = exerciseImageMap[preset.id] ?? exerciseImageMap[nameKey] ?? ''
+                          const presetWithImage = resolvedImageUrl ? { ...preset, imageUrl: resolvedImageUrl } : preset
+                          const { customExercises: next, added } = addPresetsToLibrary(customExercises, [presetWithImage])
                           if (added.length) {
                             updateState({ customExercises: next })
                             toast.success(t('custom.toastAdded', { name: added[0].name }))

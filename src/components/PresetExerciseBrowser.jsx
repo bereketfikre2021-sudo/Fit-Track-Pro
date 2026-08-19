@@ -78,17 +78,24 @@ export default function PresetExerciseBrowser({
     (preset) => !isPresetInLibrary(preset.name, customExercises)
   ).length
 
+  /** Enrich a preset with its admin-uploaded imageUrl from the map */
+  const withImage = (preset) => {
+    const nameKey = `name:${String(preset.name).toLowerCase().replace(/\s+/g, '-')}`
+    const url = exerciseImageMap[preset.id] ?? exerciseImageMap[nameKey] ?? ''
+    return url ? { ...preset, imageUrl: url } : preset
+  }
+
   /** Add preset to library only */
   const handleAddOne = (preset) => {
     if (isPresetInLibrary(preset.name, customExercises)) return
-    const { customExercises: next, added } = addPresetsToLibrary(customExercises, [preset])
+    const { customExercises: next, added } = addPresetsToLibrary(customExercises, [withImage(preset)])
     if (added.length) onAdd(next, added)
   }
 
   const handleAddAllVisible = () => {
     const toAdd = filteredPresets.filter((preset) => !isPresetInLibrary(preset.name, customExercises))
     if (!toAdd.length) return
-    const { customExercises: next, added } = addPresetsToLibrary(customExercises, toAdd)
+    const { customExercises: next, added } = addPresetsToLibrary(customExercises, toAdd.map(withImage))
     onAdd(next, added)
   }
 
@@ -106,7 +113,7 @@ export default function PresetExerciseBrowser({
     )
 
     if (!libraryExercise) {
-      const { customExercises: next, added } = addPresetsToLibrary(exercises, [preset])
+      const { customExercises: next, added } = addPresetsToLibrary(exercises, [withImage(preset)])
       exercises = next
       libraryExercise = added[0]
       // Notify parent about the new library item
