@@ -58,17 +58,23 @@ export default defineConfig({
         ]
       },
       workbox: {
+        // Take control immediately — no waiting for old SW to die
+        skipWaiting: true,
+        clientsClaim: true,
+        // Remove outdated caches from old SW versions
+        cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,webp}'],
         // Exclude the FCM background SW — it self-registers via importScripts
         globIgnores: ['firebase-messaging-sw.js'],
         // Don't let the SW try to precache huge image chunks
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // SPA navigation fallback — every URL that isn't a file gets index.html
-        // This fixes the "navigation route not matching allowlist" warning
         navigateFallback: 'index.html',
         navigateFallbackAllowlist: [/^(?!\/__).*/],
+        // Deny list: never serve SW-cached responses for auth/api calls
+        navigateFallbackDenylist: [/^\/api/, /^\/auth/],
         runtimeCaching: [
-          // Google Fonts (already present — keep)
+          // Google Fonts
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
@@ -81,6 +87,19 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
+          // Google Fonts — actual font files
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-webfonts',
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 60 * 60 * 24 * 365,
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           // Background / public images served from the same origin
           {
             urlPattern: /\.(?:png|jpg|jpeg|webp|svg|gif|ico)$/i,
@@ -88,8 +107,8 @@ export default defineConfig({
             options: {
               cacheName: 'fittrack-images',
               expiration: {
-                maxEntries: 60,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
               },
               cacheableResponse: { statuses: [0, 200] },
             },
@@ -101,22 +120,34 @@ export default defineConfig({
             options: {
               cacheName: 'fittrack-assets',
               expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
+                maxEntries: 150,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
               },
             },
           },
-          // Supabase REST API — NetworkFirst so fresh data is preferred,
-          // but cached data is returned instantly when offline.
+          // Supabase REST API — NetworkFirst, fallback to cache when offline
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'fittrack-supabase-api',
-              networkTimeoutSeconds: 5,
+              networkTimeoutSeconds: 3,
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24, // 1 day
+                maxAgeSeconds: 60 * 60 * 24,
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          // Supabase Storage (images) — CacheFirst
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'fittrack-supabase-storage',
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 60 * 60 * 24 * 7,
               },
               cacheableResponse: { statuses: [0, 200] },
             },

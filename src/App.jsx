@@ -72,7 +72,11 @@ function AppRoutes() {
     cloudLoadedFor.current = user.id
     setCloudLoading(true)
 
+    // Safety timeout — if Supabase doesn't respond in 5s (offline), just use local state
+    const timeout = setTimeout(() => setCloudLoading(false), 5000)
+
     loadAllFromSupabase(user.id).then((patch) => {
+      clearTimeout(timeout)
       if (patch) {
         setState((prev) => {
           const merged = { ...prev, ...patch }
@@ -83,11 +87,41 @@ function AppRoutes() {
           if (patch.onboarded) {
             merged.planSetupComplete = true
           }
+
+          // Preserve local imageUrl on meal plan foods — the DB schema
+          // doesn't store imageUrl so cloud data always comes back without it.
+          // We re-attach images from local state by matching day+slot+name.
+          if (patch.mealPlan && prev.mealPlan) {
+            const DAYS  = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+            const SLOTS = ['breakfast','morningSnack','lunch','afternoonSnack','dinner','beforeBed']
+            const restoredPlan = {}
+            for (const day of DAYS) {
+              restoredPlan[day] = {}
+              for (const slot of SLOTS) {
+                const cloudFoods = patch.mealPlan?.[day]?.[slot] ?? []
+                const localFoods = prev.mealPlan?.[day]?.[slot] ?? []
+                // Build a name→imageUrl map from local state
+                const localImageMap = {}
+                for (const f of localFoods) {
+                  if (f.imageUrl && f.name) {
+                    localImageMap[String(f.name).toLowerCase().trim()] = f.imageUrl
+                  }
+                }
+                restoredPlan[day][slot] = cloudFoods.map((f) => ({
+                  ...f,
+                  imageUrl: f.imageUrl || localImageMap[String(f.name || '').toLowerCase().trim()] || '',
+                }))
+              }
+            }
+            merged.mealPlan = restoredPlan
+          }
+
           return merged
         })
       }
       setCloudLoading(false)
     }).catch(() => {
+      clearTimeout(timeout)
       setCloudLoading(false)
     })
   }, [user?.id])

@@ -31,6 +31,42 @@ function logError(context, error) {
   if (error) console.warn(`[supabaseDb] ${context}:`, error.message ?? error)
 }
 
+/**
+ * Encode food notes + imageUrl into a single string for the `notes` DB column.
+ * Format: regular notes are stored as-is unless there's an imageUrl,
+ * in which case we append a sentinel: "\n__img__:<imageUrl>"
+ * We skip storing base64 data URIs > 50KB to avoid huge DB rows —
+ * those stay local-only in localStorage.
+ */
+function serializeFoodNotes(food) {
+  const notes = food.notes || ''
+  const imageUrl = food.imageUrl || ''
+  // Only store compact images or remote URLs in the cloud
+  const shouldStoreImage = imageUrl && (
+    imageUrl.startsWith('http') ||
+    (imageUrl.startsWith('data:') && imageUrl.length < 50_000)
+  )
+  if (!shouldStoreImage) return notes || null
+  return notes ? `${notes}\n__img__:${imageUrl}` : `__img__:${imageUrl}`
+}
+
+/**
+ * Decode notes + imageUrl from the serialized `notes` DB column.
+ */
+function deserializeFoodNotes(raw) {
+  if (!raw) return { notes: '', imageUrl: '' }
+  const imgMarker = '\n__img__:'
+  const soloMarker = '__img__:'
+  if (raw.includes(imgMarker)) {
+    const idx = raw.indexOf(imgMarker)
+    return { notes: raw.slice(0, idx), imageUrl: raw.slice(idx + imgMarker.length) }
+  }
+  if (raw.startsWith(soloMarker)) {
+    return { notes: '', imageUrl: raw.slice(soloMarker.length) }
+  }
+  return { notes: raw, imageUrl: '' }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  1. USER PROFILE
 // ─────────────────────────────────────────────────────────────────────────────
@@ -344,7 +380,9 @@ export async function syncMealSlot(userId, dayOfWeek, mealSlot, foods) {
     carbs_g:     parseFloat(food.carbs)    || null,
     fat_g:       parseFloat(food.fat)      || null,
     serving_size: food.servingSize || null,
-    notes:       food.notes || null,
+    // Store imageUrl in notes field as JSON suffix if no dedicated column exists
+    // Format: "userNotes||imageUrl:data..." — parsed back in loadMealPlan
+    notes:       serializeFoodNotes(food),
     sort_order:  i,
   }))
 
@@ -383,6 +421,7 @@ export async function loadMealPlan(userId) {
   for (const row of data) {
     const { day_of_week: day, meal_slot: slot } = row
     if (!plan[day] || !plan[day][slot]) continue
+    const { notes, imageUrl } = deserializeFoodNotes(row.notes)
     plan[day][slot].push({
       id:          row.id,
       name:        row.food_name,
@@ -391,7 +430,8 @@ export async function loadMealPlan(userId) {
       carbs:       row.carbs_g   != null ? String(row.carbs_g)   : '',
       fat:         row.fat_g     != null ? String(row.fat_g)     : '',
       servingSize: row.serving_size ?? '',
-      notes:       row.notes ?? '',
+      notes,
+      imageUrl,
     })
   }
 

@@ -13,6 +13,27 @@ export function slimStateForStorage(state) {
     }
   }
 
+  // Slim meal plan images — keep only compact ones (< 200KB or remote URLs)
+  const mealPlan = {}
+  for (const [day, slots] of Object.entries(state.mealPlan || {})) {
+    mealPlan[day] = {}
+    for (const [slot, items] of Object.entries(slots || {})) {
+      mealPlan[day][slot] = (items || []).map((item) => ({
+        ...item,
+        imageUrl: isCompactImage(item.imageUrl) ? item.imageUrl : '',
+      }))
+    }
+  }
+
+  // Slim shopping list images
+  const shoppingList = {}
+  for (const [category, items] of Object.entries(state.shoppingList || {})) {
+    shoppingList[category] = (items || []).map((item) => ({
+      ...item,
+      imageUrl: isCompactImage(item.imageUrl) ? item.imageUrl : '',
+    }))
+  }
+
   return {
     ...state,
     profile: {
@@ -26,6 +47,8 @@ export function slimStateForStorage(state) {
       imageUrl: isCompactImage(ex.imageUrl) ? ex.imageUrl : '',
     })),
     workoutSchedule,
+    mealPlan,
+    shoppingList,
   }
 }
 

@@ -66,13 +66,41 @@ export function AuthProvider({ children }) {
 
   // ── Session bootstrap ───────────────────────────────────────────────────────
   useEffect(() => {
+    // Hard timeout: if Supabase doesn't respond in 4 seconds (offline),
+    // release the loading state so the app can render with whatever
+    // session is cached in localStorage.
+    const timeout = setTimeout(() => {
+      setLoading(false)
+    }, 4000)
+
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(timeout)
       setSession(session)
       if (session?.user?.id) loadRoles(session.user.id)
+      setLoading(false)
+    }).catch(() => {
+      clearTimeout(timeout)
+      // Offline or network error — try to read cached session from localStorage
+      try {
+        const keys = Object.keys(localStorage)
+        const sbKey = keys.find((k) => k.includes('supabase') && k.includes('auth-token'))
+        if (sbKey) {
+          const raw = localStorage.getItem(sbKey)
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            const cachedSession = parsed?.currentSession ?? parsed
+            if (cachedSession?.access_token) {
+              setSession(cachedSession)
+              if (cachedSession?.user?.id) loadRoles(cachedSession.user.id)
+            }
+          }
+        }
+      } catch { /* ignore */ }
       setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      clearTimeout(timeout)
       setSession(session)
       if (session?.user?.id) {
         loadRoles(session.user.id)
@@ -92,7 +120,10 @@ export function AuthProvider({ children }) {
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      clearTimeout(timeout)
+      subscription.unsubscribe()
+    }
   }, [loadRoles])
 
   // ── Auth methods ────────────────────────────────────────────────────────────
