@@ -178,8 +178,8 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
             <div className="space-y-2 border-t border-border/60 pt-4">
               <p className="text-sm font-medium">{t('settings.accountData.dataPortability')}</p>
               <p className="text-xs text-muted-foreground">
-                {t('settings.accountData.dataPortabilityDesc')}
-                {user && ' ' + t('settings.accountData.dataPortabilityDescCloud')}
+                Export a full backup including exercise images, shopping list, and app settings that cloud sync doesn't cover. Use to migrate to a new device or keep a local copy.
+                {user && ' Cloud sync covers your profile, meals, workouts, and water logs automatically.'}
               </p>
               <JsonFileActions
                 showTemplate={false}
