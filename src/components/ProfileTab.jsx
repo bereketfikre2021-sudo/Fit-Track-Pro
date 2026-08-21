@@ -21,6 +21,7 @@ import {
   Activity,
   TrendingUp,
   Settings,
+  CreditCard,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent } from './ui/card'

@@ -12,6 +12,8 @@ import CustomPage from './pages/CustomPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import MealPlanPage from './pages/MealPlanPage'
+import SubscriptionPage from './pages/SubscriptionPage'
+import PaymentHistoryPage from './pages/PaymentHistoryPage'
 import NotFoundPage from './pages/NotFoundPage'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
@@ -423,6 +425,36 @@ function AppRoutes() {
                     />
                   </DashboardLayout>
                 </RequirePlanSetupDone>
+              </RequireOnboarded>
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/subscription"
+          element={
+            <AuthGuard>
+              <RequireOnboarded state={state}>
+                <SubscriptionPage />
+              </RequireOnboarded>
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/subscribe"
+          element={
+            <AuthGuard>
+              <RequireOnboarded state={state}>
+                <SubscriptionPage />
+              </RequireOnboarded>
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/payment-history"
+          element={
+            <AuthGuard>
+              <RequireOnboarded state={state}>
+                <PaymentHistoryPage />
               </RequireOnboarded>
             </AuthGuard>
           }

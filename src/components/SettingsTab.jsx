@@ -18,6 +18,9 @@ import {
   Cloud,
   FileJson,
   Dumbbell,
+  Zap,
+  Crown,
+  CreditCard,
   ShoppingCart,
   UtensilsCrossed,
 } from 'lucide-react'
@@ -42,6 +45,53 @@ import { useAuth } from '@/lib/useAuth'
 
 const selectClassName =
   'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+
+// ── Subscription collapsible accordion ───────────────────────────────────────
+function SubscriptionAccordion() {
+  const [open, setOpen] = useState(false)
+  return (
+    <Card>
+      <button
+        type="button"
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-muted/30 transition-colors rounded-xl"
+        onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
+      >
+        <div className="flex items-center gap-2.5">
+          <Zap className="h-4 w-4 text-primary shrink-0" />
+          <span className="text-sm font-semibold">Subscription &amp; Billing</span>
+        </div>
+        {open
+          ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+          : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+      </button>
+      {open && (
+        <div className="border-t border-border/50 px-2 pb-2 space-y-1">
+          <Link
+            to="/subscription"
+            className="flex items-center justify-between gap-3 px-3 py-3 rounded-lg hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex items-center gap-2.5">
+              <Crown className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-sm font-medium">Subscription &amp; Billing</span>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+          <Link
+            to="/payment-history"
+            className="flex items-center justify-between gap-3 px-3 py-3 rounded-lg hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex items-center gap-2.5">
+              <CreditCard className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-sm font-medium">Payment History</span>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        </div>
+      )}
+    </Card>
+  )
+}
 
 function SettingsTab({ state, updateState, exportData, importData, clearAllData, onLogout }) {
   const { t } = useTranslation()
@@ -606,6 +656,11 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
         )}
       </Card>
 
+
+      {/* ── Subscription (collapsible accordion) ─────────────────────── */}
+      <SubscriptionAccordion />
+
+      {/* ── About (moved to bottom) ───────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle>{t('settings.about.title')}</CardTitle>
@@ -615,10 +670,7 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
           <p>{t('settings.about.tagline')}</p>
           <p className="pt-2 text-xs">{t('settings.about.stack')}</p>
           <div className="pt-3">
-            <Link
-              to="/privacy-policy"
-              className="text-xs text-primary hover:underline underline-offset-2"
-            >
+            <Link to="/privacy-policy" className="text-xs text-primary hover:underline underline-offset-2">
               {t('settings.accountData.privacyPolicy')}
             </Link>
           </div>

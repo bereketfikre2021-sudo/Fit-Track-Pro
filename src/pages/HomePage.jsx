@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import GymFloatingPattern from '../components/GymFloatingPattern'
 import TodayWorkoutCard from '../components/TodayWorkoutCard'
@@ -13,9 +14,52 @@ import {
   startWorkoutSession,
   todayDateString,
 } from '@/lib/workoutSession'
-
 import { translateWeekday } from '@/lib/i18nHelpers'
 import { getDailyMotivation } from '@/lib/dailyMotivation'
+import { supabase } from '@/lib/supabase'
+import { Zap } from 'lucide-react'
+
+// ── Upgrade CTA for free users ────────────────────────────────────────────────
+function UpgradeCta() {
+  const navigate = useNavigate()
+  const [isFree, setIsFree] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase
+        .from('user_subscriptions')
+        .select('id, status, plan:subscription_plans(tier)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => {
+          const tier = data?.plan?.tier
+          const status = data?.status
+          if (!data || tier === 'free' || status === 'expired' || status === 'cancelled') setIsFree(true)
+        })
+    })
+  }, [])
+
+  if (!isFree) return null
+
+  return (
+    <button
+      onClick={() => navigate('/subscription')}
+      className="w-full flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3.5 text-left hover:bg-primary/10 active:scale-[0.99] transition-all"
+    >
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15">
+        <Zap className="h-5 w-5 text-primary" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-foreground">Upgrade to Pro</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Unlock AI coaching, no ads, and more</p>
+      </div>
+      <span className="text-xs font-bold text-primary">Upgrade →</span>
+    </button>
+  )
+}
 
 function MotivationQuote({ lines }) {
   return (
@@ -142,6 +186,9 @@ function HomePage({ state, updateState }) {
       <div className="relative z-10 flex flex-col gap-3">
         {/* Daily motivation quote */}
         <MotivationQuote lines={motivationLines} />
+
+        {/* Upgrade CTA for free users — pulled from Supabase subscription status */}
+        <UpgradeCta state={state} />
 
         {/* Today's workout */}
         <TodayWorkoutCard
