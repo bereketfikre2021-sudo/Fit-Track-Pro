@@ -112,7 +112,7 @@ export function NotificationSettings() {
   const masterEnabled = prefs.notifications_enabled && isGranted
 
   return (
-    <Card className="mb-6">
+    <Card>
       {/* ── Section header / toggle ── */}
       <button
         type="button"

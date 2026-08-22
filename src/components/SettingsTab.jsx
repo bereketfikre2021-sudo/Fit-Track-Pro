@@ -25,7 +25,7 @@ import {
   UtensilsCrossed,
 } from 'lucide-react'
 import { getAppSettings, updateAppSettings, SUPPORTED_LOCALES } from '@/lib/appSettings'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
 import {
   Dialog,
@@ -53,23 +53,28 @@ function SubscriptionAccordion() {
     <Card>
       <button
         type="button"
-        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-muted/30 transition-colors rounded-xl"
+        className="w-full flex items-center justify-between gap-2 p-4 text-left hover:bg-muted/30 rounded-t-lg transition-colors"
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
       >
-        <div className="flex items-center gap-2.5">
-          <Zap className="h-4 w-4 text-primary shrink-0" />
-          <span className="text-sm font-semibold">Subscription &amp; Billing</span>
+        <div className="min-w-0">
+          <p className="text-base font-semibold flex items-center gap-2">
+            <Zap className="h-4 w-4 shrink-0 text-primary" />
+            Subscription &amp; Billing
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Manage your plan and payment history
+          </p>
         </div>
         {open
           ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
           : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
       </button>
       {open && (
-        <div className="border-t border-border/50 px-2 pb-2 space-y-1">
+        <div className="border-t border-border/50 px-2 pb-2 pt-1 space-y-0.5">
           <Link
             to="/subscription"
-            className="flex items-center justify-between gap-3 px-3 py-3 rounded-lg hover:bg-muted/30 transition-colors"
+            className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/30 transition-colors"
           >
             <div className="flex items-center gap-2.5">
               <Crown className="h-4 w-4 text-primary shrink-0" />
@@ -79,7 +84,7 @@ function SubscriptionAccordion() {
           </Link>
           <Link
             to="/payment-history"
-            className="flex items-center justify-between gap-3 px-3 py-3 rounded-lg hover:bg-muted/30 transition-colors"
+            className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/30 transition-colors"
           >
             <div className="flex items-center gap-2.5">
               <CreditCard className="h-4 w-4 text-primary shrink-0" />
@@ -131,9 +136,9 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
   }
 
   return (
-    <div className="p-4 md:p-6 pb-20 md:pb-6 max-w-2xl mx-auto">
+    <div className="p-4 md:p-6 pb-20 md:pb-6 max-w-2xl mx-auto space-y-3">
       {/* Breadcrumb */}
-      <nav aria-label="breadcrumb" className="mb-4">
+      <nav aria-label="breadcrumb" className="mb-1">
         <ol className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <li>
             <Link
@@ -153,9 +158,9 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
         </ol>
       </nav>
 
-      <h1 className="text-2xl font-bold mb-6">{t('settings.title')}</h1>
+      <h1 className="text-2xl font-bold mb-1">{t('settings.title')}</h1>
 
-      <Card className="mb-6">
+      <Card>
         <button
           type="button"
           className="w-full flex items-center justify-between gap-2 p-4 text-left hover:bg-muted/30 rounded-t-lg transition-colors"
@@ -335,7 +340,7 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
       {/* ── Push Notification Settings ── */}
       <NotificationSettings />
 
-      <Card className="mb-6">
+      <Card>
         <button
           type="button"
           className="w-full flex items-center justify-between gap-2 p-4 text-left hover:bg-muted/30 rounded-t-lg transition-colors"
@@ -544,7 +549,7 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
       </Card>
 
       {/* ── Advanced Settings ── */}
-      <Card className="mb-6">
+      <Card>
         <button
           type="button"
           className="w-full flex items-center justify-between gap-2 p-4 text-left hover:bg-muted/30 rounded-t-lg transition-colors"
@@ -660,21 +665,21 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
       {/* ── Subscription (collapsible accordion) ─────────────────────── */}
       <SubscriptionAccordion />
 
-      {/* ── About (moved to bottom) ───────────────────────────────────── */}
+      {/* ── About ── */}
       <Card>
-        <CardHeader>
-          <CardTitle>{t('settings.about.title')}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>{t('settings.about.version')}</p>
+        <div className="p-4 border-b border-border/50">
+          <p className="text-base font-semibold">{t('settings.about.title')}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{t('settings.about.version')}</p>
+        </div>
+        <CardContent className="space-y-2 text-sm text-muted-foreground pt-4 pb-4">
           <p>{t('settings.about.tagline')}</p>
-          <p className="pt-2 text-xs">{t('settings.about.stack')}</p>
-          <div className="pt-3">
+          <p className="text-xs">{t('settings.about.stack')}</p>
+          <div className="pt-2">
             <Link to="/privacy-policy" className="text-xs text-primary hover:underline underline-offset-2">
               {t('settings.accountData.privacyPolicy')}
             </Link>
           </div>
-          <div className="pt-4 border-t border-border">
+          <div className="pt-3 border-t border-border">
             <CopyrightBadge className="text-center" />
           </div>
         </CardContent>

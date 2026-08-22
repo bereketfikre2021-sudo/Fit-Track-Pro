@@ -136,7 +136,7 @@ function ProfileTab({ state, updateState }) {
   const eqLabel = EQUIPMENT_OPTIONS.find((o) => o.id === equipmentToId(profile.equipment || []))?.label || 'Full gym'
 
   return (
-    <div className="p-4 md:p-6 pb-20 md:pb-6 max-w-2xl mx-auto space-y-3">
+    <div className="p-4 md:p-6 pb-20 md:pb-6 max-w-2xl mx-auto space-y-2.5">
 
       {/* Hero card */}
       <Card className="overflow-hidden border-primary/20 shadow-md">
@@ -190,9 +190,9 @@ function ProfileTab({ state, updateState }) {
       </Card>
 
       {/* Settings shortcut */}
-      <Link to="/profile/settings">
-        <Card>
-          <div className="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors rounded-xl">
+      <Link to="/profile/settings" className="block">
+        <Card className="hover:border-primary/40 transition-colors">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl">
             <div className="flex items-center gap-2.5">
               <Settings className="h-4 w-4 text-primary shrink-0" />
               <span className="text-sm font-semibold">{t('settings.title')}</span>
