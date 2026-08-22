@@ -29,8 +29,12 @@
  * Disable for premium tier
  * ─────────────────────────
  * Set VITE_ADMOB_DISABLED=true OR call AdService.setPremium(true) at runtime.
+ * AdService also reads cached subscription features (getCachedFeatures) —
+ * if features.ads === false the user is on a plan without ads.
  * Both paths skip every ad call so no ads are shown to paying users.
  */
+
+import { getCachedFeatures } from './useSubscription'
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Google's official test Ad Unit IDs (Android)
@@ -114,7 +118,9 @@ async function getPlugin() {
 
 /** Returns true when ads are globally enabled and the user is not premium. */
 function adsActive() {
-  return !_globalDisabled && !_premiumUser
+  // Also check subscription feature flag — Pro/Elite users have ads=false
+  const subAdsEnabled = getCachedFeatures().ads !== false
+  return !_globalDisabled && !_premiumUser && subAdsEnabled
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

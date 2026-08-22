@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Sparkles, Loader2, LayoutTemplate, Plus, ChevronDown, ChevronUp } from 'lucide-react'
+import { Sparkles, Loader2, LayoutTemplate, Plus, ChevronDown, ChevronUp, Lock } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -7,6 +7,7 @@ import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
 import { cn } from '@/lib/utils'
 import { isGeminiConfigured } from '@/lib/gemini'
+import { useSubscription } from '@/lib/useSubscription'
 import PresetTemplatesSection from './PresetTemplatesSection'
 
 function AiRecommendButton({
@@ -19,6 +20,7 @@ function AiRecommendButton({
 }) {
   const { t } = useTranslation()
   const configured = isGeminiConfigured()
+  const { features } = useSubscription()
   const displayLabel = label ?? t('ai.defaultLabel')
 
   const handleClick = () => {
@@ -27,20 +29,28 @@ function AiRecommendButton({
       toast.error(t('ai.notConfigured'))
       return
     }
+    if (!features.ai) {
+      toast.error('AI coaching requires a Pro subscription or higher. Upgrade in Settings → Subscription.')
+      return
+    }
     onClick?.()
   }
+
+  const isBlocked = !features.ai || (!configured && !loading)
 
   return (
     <Button
       type="button"
       size={size}
-      className={cn((!configured && !loading) && 'opacity-90', className)}
+      className={cn(isBlocked && !loading && 'opacity-90', className)}
       disabled={loading || disabled}
       onClick={handleClick}
-      title={configured ? undefined : t('ai.notConfigured')}
+      title={!features.ai ? 'Upgrade to Pro to use AI coaching' : (!configured ? t('ai.notConfigured') : undefined)}
     >
       {loading ? (
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+      ) : !features.ai ? (
+        <Lock className="h-4 w-4 mr-2" />
       ) : (
         <Sparkles className="h-4 w-4 mr-2" />
       )}

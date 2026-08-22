@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Sparkles, Loader2, LayoutTemplate, Plus } from 'lucide-react'
+import { Sparkles, Loader2, LayoutTemplate, Plus, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import PageBackground from '../components/PageBackground'
 import GymFloatingPattern from '../components/GymFloatingPattern'
@@ -20,6 +20,7 @@ import {
 } from '@/lib/presetTemplates'
 import { calculateBmi, getBmiCategory, resolveEffectiveTrainingGoal } from '@/lib/profileUtils'
 import { PRESET_MEAL_PLANS, getRecommendedMealPlanId } from '@/lib/presetMealPlans'
+import { useSubscription } from '@/lib/useSubscription'
 
 function resolveMealPresetId(bmiCategory, profileGoal) {
   const id = getRecommendedMealPlanId(bmiCategory, profileGoal)
@@ -33,6 +34,7 @@ function PlanSetupPage({ state, updateState }) {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiPhase, setAiPhase] = useState(null)
   const [templateLoading, setTemplateLoading] = useState(false)
+  const { features } = useSubscription()
 
   const profile = state.profile || {}
   const goal = resolveEffectiveTrainingGoal(profile)
@@ -48,6 +50,10 @@ function PlanSetupPage({ state, updateState }) {
   }
 
   const handleAi = async () => {
+    if (!features.ai) {
+      toast.error('AI plan generation requires a Pro subscription or higher. Upgrade in Settings → Subscription.')
+      return
+    }
     if (!configured) {
       toast.error(t('ai.notConfigured'))
       return
@@ -143,13 +149,17 @@ function PlanSetupPage({ state, updateState }) {
                   onClick={handleAi}
                   className={cn(
                     'flex flex-col items-center gap-2 rounded-xl border-2 px-4 py-5 text-center transition-all',
-                    'border-primary/40 bg-primary/5 hover:border-primary hover:bg-primary/10',
-                    (aiLoading || templateLoading || !configured) && 'opacity-60 cursor-not-allowed'
+                    features.ai
+                      ? 'border-primary/40 bg-primary/5 hover:border-primary hover:bg-primary/10'
+                      : 'border-border bg-muted/20 hover:border-primary/40',
+                    (aiLoading || templateLoading) && 'opacity-60 cursor-not-allowed'
                   )}
-                  title={configured ? undefined : t('ai.notConfigured')}
+                  title={!features.ai ? 'Upgrade to Pro to use AI plan generation' : (!configured ? t('ai.notConfigured') : undefined)}
                 >
                   {aiLoading ? (
                     <Loader2 className="h-7 w-7 text-primary animate-spin" />
+                  ) : !features.ai ? (
+                    <Lock className="h-7 w-7 text-muted-foreground" />
                   ) : (
                     <Sparkles className="h-7 w-7 text-primary" />
                   )}
@@ -157,7 +167,7 @@ function PlanSetupPage({ state, updateState }) {
                     {aiLoading ? aiPhaseLabel || t('ai.generating') : t('setup.aiTitle')}
                   </span>
                   <span className="text-xs text-muted-foreground leading-snug">
-                    {t('setup.aiDesc')}
+                    {!features.ai ? 'Requires Pro plan' : t('setup.aiDesc')}
                   </span>
                 </button>
 

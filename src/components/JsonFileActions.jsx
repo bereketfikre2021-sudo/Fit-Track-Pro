@@ -1,11 +1,14 @@
 import { useRef, useState, useEffect } from 'react'
-import { Download, Upload, FileJson, ChevronDown } from 'lucide-react'
+import { Download, Upload, FileJson, ChevronDown, Lock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { Button } from './ui/button'
 import { cn } from '@/lib/utils'
+import { useSubscription } from '@/lib/useSubscription'
 
 /**
  * Template, export, and import controls collapsed under a single "JSON" toggle button.
+ * Export and import require `features.export` — free-tier users see a lock and upgrade prompt.
  */
 function JsonFileActions({
   onTemplate,
@@ -20,10 +23,12 @@ function JsonFileActions({
   className,
   size = 'sm',
 }) {
+  const { features } = useSubscription()
   const { t } = useTranslation()
   const importInputRef = useRef(null)
   const containerRef = useRef(null)
   const [open, setOpen] = useState(false)
+  const canExport = features.export
 
   // Close on click outside or Escape
   useEffect(() => {
@@ -99,11 +104,18 @@ function JsonFileActions({
               type="button"
               variant="ghost"
               size={size}
-              onClick={() => { onExport(); setOpen(false) }}
-              className="justify-start gap-2 w-full"
-              title={exportText}
+              onClick={() => {
+                if (!canExport) {
+                  toast.error('Export requires a Pro subscription or higher. Upgrade in Settings → Subscription.')
+                  setOpen(false)
+                  return
+                }
+                onExport(); setOpen(false)
+              }}
+              className={cn('justify-start gap-2 w-full', !canExport && 'opacity-70')}
+              title={!canExport ? 'Upgrade to Pro to export' : exportText}
             >
-              <Download className="h-4 w-4 shrink-0" />
+              {!canExport ? <Lock className="h-4 w-4 shrink-0" /> : <Download className="h-4 w-4 shrink-0" />}
               <span className="whitespace-nowrap">{exportText}</span>
             </Button>
           )}
@@ -112,11 +124,18 @@ function JsonFileActions({
               type="button"
               variant="ghost"
               size={size}
-              onClick={() => { handleImportClick(); setOpen(false) }}
-              className="justify-start gap-2 w-full"
-              title={importText}
+              onClick={() => {
+                if (!canExport) {
+                  toast.error('Import requires a Pro subscription or higher. Upgrade in Settings → Subscription.')
+                  setOpen(false)
+                  return
+                }
+                handleImportClick(); setOpen(false)
+              }}
+              className={cn('justify-start gap-2 w-full', !canExport && 'opacity-70')}
+              title={!canExport ? 'Upgrade to Pro to import' : importText}
             >
-              <Upload className="h-4 w-4 shrink-0" />
+              {!canExport ? <Lock className="h-4 w-4 shrink-0" /> : <Upload className="h-4 w-4 shrink-0" />}
               <span className="whitespace-nowrap">{importText}</span>
             </Button>
           )}

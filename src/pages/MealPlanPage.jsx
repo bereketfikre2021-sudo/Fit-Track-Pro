@@ -174,6 +174,7 @@ import { allowsAiPlanFeatures, allowsTemplatePlanFeatures } from '@/lib/planSetu
 import { searchFoods } from '../lib/ethiopianFoods'
 import { mergeMealsIntoShoppingList } from '../lib/shoppingFromMeals'
 import JsonFileActions from '../components/JsonFileActions'
+import { useSubscription } from '../lib/useSubscription'
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -198,6 +199,7 @@ function getTodayWeekdayName() {
 function MealPlanPage({ state, updateState }) {
   const { t } = useTranslation()
   const getLocalizedName = useLocalizedName()
+  const { features } = useSubscription()
   const mergedShoppingLists = useMergedShoppingLists()
   const [activeTab, setActiveTab] = useState('meals')
   const [selectedDay, setSelectedDay] = useState(() => getTodayWeekdayName())
@@ -317,22 +319,38 @@ function MealPlanPage({ state, updateState }) {
   }
 
   const handleExportMeals = () => {
+    if (!features.export) {
+      toast.error('Export requires a Pro subscription or higher. Upgrade in Settings → Subscription.')
+      return
+    }
     downloadMealPlanExport(state)
     toast.success(t('mealToasts.exportMeals'))
   }
 
   const handleDownloadMealPDF = async () => {
+    if (!features.export) {
+      toast.error('PDF export requires a Pro subscription or higher. Upgrade in Settings → Subscription.')
+      return
+    }
     await downloadMealPlanPDF(state.mealPlan, state.profile?.name)
     toast.success('Meal plan PDF downloaded!')
   }
 
   const handleShareMealPDF = async () => {
+    if (!features.export) {
+      toast.error('PDF export requires a Pro subscription or higher. Upgrade in Settings → Subscription.')
+      return
+    }
     const blob = await getMealPlanPDFBlob(state.mealPlan, state.profile?.name)
     const filename = `fittrack-meal-plan-${new Date().toISOString().slice(0, 10)}.pdf`
     await sharePDF(blob, filename)
   }
 
   const handleAiMealRecommend = async () => {
+    if (!features.ai) {
+      toast.error('AI meal planning requires a Pro subscription or higher. Upgrade in Settings → Subscription.')
+      return
+    }
     if (!hasAnyExercises(state)) {
       toast.error('Add exercises to your library first — AI uses your workout plan to tailor meals.')
       return
@@ -375,6 +393,10 @@ function MealPlanPage({ state, updateState }) {
   }
 
   const handleAiShoppingRecommend = async () => {
+    if (!features.ai) {
+      toast.error('AI shopping list requires a Pro subscription or higher. Upgrade in Settings → Subscription.')
+      return
+    }
     if (isMealPlanEmpty(mealPlan)) {
       toast.error('Fill your meal plan first — AI uses your meals to build a tailored shopping list.')
       return
@@ -427,16 +449,28 @@ function MealPlanPage({ state, updateState }) {
     appSettings.mealCalendarRemindersSetUp
 
   const handleExportShoppingList = () => {
+    if (!features.export) {
+      toast.error('Export requires a Pro subscription or higher. Upgrade in Settings → Subscription.')
+      return
+    }
     downloadShoppingListExport(state)
     toast.success(t('mealToasts.shoppingExported'))
   }
 
   const handleDownloadShoppingPDF = async () => {
+    if (!features.export) {
+      toast.error('PDF export requires a Pro subscription or higher. Upgrade in Settings → Subscription.')
+      return
+    }
     await downloadShoppingListPDF(state.shoppingList, state.profile?.name)
     toast.success('Shopping list PDF downloaded!')
   }
 
   const handleShareShoppingPDF = async () => {
+    if (!features.export) {
+      toast.error('PDF export requires a Pro subscription or higher. Upgrade in Settings → Subscription.')
+      return
+    }
     const blob = await getShoppingListPDFBlob(state.shoppingList, state.profile?.name)
     const filename = `fittrack-shopping-list-${new Date().toISOString().slice(0, 10)}.pdf`
     await sharePDF(blob, filename)
