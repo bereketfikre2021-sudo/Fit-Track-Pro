@@ -263,7 +263,7 @@ export default function SubscriptionPage() {
         title: `New payment submitted — ${selectedPlan.name}`,
         body: `${fmtEtb(selectedPlan.price_monthly_usd)} via ${selectedMethod.name}.`,
         data: { submission_id: submissionId, plan: selectedPlan.name, method: selectedMethod.name },
-        read: false,
+        is_read: false,
       })
 
       // Show pending immediately without waiting for reload
