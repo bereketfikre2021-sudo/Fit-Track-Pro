@@ -12,7 +12,8 @@ import { compressImageFile } from '../lib/imageUtils'
 import {
   ChevronLeft, Copy, Check, Camera, AlertCircle,
   Loader2, Crown, CreditCard, Clock, CheckCircle2,
-  XCircle, ArrowRight, RefreshCw, Zap,
+  XCircle, ArrowRight, RefreshCw, Zap, Sparkles,
+  Shield, Rocket, Star, Users,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -439,25 +440,137 @@ export default function SubscriptionPage() {
 
         {/* ── PLAN SELECTION ──────────────────────────────────────────────── */}
         {view === 'plans' && (
-          <div className="space-y-3">
-            {plans.filter(p => p.tier !== 'free').map(p => (
-              <button key={p.id} onClick={() => { setSelectedPlan(p); setSelectedMethod(null); setView('pay'); setSubmitted(false); setTransactionRef(''); setNote(''); setProofFile(null); setProofPreview(null) }}
-                className="w-full rounded-2xl border-2 border-border bg-card p-5 text-left hover:border-primary/50 hover:bg-primary/5 active:scale-[0.99] transition-all space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-base font-bold">{p.name}</p>
-                    <p className="text-xl font-bold text-primary mt-0.5">{fmtEtb(p.price_monthly_usd)}<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-                  </div>
-                  {sub?.plan?.id === p.id && <span className="text-[10px] font-semibold bg-primary/15 text-primary px-2 py-0.5 rounded-full">Current</span>}
+          <div className="space-y-4 pt-1">
+            {/* Header */}
+            <div className="text-center space-y-1 pb-2">
+              <p className="text-xs text-primary font-semibold uppercase tracking-widest">Choose your plan</p>
+              <h2 className="text-xl font-bold">Unlock your full potential</h2>
+              <p className="text-xs text-muted-foreground">All plans include a 30-day subscription. Cancel anytime.</p>
+            </div>
+
+            {plans.filter(p => p.tier !== 'free').map((p, idx) => {
+              const isPopular = p.tier === 'pro'
+              const isElite   = p.tier === 'elite'
+              const isTeam    = p.tier === 'team'
+              const isCurrent = sub?.plan?.id === p.id
+
+              const tierIcon = isTeam ? Users : isElite ? Shield : isPopular ? Rocket : Zap
+              const TierIcon = tierIcon
+
+              // Features list per tier
+              const featureList = [
+                p.features?.ai        && `${p.max_ai_calls_day} AI coaching calls/day`,
+                p.features?.export    && 'Export PDF & JSON data',
+                p.features?.ads === false && 'No advertisements',
+                p.max_devices > 1     && `Up to ${p.max_devices} devices`,
+                p.features?.priority_support && 'Priority support',
+                isTeam                && 'Team management',
+              ].filter(Boolean)
+
+              // Visual style per tier
+              const styles = isElite
+                ? {
+                    card:   'border-violet-500/50 bg-gradient-to-br from-violet-950/40 via-card to-card',
+                    badge:  'bg-violet-500/15 text-violet-400 border-violet-500/30',
+                    icon:   'bg-violet-500/15 text-violet-400',
+                    price:  'text-violet-400',
+                    btn:    'bg-violet-600 hover:bg-violet-500 text-white',
+                    glow:   'shadow-violet-500/10',
+                  }
+                : isTeam
+                ? {
+                    card:   'border-amber-500/50 bg-gradient-to-br from-amber-950/40 via-card to-card',
+                    badge:  'bg-amber-500/15 text-amber-400 border-amber-500/30',
+                    icon:   'bg-amber-500/15 text-amber-400',
+                    price:  'text-amber-400',
+                    btn:    'bg-amber-600 hover:bg-amber-500 text-white',
+                    glow:   'shadow-amber-500/10',
+                  }
+                : {
+                    card:   'border-primary/50 bg-gradient-to-br from-primary/10 via-card to-card',
+                    badge:  'bg-primary/15 text-primary border-primary/30',
+                    icon:   'bg-primary/15 text-primary',
+                    price:  'text-primary',
+                    btn:    'bg-primary hover:bg-primary/90 text-primary-foreground',
+                    glow:   'shadow-primary/10',
+                  }
+
+              return (
+                <div key={p.id} className="relative">
+                  {/* Popular badge — floats above card */}
+                  {isPopular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                      <span className="flex items-center gap-1 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">
+                        <Star className="h-3 w-3 fill-current" /> MOST POPULAR
+                      </span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setSelectedPlan(p)
+                      setSelectedMethod(null)
+                      setView('pay')
+                      setSubmitted(false)
+                      setTransactionRef('')
+                      setNote('')
+                      setProofFile(null)
+                      setProofPreview(null)
+                    }}
+                    className={`w-full rounded-2xl border-2 p-5 text-left transition-all active:scale-[0.99] shadow-lg ${styles.card} ${styles.glow} ${isPopular ? 'pt-7' : ''}`}
+                  >
+                    {/* Top row */}
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${styles.icon}`}>
+                          <TierIcon className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-base leading-tight">{p.name}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {isTeam ? 'For fitness teams & groups' : isElite ? 'For serious athletes' : 'For dedicated users'}
+                          </p>
+                        </div>
+                      </div>
+                      {isCurrent && (
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${styles.badge}`}>
+                          Current
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Price */}
+                    <div className="flex items-end gap-1 mb-4">
+                      <span className={`text-3xl font-black tracking-tight ${styles.price}`}>
+                        {fmtEtb(p.price_monthly_usd)}
+                      </span>
+                      <span className="text-xs text-muted-foreground mb-1">/month</span>
+                    </div>
+
+                    {/* Feature list */}
+                    <ul className="space-y-2 mb-5">
+                      {featureList.map((f, i) => (
+                        <li key={i} className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className={`h-3.5 w-3.5 shrink-0 ${styles.price}`} />
+                          <span className="text-foreground/80">{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* CTA button */}
+                    <div className={`w-full h-11 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-colors ${styles.btn}`}>
+                      {isCurrent ? 'Renew Plan' : 'Select Plan'}
+                      <ArrowRight className="h-4 w-4" />
+                    </div>
+                  </button>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-secondary border border-border">{p.max_ai_calls_day} AI/day</span>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-secondary border border-border">{p.max_devices} device{p.max_devices > 1 ? 's' : ''}</span>
-                  {p.features?.ads === false && <span className="text-[11px] px-2 py-0.5 rounded-full bg-secondary border border-border">No ads</span>}
-                  {p.features?.export && <span className="text-[11px] px-2 py-0.5 rounded-full bg-secondary border border-border">Export</span>}
-                </div>
-              </button>
-            ))}
+              )
+            })}
+
+            {/* Free plan reminder */}
+            <p className="text-center text-xs text-muted-foreground pt-1">
+              On Free plan? You always have access to basic workout tracking.
+            </p>
           </div>
         )}
 
