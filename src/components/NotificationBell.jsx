@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/useAuth'
 import { useNotifications } from '@/lib/useNotifications'
-import { Bell, X } from 'lucide-react'
+import { Bell, X, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from './ui/badge'
 import { useTranslation } from 'react-i18next'
@@ -51,6 +52,7 @@ function NotificationRow({ notification }) {
 // ── NotificationBell ──────────────────────────────────────────────────────────
 export default function NotificationBell() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { user } = useAuth()
   const {
     notifications,
@@ -184,6 +186,19 @@ export default function NotificationBell() {
               notifications.map((n) => <NotificationRow key={n.id} notification={n} />)
             )}
           </div>
+
+          {/* Footer — See all link */}
+          {user && notifications.length > 0 && (
+            <div className="border-t border-border flex-shrink-0">
+              <button
+                onClick={() => { closePanel(); navigate('/notifications') }}
+                className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs text-primary hover:bg-muted/30 transition-colors"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                {t('nav.seeAllNotifications', { defaultValue: 'See all notifications' })}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

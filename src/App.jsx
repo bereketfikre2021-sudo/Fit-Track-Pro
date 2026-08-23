@@ -14,6 +14,7 @@ import SettingsPage from './pages/SettingsPage'
 import MealPlanPage from './pages/MealPlanPage'
 import SubscriptionPage from './pages/SubscriptionPage'
 import PaymentHistoryPage from './pages/PaymentHistoryPage'
+import NotificationsPage from './pages/NotificationsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
@@ -455,6 +456,16 @@ function AppRoutes() {
             <AuthGuard>
               <RequireOnboarded state={state}>
                 <PaymentHistoryPage />
+              </RequireOnboarded>
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <AuthGuard>
+              <RequireOnboarded state={state}>
+                <NotificationsPage />
               </RequireOnboarded>
             </AuthGuard>
           }

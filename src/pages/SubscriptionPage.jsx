@@ -408,7 +408,7 @@ export default function SubscriptionPage() {
                   </div>
                 )}
 
-                {/* Upgrade CTA — disabled when payment is pending */}
+                {/* Upgrade/Renew/Change CTA — disabled when payment is pending */}
                 <button
                   onClick={() => !pendingSubmission && setView('plans')}
                   disabled={!!pendingSubmission}
@@ -421,7 +421,11 @@ export default function SubscriptionPage() {
                   <Crown className="h-4 w-4" />
                   {pendingSubmission
                     ? 'Payment Pending Verification…'
-                    : isFree ? 'Upgrade Plan' : 'Change Plan'}
+                    : isFree
+                      ? 'Upgrade Plan'
+                      : expiringSoon
+                        ? 'Renew Plan'
+                        : 'Change Plan'}
                 </button>
 
                 <button onClick={() => navigate('/payment-history')}

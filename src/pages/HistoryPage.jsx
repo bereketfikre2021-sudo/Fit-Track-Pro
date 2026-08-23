@@ -1,16 +1,22 @@
 import HistoryTab from '../components/HistoryTab'
+import ProgressPhotosCard from '../components/ProgressPhotosCard'
 import BannerAdSpacer from '../components/BannerAdSpacer'
 import { useAds } from '../lib/useAds'
 
 function HistoryPage({ state, updateState }) {
-  // Banner ad on the History/Progress screen — non-intrusive, bottom placement.
-  // No interstitials on this screen (user is reviewing past data).
   useAds({ banner: true })
 
   return (
     <>
       <HistoryTab state={state} updateState={updateState} />
-      {/* Space reserved for the native AdMob banner (Capacitor only) */}
+
+      {/* Progress photos section */}
+      <div className="px-4 md:px-6 pb-4">
+        <div className="mt-2 rounded-2xl border border-border bg-card p-4">
+          <ProgressPhotosCard />
+        </div>
+      </div>
+
       <BannerAdSpacer />
     </>
   )

@@ -329,7 +329,7 @@ const en = {
     about: {
       title: 'About',
       version: 'FitTrack Pro v1.0',
-      tagline: 'A modern gym tracking application',
+      tagline: 'A modern fitness tracking & nutrition planning application',
       stack: 'Built with React, Tailwind CSS, and Shadcn UI',
     },
     toastLogout: 'Signed out — your data is still on this device',
