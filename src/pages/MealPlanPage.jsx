@@ -506,45 +506,56 @@ function MealPlanPage({ state, updateState }) {
   // Meal Plan Functions
   const handleAddFood = (foodData) => {
     if (!selectedMeal) return
-
     const { day, mealTime } = selectedMeal
-    const newMealPlan = { ...mealPlan }
-    
-    if (!newMealPlan[day]) {
-      newMealPlan[day] = { breakfast: [], morningSnack: [], lunch: [], afternoonSnack: [], dinner: [], beforeBed: [] }
-    }
-
     const newFood = {
       ...foodData,
       id: Date.now().toString(),
-      createdAt: Date.now()
+      createdAt: Date.now(),
     }
-
-    newMealPlan[day][mealTime] = [...(newMealPlan[day][mealTime] || []), newFood]
-    updateState({ mealPlan: newMealPlan })
+    updateState((prev) => {
+      const plan = prev.mealPlan || {}
+      const daySlots = plan[day] || { breakfast: [], morningSnack: [], lunch: [], afternoonSnack: [], dinner: [], beforeBed: [] }
+      return {
+        mealPlan: {
+          ...plan,
+          [day]: {
+            ...daySlots,
+            [mealTime]: [...(daySlots[mealTime] || []), newFood],
+          },
+        },
+      }
+    })
     toast.success(t('mealToasts.foodAdded', { name: foodData.name }))
     setIsAddingFood(false)
   }
 
   const handleUpdateFood = (foodData) => {
     if (!selectedMeal) return
-
     const { day, mealTime } = selectedMeal
-    const newMealPlan = { ...mealPlan }
-    
-    newMealPlan[day][mealTime] = newMealPlan[day][mealTime].map(item =>
-      item.id === foodData.id ? { ...foodData, updatedAt: Date.now() } : item
-    )
-
-    updateState({ mealPlan: newMealPlan })
+    updateState((prev) => {
+      const plan = prev.mealPlan || {}
+      const daySlots = plan[day] || {}
+      return {
+        mealPlan: {
+          ...plan,
+          [day]: {
+            ...daySlots,
+            [mealTime]: (daySlots[mealTime] || []).map((item) =>
+              item.id === foodData.id ? { ...foodData, updatedAt: Date.now() } : item
+            ),
+          },
+        },
+      }
+    })
     toast.success(t('mealToasts.foodUpdated', { name: foodData.name }))
     setEditingFood(null)
   }
 
   const handleDeleteFood = (day, mealTime, foodId) => {
-    const food = mealPlan[day][mealTime].find(f => f.id === foodId)
+    // Read name for the confirm dialog from current closed-over mealPlan — safe
+    // because this is synchronous and only fires on user interaction
+    const food = mealPlan[day]?.[mealTime]?.find((f) => f.id === foodId)
     if (!food) return
-
     if (
       !confirm(
         i18n.t('meals.confirmDeleteFood', {
@@ -555,10 +566,19 @@ function MealPlanPage({ state, updateState }) {
     )
       return
 
-    const newMealPlan = { ...mealPlan }
-    newMealPlan[day][mealTime] = newMealPlan[day][mealTime].filter(f => f.id !== foodId)
-
-    updateState({ mealPlan: newMealPlan })
+    updateState((prev) => {
+      const plan = prev.mealPlan || {}
+      const daySlots = plan[day] || {}
+      return {
+        mealPlan: {
+          ...plan,
+          [day]: {
+            ...daySlots,
+            [mealTime]: (daySlots[mealTime] || []).filter((f) => f.id !== foodId),
+          },
+        },
+      }
+    })
     toast.success(t('mealToasts.foodDeleted', { name: getLocalizedName(food) }))
   }
 
@@ -600,15 +620,18 @@ function MealPlanPage({ state, updateState }) {
     if (count === 0) return
     if (!confirm(t('common.itemsSelected', { count }) + '?')) return
 
-    const newMealPlan = { ...mealPlan }
-    selectedFoodIds.forEach((key) => {
-      const [day, mealTime, foodId] = key.split('|')
-      if (!newMealPlan[day]?.[mealTime]) return
-      newMealPlan[day] = { ...newMealPlan[day] }
-      newMealPlan[day][mealTime] = newMealPlan[day][mealTime].filter((f) => f.id !== foodId)
+    // Capture the keys to delete now (selectedFoodIds is a Set, safe to read synchronously)
+    const keysToDelete = new Set(selectedFoodIds)
+    updateState((prev) => {
+      const plan = { ...prev.mealPlan }
+      keysToDelete.forEach((key) => {
+        const [day, mealTime, foodId] = key.split('|')
+        if (!plan[day]?.[mealTime]) return
+        plan[day] = { ...plan[day] }
+        plan[day][mealTime] = plan[day][mealTime].filter((f) => f.id !== foodId)
+      })
+      return { mealPlan: plan }
     })
-
-    updateState({ mealPlan: newMealPlan })
     setSelectedFoodIds(new Set())
     setBulkSelectMode(false)
     toast.success(t('common.deleteCount', { count }))
@@ -621,23 +644,38 @@ function MealPlanPage({ state, updateState }) {
 
   // Update imageUrl on a specific food item
   const handleFoodImageChange = useCallback((day, mealTime, foodId, dataUrl) => {
-    const newMealPlan = { ...mealPlan }
-    if (!newMealPlan[day]?.[mealTime]) return
-    newMealPlan[day] = { ...newMealPlan[day] }
-    newMealPlan[day][mealTime] = newMealPlan[day][mealTime].map((f) =>
-      f.id === foodId ? { ...f, imageUrl: dataUrl } : f
-    )
-    updateState({ mealPlan: newMealPlan })
-  }, [mealPlan, updateState])
+    updateState((prev) => {
+      const plan = prev.mealPlan || {}
+      if (!plan[day]?.[mealTime]) return {}
+      return {
+        mealPlan: {
+          ...plan,
+          [day]: {
+            ...plan[day],
+            [mealTime]: plan[day][mealTime].map((f) =>
+              f.id === foodId ? { ...f, imageUrl: dataUrl } : f
+            ),
+          },
+        },
+      }
+    })
+  }, [updateState])
 
   // Update imageUrl on a shopping item
   const handleShoppingItemImageChange = useCallback((category, itemId, dataUrl) => {
-    const newShoppingList = { ...shoppingList }
-    newShoppingList[category] = newShoppingList[category].map((i) =>
-      i.id === itemId ? { ...i, imageUrl: dataUrl } : i
-    )
-    updateState({ shoppingList: newShoppingList })
-  }, [shoppingList, updateState])
+    updateState((prev) => {
+      const list = prev.shoppingList || {}
+      if (!list[category]) return {}
+      return {
+        shoppingList: {
+          ...list,
+          [category]: list[category].map((i) =>
+            i.id === itemId ? { ...i, imageUrl: dataUrl } : i
+          ),
+        },
+      }
+    })
+  }, [updateState])
   const handleAddShoppingItem = (itemData) => {
     const newShoppingList = { ...shoppingList }
     

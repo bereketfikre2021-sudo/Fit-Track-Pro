@@ -450,7 +450,7 @@ export default function ProgressPhotosCard() {
             </button>
           )}
         </div>
-        <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
       </div>
 
       {/* Compare mode hint */}

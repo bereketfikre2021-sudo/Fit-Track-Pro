@@ -144,8 +144,11 @@ function AppRoutes() {
   useMealReminders(state)
   useWorkoutReminder(state)
 
-  const updateState = (updates) => {
-    setState((prev) => ({ ...prev, ...updates }))
+  const updateState = (updatesOrFn) => {
+    setState((prev) => {
+      const updates = typeof updatesOrFn === 'function' ? updatesOrFn(prev) : updatesOrFn
+      return { ...prev, ...updates }
+    })
   }
 
   // Show spinner while cloud data is loading to prevent any routing flash
