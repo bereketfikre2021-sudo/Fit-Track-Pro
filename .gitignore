@@ -57,3 +57,6 @@ public/inter-test.woff2
 
 # Kiro spec workspace files
 .kiro/
+
+# Built GitHub Pages output (deployed via Actions, not committed)
+docs/

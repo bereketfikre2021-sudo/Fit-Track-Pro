@@ -3,13 +3,15 @@ name: Deploy GitHub Pages
 on:
   push:
     branches: [main, master]
-    paths-ignore:
-      - 'docs/**'
   workflow_dispatch:
 
+# Required for the official Pages deployment action
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
+# Only one deploy at a time; cancel in-progress if a new push arrives
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -17,6 +19,10 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -28,19 +34,14 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Build for GitHub Pages
+      - name: Build
         run: npx vite build
         env:
-          GITHUB_PAGES: 'true'
-
-          # ── Gemini (public) ────────────────────────────────────────
           VITE_GEMINI_MODEL: gemini-1.5-flash
 
-          # ── Supabase (URL is public; anon key from secret) ─────────
           VITE_SUPABASE_URL: https://myyttidixinlbohlfftd.supabase.co
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-          # ── Firebase (all public identifiers) ──────────────────────
           VITE_FIREBASE_API_KEY: AIzaSyBiYgxLlmqAjBWmmtRxbT9kEkNuPMm8Smc
           VITE_FIREBASE_AUTH_DOMAIN: fit-track-pro-d4e6f.firebaseapp.com
           VITE_FIREBASE_PROJECT_ID: fit-track-pro-d4e6f
@@ -49,25 +50,17 @@ jobs:
           VITE_FIREBASE_APP_ID: 1:384275195217:web:743b5c3eae90068e6d1f70
           VITE_FIREBASE_VAPID_KEY: BL6VYgZiAsGbqIJMoCb_w8ioqO0AysePdyfc5hAL3RRw6j7Ye1ONWBj7h4_bDNAULLtoKQYJdOsk8wMVTnb6mko
 
-          # ── AdMob (test IDs until production IDs are ready) ────────
           VITE_ADMOB_DISABLED: 'false'
           VITE_ADMOB_FORCE_TEST_ADS: 'false'
 
-      - name: Publish build to docs/
-        run: |
-          rm -rf docs
-          mkdir -p docs
-          cp -r dist/. docs/
-          touch docs/.nojekyll
+      # Upload the dist/ folder as a Pages artifact (no git commit needed)
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
 
-      - name: Commit and push docs/
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/
-          if git diff --staged --quiet; then
-            echo "No changes to deploy"
-            exit 0
-          fi
-          git commit -m "Deploy GitHub Pages [skip ci]"
-          git push
+      # Deploy the artifact to GitHub Pages (writes to the gh-pages environment,
+      # never commits anything back to master)
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
