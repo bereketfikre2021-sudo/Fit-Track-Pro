@@ -476,6 +476,26 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
           </div>
 
           <div className="space-y-3 border-t border-border/60 pt-4">
+            <p className="text-sm font-medium">{t('settings.mealPrefs.title', { defaultValue: 'Meal & Shopping' })}</p>
+            <label className="flex items-start gap-3 cursor-pointer rounded-md border border-border p-3">
+              <input
+                type="checkbox"
+                checked={appSettings.showCardThumbnails}
+                onChange={(e) => patchSettings({ showCardThumbnails: e.target.checked })}
+                className="mt-1 h-4 w-4 rounded border-input accent-primary"
+              />
+              <span className="text-sm">
+                <span className="font-medium block">
+                  {t('settings.mealPrefs.showThumbnails', { defaultValue: 'Show item thumbnails' })}
+                </span>
+                <span className="text-muted-foreground text-xs">
+                  {t('settings.mealPrefs.showThumbnailsHint', { defaultValue: 'Display photo thumbnails on meal plan food rows and shopping list items.' })}
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <div className="space-y-3 border-t border-border/60 pt-4">
             <div className="flex items-center gap-2">
               <Bell className="h-4 w-4 text-primary shrink-0" />
               <p className="text-sm font-medium">{t('settings.workoutPrefs.workoutReminderTitle')}</p>

@@ -22,6 +22,10 @@ import {
   TrendingUp,
   Settings,
   CreditCard,
+  Crown,
+  Rocket,
+  Shield,
+  Users,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent } from './ui/card'
@@ -36,6 +40,7 @@ import {
   translateGoal,
 } from '@/lib/i18nHelpers'
 import { EQUIPMENT_OPTIONS, equipmentToId } from '@/lib/profileOptions'
+import { useSubscription } from '@/lib/useSubscription'
 import { DateInput } from './ui/date-input'
 import BodyWeightTracker from './BodyWeightTracker'
 
@@ -50,6 +55,13 @@ const LEVEL_STYLES = {
   beginner: 'text-blue-500',
   intermediate: 'text-amber-500',
   advanced: 'text-primary',
+}
+
+const PLAN_TIER_CONFIG = {
+  free:  { label: 'Free',  icon: Zap,    badge: 'bg-muted text-muted-foreground border-border',                  link: false },
+  pro:   { label: 'Pro',   icon: Rocket, badge: 'bg-primary/15 text-primary border-primary/40',                  link: true  },
+  elite: { label: 'Elite', icon: Shield, badge: 'bg-violet-500/15 text-violet-400 border-violet-500/40',          link: true  },
+  team:  { label: 'Team',  icon: Users,  badge: 'bg-amber-500/15 text-amber-400 border-amber-500/40',             link: true  },
 }
 
 function AccordionCard({ icon: Icon, title, summary, children, defaultOpen = false }) {
@@ -101,6 +113,10 @@ function MetricRow({ icon: Icon, label, value }) {
 function ProfileTab({ state, updateState }) {
   const { t, i18n } = useTranslation()
   const profile = state.profile
+  const { features: subFeatures } = useSubscription()
+  const planTier = subFeatures?.tier ?? 'free'
+  const planConfig = PLAN_TIER_CONFIG[planTier] ?? PLAN_TIER_CONFIG.free
+  const PlanIcon = planConfig.icon
   const avatarFileInputRef = useRef(null)
   const [editingBirthDate, setEditingBirthDate] = useState(false)
   const [birthDateDraft, setBirthDateDraft] = useState(profile.birthDate || '')
@@ -166,7 +182,29 @@ function ProfileTab({ state, updateState }) {
 
             <div className="flex-1 text-center sm:text-left min-w-0 pb-1">
               <h1 className="text-2xl font-bold truncate">{profile.name || t('profile.yourProfile')}</h1>
-              <p className="text-sm text-muted-foreground mt-1">{t('profile.planDetails')}</p>
+              {/* Subscription plan badge */}
+              {planConfig.link ? (
+                <Link
+                  to="/subscription"
+                  className={cn(
+                    'inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full border mt-1.5 transition-opacity hover:opacity-80',
+                    planConfig.badge
+                  )}
+                >
+                  <PlanIcon className="h-3 w-3" />
+                  {planConfig.label}
+                </Link>
+              ) : (
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full border mt-1.5',
+                    planConfig.badge
+                  )}
+                >
+                  <PlanIcon className="h-3 w-3" />
+                  {planConfig.label}
+                </span>
+              )}
               {profile.registrationDate && (
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {t('profile.memberSince', { date: formatMemberSinceDate(profile.registrationDate, i18n.language) })}

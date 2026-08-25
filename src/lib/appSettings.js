@@ -48,6 +48,8 @@ export const DEFAULT_APP_SETTINGS = {
   mealPushRemindersEnabled: false,
   /** Advanced: show JSON import/export controls in exercises, meals, shopping list */
   enableJsonImportExport: false,
+  /** Show thumbnail images on meal plan food rows and shopping list item pills */
+  showCardThumbnails: false,
 }
 
 const MEAL_SLOT_IDS = [
@@ -117,6 +119,7 @@ export function normalizeAppSettings(settings) {
     workoutReminderTime: normalizeTimeString(s.workoutReminderTime, '07:00'),
     mealPushRemindersEnabled: s.mealPushRemindersEnabled === true,
     enableJsonImportExport: s.enableJsonImportExport === true,
+    showCardThumbnails: s.showCardThumbnails === true,
   }
 }
 

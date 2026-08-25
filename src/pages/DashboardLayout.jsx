@@ -1,4 +1,4 @@
-import { Dumbbell, User } from 'lucide-react'
+import { Dumbbell, User, Settings } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import NotificationBell from '../components/NotificationBell'
@@ -62,6 +62,21 @@ function DashboardLayout({ state, updateState, children }) {
             <div className="flex items-center gap-2">
               {/* Notification bell */}
               <NotificationBell />
+
+              {/* Settings shortcut */}
+              <Link
+                to="/profile/settings"
+                aria-label="Settings"
+                className={cn(
+                  'h-9 w-9 rounded-lg flex items-center justify-center transition-colors',
+                  'hover:bg-muted',
+                  location.pathname.includes('settings')
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground'
+                )}
+              >
+                <Settings className="h-[18px] w-[18px]" aria-hidden />
+              </Link>
 
               {/* Profile / avatar shortcut */}
               <Link

@@ -230,6 +230,7 @@ function MealPlanPage({ state, updateState }) {
   const showTemplateShoppingFeatures = allowsTemplatePlanFeatures(state)
   const appSettings = getAppSettings(state)
   const showJsonControls = appSettings.enableJsonImportExport
+  const showCardThumbnails = appSettings.showCardThumbnails
 
   // Profile-level BMI and category — used for filtering presets
   const profile = state.profile || {}
@@ -1109,13 +1110,15 @@ function MealPlanPage({ state, updateState }) {
                                         {isChecked && <CheckSquare className="h-3 w-3" />}
                                       </span>
                                     ) : (
-                                      <ItemThumbnail
-                                        imageUrl={food.imageUrl}
-                                        alt={getLocalizedName(food)}
-                                        size="md"
-                                        disabled={bulkSelectMode}
-                                        onImageChange={(dataUrl) => handleFoodImageChange(day, mealTime.id, food.id, dataUrl)}
-                                      />
+                                      showCardThumbnails ? (
+                                        <ItemThumbnail
+                                          imageUrl={food.imageUrl}
+                                          alt={getLocalizedName(food)}
+                                          size="md"
+                                          disabled={bulkSelectMode}
+                                          onImageChange={(dataUrl) => handleFoodImageChange(day, mealTime.id, food.id, dataUrl)}
+                                        />
+                                      ) : null
                                     )}
                                     <span className="text-sm flex-1">
                                       {getLocalizedName(food)}
@@ -1356,12 +1359,14 @@ function MealPlanPage({ state, updateState }) {
                                   : 'border-border bg-muted/30 hover:border-primary/40'
                               )}
                             >
-                              <ItemThumbnail
-                                imageUrl={item.imageUrl}
-                                alt={getLocalizedName(item)}
-                                size="sm"
-                                onImageChange={(dataUrl) => handleShoppingItemImageChange(category, item.id, dataUrl)}
-                              />
+                              {showCardThumbnails && (
+                                <ItemThumbnail
+                                  imageUrl={item.imageUrl}
+                                  alt={getLocalizedName(item)}
+                                  size="sm"
+                                  onImageChange={(dataUrl) => handleShoppingItemImageChange(category, item.id, dataUrl)}
+                                />
+                              )}
                               <div
                                 className="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0"
                                 onClick={() => handleToggleShoppingItem(category, item.id)}
