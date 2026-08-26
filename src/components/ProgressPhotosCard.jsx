@@ -76,6 +76,100 @@ function isBucketNotFound(err) {
   )
 }
 
+/**
+ * Reads EXIF DateTimeOriginal (tag 0x9003) from a JPEG/HEIC file without any
+ * external library. Scans only the first 64 KB so it's fast even for large photos.
+ *
+ * Returns an ISO date string 'YYYY-MM-DD' when found, or null on failure.
+ *
+ * EXIF date format: "YYYY:MM:DD HH:MM:SS"
+ */
+async function readExifDate(file) {
+  try {
+    // Only attempt JPEG / HEIC — PNG and WebP don't embed EXIF this way
+    const isJpeg = file.type === 'image/jpeg' || file.type === 'image/jpg'
+    const isHeic = file.type === 'image/heic' || file.type === 'image/heif' || /\.hei[cf]$/i.test(file.name)
+    if (!isJpeg && !isHeic) return null
+
+    const buf  = await file.slice(0, 65536).arrayBuffer()
+    const view = new DataView(buf)
+    const len  = view.byteLength
+
+    // JPEG SOI marker must be 0xFFD8
+    if (isJpeg && view.getUint16(0) !== 0xFFD8) return null
+
+    // Walk through JPEG APP1 (0xFFE1) segments to find Exif IFD
+    let offset = 2
+    while (offset < len - 4) {
+      const marker = view.getUint16(offset)
+      const segLen = view.getUint16(offset + 2)
+
+      if (marker === 0xFFE1) {
+        // Check for "Exif\0\0" header at offset+4
+        const exifHeader = String.fromCharCode(
+          view.getUint8(offset + 4), view.getUint8(offset + 5),
+          view.getUint8(offset + 6), view.getUint8(offset + 7)
+        )
+        if (exifHeader === 'Exif') {
+          const tiffStart = offset + 10
+          // Determine byte order
+          const byteOrder = view.getUint16(tiffStart)
+          const littleEndian = byteOrder === 0x4949
+
+          const read16 = (o) => view.getUint16(tiffStart + o, littleEndian)
+          const read32 = (o) => view.getUint32(tiffStart + o, littleEndian)
+
+          // IFD0 offset
+          const ifd0Offset = read32(4)
+          const ifd0Count  = read16(ifd0Offset)
+
+          // Walk IFD0 looking for ExifIFD pointer (tag 0x8769)
+          let exifIfdOffset = null
+          for (let i = 0; i < ifd0Count; i++) {
+            const entryOffset = ifd0Offset + 2 + i * 12
+            if (entryOffset + 12 > len - tiffStart) break
+            const tag = read16(entryOffset)
+            if (tag === 0x8769) {
+              exifIfdOffset = read32(entryOffset + 8)
+              break
+            }
+          }
+
+          // Walk ExifIFD looking for DateTimeOriginal (0x9003)
+          if (exifIfdOffset !== null) {
+            const exifCount = read16(exifIfdOffset)
+            for (let i = 0; i < exifCount; i++) {
+              const entryOffset = exifIfdOffset + 2 + i * 12
+              if (entryOffset + 12 > len - tiffStart) break
+              const tag = read16(entryOffset)
+              if (tag === 0x9003) {
+                const valueOffset = read32(entryOffset + 8)
+                // Read 20-char ASCII date string "YYYY:MM:DD HH:MM:SS\0"
+                let dateStr = ''
+                for (let c = 0; c < 19; c++) {
+                  const charCode = view.getUint8(tiffStart + valueOffset + c)
+                  if (charCode === 0) break
+                  dateStr += String.fromCharCode(charCode)
+                }
+                // "YYYY:MM:DD HH:MM:SS" → "YYYY-MM-DD"
+                const match = dateStr.match(/^(\d{4}):(\d{2}):(\d{2})/)
+                if (match) return `${match[1]}-${match[2]}-${match[3]}`
+              }
+            }
+          }
+        }
+      }
+
+      // Advance past this segment (segment length includes the 2-byte length field)
+      if (segLen < 2) break
+      offset += 2 + segLen
+    }
+  } catch {
+    // Silent — fall back to today
+  }
+  return null
+}
+
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 function Lightbox({ photos, index, onClose }) {
   const [cur, setCur] = useState(index)
@@ -144,8 +238,8 @@ function Lightbox({ photos, index, onClose }) {
           {photo.weight_kg && (
             <p className="text-xs text-white/50">{photo.weight_kg} kg</p>
           )}
-          {photo.note && (
-            <p className="text-xs text-white/60 italic max-w-[260px]">{photo.note}</p>
+          {photo.notes && (
+            <p className="text-xs text-white/60 italic max-w-[260px]">{photo.notes}</p>
           )}
           <p className="text-xs text-white/30">{cur + 1} / {total}</p>
         </div>
@@ -300,7 +394,7 @@ export default function ProgressPhotosCard() {
     try {
       const { data, error } = await supabase
         .from('progress_photos')
-        .select('id, storage_path, taken_at, note, weight_kg')
+        .select('id, storage_path, taken_at, notes, weight_kg')
         .eq('user_id', uid)
         .order('taken_at', { ascending: true })
         .limit(200)
@@ -342,21 +436,24 @@ export default function ProgressPhotosCard() {
     if (!files.length || !userId) return
 
     setBucketMissing(false)
-    const today = todayIso()
 
     // For each file: show an optimistic placeholder immediately, then upload
     await Promise.all(files.map(async (file) => {
+      // Read EXIF date first — this is fast (only reads first 64 KB)
+      const exifDate = await readExifDate(file)
+      const takenAt  = exifDate ?? todayIso()  // use photo's own date, fall back to today
+
       // Create a temporary local object URL so the photo appears instantly
-      const tempId  = `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      const tempId   = `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`
       const localUrl = URL.createObjectURL(file)
 
       const optimistic = {
         id:           tempId,
-        taken_at:     today,
+        taken_at:     takenAt,
         url:          localUrl,
         storage_path: null,
         weight_kg:    null,
-        note:         null,
+        notes:        null,
         _pending:     true,
       }
 
@@ -387,8 +484,8 @@ export default function ProgressPhotosCard() {
 
         const { data: insData, error: insErr } = await supabase
           .from('progress_photos')
-          .insert({ user_id: userId, storage_path: path, taken_at: today })
-          .select('id, storage_path, taken_at, note, weight_kg')
+          .insert({ user_id: userId, storage_path: path, taken_at: takenAt })
+          .select('id, storage_path, taken_at, notes, weight_kg')
           .single()
 
         if (insErr) {
@@ -412,7 +509,7 @@ export default function ProgressPhotosCard() {
           prev.map(p => p.id === tempId ? confirmed : p)
         )
         URL.revokeObjectURL(localUrl)
-        toast.success(`Photo saved — ${fmtDate(today)}`)
+        toast.success(`Photo saved — ${fmtDate(takenAt)}${exifDate ? '' : ' (today)'}`)
       } catch (err) {
         // Remove the optimistic entry on failure
         setPhotos(prev => prev.filter(p => p.id !== tempId))
@@ -484,7 +581,7 @@ export default function ProgressPhotosCard() {
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             {t('profile.progressPhotosDesc', {
-              defaultValue: 'Upload photos to track your progress — each one is tagged with today\'s date automatically',
+              defaultValue: 'Upload photos to track your progress — date is read from the photo automatically',
             })}
           </p>
         </div>

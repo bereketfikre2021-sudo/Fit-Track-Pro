@@ -63,7 +63,7 @@ create table if not exists public.progress_photos (
   weight_kg       numeric(5,1),
   bmi             numeric(4,1),
   note            text,
-  notes           text,       -- legacy alias kept for backwards compat
+  notes           text,       -- actual column name (note is a legacy alias)
   is_private      boolean     not null default true,
   created_at      timestamptz not null default now()
 );
