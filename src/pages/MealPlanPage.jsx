@@ -267,10 +267,17 @@ function MealPlanPage({ state, updateState }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // One-time migration: deduplicate foods in the stored meal plan.
-  // Guards against previously-applied preset plans that had DB duplicates.
+  // Deduplicate foods in the stored meal plan.
+  // Runs on mount AND after any mealPlan reference change (e.g. after cloud load).
+  // Uses content-based key (name|calories|protein|carbs|fat) so it catches
+  // duplicates that arrived from Supabase with different UUIDs — not just
+  // same-id duplicates, which would never occur from our own writes.
+  const lastDedupedPlan = useRef(null)
   useEffect(() => {
     if (!mealPlan || typeof mealPlan !== 'object') return
+    // Skip if we already deduped this exact reference
+    if (mealPlan === lastDedupedPlan.current) return
+
     let changed = false
     const deduped = {}
     for (const [day, slots] of Object.entries(mealPlan)) {
@@ -279,9 +286,15 @@ function MealPlanPage({ state, updateState }) {
         if (!Array.isArray(foods)) { deduped[day][slot] = foods; continue }
         const seen = new Set()
         const unique = foods.filter((food) => {
-          const key = food.id
-            ? food.id
-            : `${String(food.name || '').toLowerCase().trim()}|${food.calories ?? ''}`
+          // Always use content-based key — never trust id alone because
+          // cloud-loaded duplicates have different Supabase UUIDs.
+          const key = [
+            String(food.name  || '').toLowerCase().trim(),
+            food.calories ?? '',
+            food.protein  ?? '',
+            food.carbs    ?? '',
+            food.fat      ?? '',
+          ].join('|')
           if (seen.has(key)) { changed = true; return false }
           seen.add(key)
           return true
@@ -289,9 +302,15 @@ function MealPlanPage({ state, updateState }) {
         deduped[day][slot] = unique
       }
     }
-    if (changed) updateState({ mealPlan: deduped })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+
+    if (changed) {
+      lastDedupedPlan.current = null // allow next ref to be checked
+      updateState({ mealPlan: deduped })
+    } else {
+      lastDedupedPlan.current = mealPlan // mark as clean
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mealPlan])
 
   // Auto-add meal items into shopping list whenever meals change.
   // (Removed) Automatic meal → shopping list syncing for a simpler workflow.

@@ -11,7 +11,7 @@
  *   3. Drain queue on reconnect
  */
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { useAuth } from './useAuth'
 import { useOnlineStatus } from './useOnlineStatus'
 import { enqueue, drainQueue } from './offlineQueue'
@@ -51,7 +51,23 @@ export function useSupabaseSync(state) {
   const prevWaterLogs         = useRef(null)
   const prevCompletedSessions = useRef(null)
 
+  // Seed refs with the current state snapshot on the very first render so
+  // any initial cloud-load write is NOT treated as a local change to push back.
+  const seeded = useRef(false)
+  if (!seeded.current) {
+    seeded.current       = true
+    prevMealPlan.current = JSON.stringify(state.mealPlan ?? {})
+    prevProfile.current  = JSON.stringify(state.profile ?? {})
+  }
+
   const isReady = !!(userId && state.onboarded)
+
+  // Expose a way for App.jsx cloud-load to silence the sync after it writes
+  // cloud data to state (cloud→local should never be pushed back to cloud).
+  const suppressNextMealSync = useRef(false)
+  const suppressNextMealSyncFn = useCallback(() => {
+    suppressNextMealSync.current = true
+  }, [])
 
   // ── Profile ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -101,6 +117,14 @@ export function useSupabaseSync(state) {
     if (!isReady) return
     const cur = JSON.stringify(state.mealPlan)
     if (cur === prevMealPlan.current) return
+
+    // If the cloud load just wrote this state, silently update the ref and skip
+    // pushing back to Supabase (cloud → local must not echo back to cloud).
+    if (suppressNextMealSync.current) {
+      suppressNextMealSync.current = false
+      prevMealPlan.current = cur
+      return
+    }
 
     const prevPlan = prevMealPlan.current ? JSON.parse(prevMealPlan.current) : {}
     prevMealPlan.current = cur
@@ -182,4 +206,6 @@ export function useSupabaseSync(state) {
     }, SYNC_DELAY_MS)
     return () => clearTimeout(timer)
   }, [userId, isReady, isOnline, state.completedSessions, state.completedExercises])
+
+  return { suppressNextMealSync: suppressNextMealSyncFn }
 }

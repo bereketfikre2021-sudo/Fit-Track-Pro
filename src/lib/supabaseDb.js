@@ -347,8 +347,19 @@ export async function loadCompletedSessions(userId) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
+ * Per-slot mutex: ensures concurrent calls for the same (userId, day, slot)
+ * are serialized — the latest write always wins and no interleaving of
+ * DELETE/INSERT from two callers can produce duplicate rows.
+ *
+ * Key: `${userId}|${dayOfWeek}|${mealSlot}`
+ * Value: Promise chain (each new call is appended with .then())
+ */
+const slotMutex = new Map()
+
+/**
  * Replaces all meal plan rows for a given day+slot with the current app state.
- * Called whenever a meal slot is updated.
+ * Calls are serialized per slot — if two writes race for the same slot, the
+ * second waits for the first to finish before running its DELETE+INSERT.
  *
  * @param {string}   userId
  * @param {string}   dayOfWeek  - e.g. 'Monday'
@@ -358,6 +369,24 @@ export async function loadCompletedSessions(userId) {
 export async function syncMealSlot(userId, dayOfWeek, mealSlot, foods) {
   if (!isSupabaseReady() || !userId) return
 
+  const key = `${userId}|${dayOfWeek}|${mealSlot}`
+
+  // Chain this write onto the previous one for the same slot so they never
+  // overlap. The mutex chain is self-cleaning: once the tail resolves with no
+  // other waiters, we delete the key to keep the Map from growing forever.
+  const prev = slotMutex.get(key) ?? Promise.resolve()
+  const next = prev.then(() => _doSyncMealSlot(userId, dayOfWeek, mealSlot, foods))
+  slotMutex.set(key, next)
+
+  // Clean up after this write completes (whether it resolves or rejects)
+  next.finally(() => {
+    if (slotMutex.get(key) === next) slotMutex.delete(key)
+  })
+
+  return next
+}
+
+async function _doSyncMealSlot(userId, dayOfWeek, mealSlot, foods) {
   // Delete existing rows for this day+slot, then re-insert
   const { error: delErr } = await supabase
     .from('meal_plans')
@@ -371,19 +400,17 @@ export async function syncMealSlot(userId, dayOfWeek, mealSlot, foods) {
   if (!foods?.length) return
 
   const rows = foods.map((food, i) => ({
-    user_id:     userId,
-    day_of_week: dayOfWeek,
-    meal_slot:   mealSlot,
-    food_name:   food.name   || 'Unnamed',
-    calories:    parseFloat(food.calories) || null,
-    protein_g:   parseFloat(food.protein)  || null,
-    carbs_g:     parseFloat(food.carbs)    || null,
-    fat_g:       parseFloat(food.fat)      || null,
+    user_id:      userId,
+    day_of_week:  dayOfWeek,
+    meal_slot:    mealSlot,
+    food_name:    food.name   || 'Unnamed',
+    calories:     parseFloat(food.calories) || null,
+    protein_g:    parseFloat(food.protein)  || null,
+    carbs_g:      parseFloat(food.carbs)    || null,
+    fat_g:        parseFloat(food.fat)      || null,
     serving_size: food.servingSize || null,
-    // Store imageUrl in notes field as JSON suffix if no dedicated column exists
-    // Format: "userNotes||imageUrl:data..." — parsed back in loadMealPlan
-    notes:       serializeFoodNotes(food),
-    sort_order:  i,
+    notes:        serializeFoodNotes(food),
+    sort_order:   i,
   }))
 
   const { error: insErr } = await supabase.from('meal_plans').insert(rows)

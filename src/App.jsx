@@ -14,6 +14,7 @@ import SettingsPage from './pages/SettingsPage'
 import MealPlanPage from './pages/MealPlanPage'
 import SubscriptionPage from './pages/SubscriptionPage'
 import PaymentHistoryPage from './pages/PaymentHistoryPage'
+import WalletPage from './pages/WalletPage'
 import NotificationsPage from './pages/NotificationsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import LoginPage from './pages/LoginPage'
@@ -81,6 +82,9 @@ function AppRoutes() {
     loadAllFromSupabase(user.id).then((patch) => {
       clearTimeout(timeout)
       if (patch) {
+        // Tell the sync hook that the next mealPlan state change is a cloud
+        // read — do NOT echo it back to Supabase.
+        suppressNextMealSync()
         setState((prev) => {
           const merged = { ...prev, ...patch }
           merged.appSettings = prev.appSettings // device-specific, keep local
@@ -140,7 +144,7 @@ function AppRoutes() {
 
   // ── Persist to localStorage + sync to Supabase ───────────────────────────
   useDebouncedSave(state)
-  useSupabaseSync(state)
+  const { suppressNextMealSync } = useSupabaseSync(state)
   useMealReminders(state)
   useWorkoutReminder(state)
 
@@ -459,6 +463,16 @@ function AppRoutes() {
             <AuthGuard>
               <RequireOnboarded state={state}>
                 <PaymentHistoryPage />
+              </RequireOnboarded>
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/wallet"
+          element={
+            <AuthGuard>
+              <RequireOnboarded state={state}>
+                <WalletPage />
               </RequireOnboarded>
             </AuthGuard>
           }
