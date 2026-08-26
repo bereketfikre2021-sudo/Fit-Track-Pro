@@ -46,16 +46,38 @@ CREATE TRIGGER preset_plans_updated_at
 -- RLS: public read (frontend needs it), authenticated write (admin only)
 ALTER TABLE public.preset_plans ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can read preset_plans"
+-- Drop ALL existing policies cleanly
+DROP POLICY IF EXISTS "Anyone can read preset_plans"                ON public.preset_plans;
+DROP POLICY IF EXISTS "Authenticated users can write preset_plans"  ON public.preset_plans;
+DROP POLICY IF EXISTS "Authenticated users can insert preset_plans" ON public.preset_plans;
+DROP POLICY IF EXISTS "Authenticated users can update preset_plans" ON public.preset_plans;
+DROP POLICY IF EXISTS "Authenticated users can delete preset_plans" ON public.preset_plans;
+DROP POLICY IF EXISTS "preset_plans_select"                         ON public.preset_plans;
+DROP POLICY IF EXISTS "preset_plans_insert"                         ON public.preset_plans;
+DROP POLICY IF EXISTS "preset_plans_update"                         ON public.preset_plans;
+DROP POLICY IF EXISTS "preset_plans_delete"                         ON public.preset_plans;
+
+-- Public read
+CREATE POLICY "preset_plans_select"
   ON public.preset_plans FOR SELECT
   USING (true);
 
-CREATE POLICY "Authenticated users can write preset_plans"
-  ON public.preset_plans FOR ALL
-  USING (auth.role() = 'authenticated')
-  WITH CHECK (auth.role() = 'authenticated');
+-- Write policies use auth.uid() IS NOT NULL (checks JWT, works with anon-key client)
+-- No TO authenticated — that checks Postgres role which is always 'anon' with anon-key clients
+CREATE POLICY "preset_plans_insert"
+  ON public.preset_plans FOR INSERT
+  WITH CHECK (auth.uid() IS NOT NULL);
 
--- Grant access to anon and authenticated roles
+CREATE POLICY "preset_plans_update"
+  ON public.preset_plans FOR UPDATE
+  USING (auth.uid() IS NOT NULL)
+  WITH CHECK (auth.uid() IS NOT NULL);
+
+CREATE POLICY "preset_plans_delete"
+  ON public.preset_plans FOR DELETE
+  USING (auth.uid() IS NOT NULL);
+
+-- Ensure grants are in place
 GRANT SELECT ON public.preset_plans TO anon;
 GRANT ALL    ON public.preset_plans TO authenticated;
 
