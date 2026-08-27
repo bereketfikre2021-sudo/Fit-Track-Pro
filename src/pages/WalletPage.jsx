@@ -19,11 +19,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { compressImageFile } from '../lib/imageUtils'
 import { toast } from 'sonner'
+import { useSubscription } from '../lib/useSubscription'
 import {
   ChevronLeft, Wallet, Plus, History, RefreshCw, Loader2,
   AlertCircle, CheckCircle2, XCircle, Clock, ArrowUpRight,
   ArrowDownLeft, Camera, Copy, Check, ToggleLeft, ToggleRight,
-  Info, TrendingUp, TrendingDown, Shield, ChevronRight,
+  Info, TrendingUp, TrendingDown, Shield, ChevronRight, Gift,
 } from 'lucide-react'
 import {
   fetchWallet, fetchWalletLedger, fetchAutoRenewalStatus,
@@ -193,6 +194,8 @@ export default function WalletPage() {
   // Auto-renew toggle
   const [autoRenewToggling, setAutoRenewToggling] = useState(false)
 
+  // Trial status from the subscription hook
+  const { features: subFeatures } = useSubscription()
   const fileRef = useRef(null)
   const LEDGER_PAGE = 20
 
@@ -889,17 +892,44 @@ export default function WalletPage() {
           <>
             {!renewal ? (
               <div className="flex flex-col items-center gap-4 py-16 text-center">
-                <RefreshCw className="h-10 w-10 text-muted-foreground opacity-40" />
-                <div>
-                  <p className="font-semibold">No active subscription</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Subscribe to a plan to use auto-renewal.
-                  </p>
-                </div>
-                <button onClick={() => navigate('/subscription')}
-                  className="h-11 px-6 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold">
-                  Subscribe Now
-                </button>
+                {subFeatures.isTrialProvider ? (
+                  // User is on a trial — show trial info + prompt to top up wallet
+                  <>
+                    <div className="h-16 w-16 rounded-full bg-primary/15 flex items-center justify-center">
+                      <Gift className="h-8 w-8 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">You're on a Free Trial</p>
+                      <p className="text-sm text-muted-foreground mt-1 max-w-xs leading-relaxed">
+                        Auto-renewal isn't available during a trial. Add money to your wallet and subscribe before your trial ends to enable it.
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <button onClick={() => setTab('top-up')}
+                        className="h-11 px-6 rounded-2xl border border-border text-sm font-semibold hover:bg-muted/30">
+                        Add Money
+                      </button>
+                      <button onClick={() => navigate('/subscription')}
+                        className="h-11 px-6 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold">
+                        Subscribe Now
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-10 w-10 text-muted-foreground opacity-40" />
+                    <div>
+                      <p className="font-semibold">No active subscription</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Subscribe to a plan to use auto-renewal.
+                      </p>
+                    </div>
+                    <button onClick={() => navigate('/subscription')}
+                      className="h-11 px-6 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold">
+                      Subscribe Now
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               <>

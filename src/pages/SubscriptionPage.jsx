@@ -20,6 +20,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { compressImageFile } from '../lib/imageUtils'
+import { useSubscription } from '../lib/useSubscription'
 import {
   fetchPurchaseOptionsForPlan,
   fetchPurchaseOptions,
@@ -34,7 +35,7 @@ import {
   Loader2, Crown, CreditCard, Clock, CheckCircle2,
   XCircle, ArrowRight, RefreshCw, Zap, Sparkles,
   Shield, Rocket, Star, Users, Wallet, Plus,
-  Tag,
+  Tag, Gift,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -197,6 +198,9 @@ export default function SubscriptionPage() {
   // Auth
   const [userId, setUserId] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
+
+  // Trial status from the subscription hook (cached, fast)
+  const { features: subFeatures } = useSubscription()
 
   // Data
   const [sub, setSub] = useState(null)
@@ -598,7 +602,14 @@ export default function SubscriptionPage() {
                       <p className="text-xs text-muted-foreground uppercase tracking-wider">Current Plan</p>
                       <p className="text-2xl font-bold mt-0.5">{plan?.name ?? 'Free'}</p>
                     </div>
-                    <StatusBadge status={isFree ? 'free' : (sub?.status ?? 'free')} />
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                      {subFeatures.isTrialProvider && (
+                        <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-primary/20 text-primary border border-primary/30 flex items-center gap-1">
+                          <Gift className="h-3 w-3" /> FREE TRIAL
+                        </span>
+                      )}
+                      <StatusBadge status={isFree ? 'free' : (sub?.status ?? 'free')} />
+                    </div>
                   </div>
                   {!isFree && (
                     <div className="grid grid-cols-2 gap-3 text-sm">
@@ -618,8 +629,33 @@ export default function SubscriptionPage() {
                   )}
                 </div>
 
-                {/* Expiry warning */}
-                {expiringSoon && (
+                {/* Trial banner — shown when user is on a free trial */}
+                {subFeatures.isTrial && subFeatures.isTrialProvider && days !== null && days >= 0 && (
+                  <div className="rounded-xl border border-primary/40 bg-gradient-to-r from-primary/15 via-primary/5 to-card p-4 flex gap-3">
+                    <Gift className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-primary">
+                        {days === 0 ? 'Trial ends today!' : `Free Pro Trial — ${days} day${days !== 1 ? 's' : ''} left`}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        You're enjoying full Pro access for free. Subscribe before your trial ends to keep all features.
+                      </p>
+                      <button
+                        onClick={() => setView('plans')}
+                        className="mt-2 text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+                      >
+                        Subscribe now <ArrowRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-2xl font-black text-primary tabular-nums">{days}</p>
+                      <p className="text-[10px] text-muted-foreground">{days === 1 ? 'day' : 'days'}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Expiry warning — for paid plans expiring soon (not trial, handled above) */}
+                {expiringSoon && !subFeatures.isTrialProvider && (
                   <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 flex gap-3">
                     <AlertCircle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
                     <div>
@@ -680,7 +716,7 @@ export default function SubscriptionPage() {
                       : 'bg-primary text-primary-foreground hover:bg-primary/90'
                   }`}>
                   <Crown className="h-4 w-4" />
-                  {pendingSubmission ? 'Payment Pending Verification…' : isFree ? 'Upgrade Plan' : expiringSoon ? 'Renew Plan' : 'Change Plan'}
+                  {pendingSubmission ? 'Payment Pending Verification…' : isFree ? 'Upgrade Plan' : subFeatures.isTrialProvider ? 'Subscribe Now' : expiringSoon ? 'Renew Plan' : 'Change Plan'}
                 </button>
 
                 <button onClick={() => navigate('/payment-history')}

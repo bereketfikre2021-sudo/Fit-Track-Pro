@@ -6,9 +6,21 @@ import { toast } from 'sonner'
 import { Button } from './ui/button'
 import { Card, CardContent } from './ui/card'
 import { cn } from '@/lib/utils'
-import { isGeminiConfigured } from '@/lib/gemini'
+import { isGeminiConfigured, hasUserOwnApiKey } from '@/lib/gemini'
 import { useSubscription } from '@/lib/useSubscription'
 import PresetTemplatesSection from './PresetTemplatesSection'
+
+/**
+ * AI access logic:
+ *   - User has their own Gemini API key → always allowed (their quota, not ours)
+ *   - User has an active Pro/Elite/Team subscription → allowed up to plan limit
+ *   - Free plan / no subscription + no own key → blocked, show upgrade prompt
+ */
+function canAccessAi(features) {
+  // Own key bypasses subscription gate entirely
+  if (hasUserOwnApiKey()) return true
+  return features.ai === true
+}
 
 function AiRecommendButton({
   onClick,
@@ -23,20 +35,26 @@ function AiRecommendButton({
   const { features } = useSubscription()
   const displayLabel = label ?? t('ai.defaultLabel')
 
+  // Effective AI access: own key OR paid plan
+  const aiAllowed = canAccessAi(features)
+
   const handleClick = () => {
     if (loading || disabled) return
     if (!configured) {
       toast.error(t('ai.notConfigured'))
       return
     }
-    if (!features.ai) {
-      toast.error('AI coaching requires a Pro subscription or higher. Upgrade in Settings → Subscription.')
+    if (!aiAllowed) {
+      toast.error('AI coaching requires a Pro subscription or your own Gemini API key. Upgrade in Settings → Subscription.')
       return
     }
     onClick?.()
   }
 
-  const isBlocked = !features.ai || (!configured && !loading)
+  const isBlocked = !aiAllowed || (!configured && !loading)
+  const blockTitle = !aiAllowed
+    ? 'Upgrade to Pro or add your own Gemini API key in Settings → Advanced'
+    : (!configured ? t('ai.notConfigured') : undefined)
 
   return (
     <Button
@@ -45,11 +63,11 @@ function AiRecommendButton({
       className={cn(isBlocked && !loading && 'opacity-90', className)}
       disabled={loading || disabled}
       onClick={handleClick}
-      title={!features.ai ? 'Upgrade to Pro to use AI coaching' : (!configured ? t('ai.notConfigured') : undefined)}
+      title={blockTitle}
     >
       {loading ? (
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-      ) : !features.ai ? (
+      ) : !aiAllowed ? (
         <Lock className="h-4 w-4 mr-2" />
       ) : (
         <Sparkles className="h-4 w-4 mr-2" />
@@ -61,16 +79,15 @@ function AiRecommendButton({
 
 /**
  * Unified "Get Started" card shown to new users with no workout days.
- * Presents setup options filtered by the user's initial plan choice.
  */
 export function NewUserGetStartedCard({ aiLoading, onAiGenerate, setupMethod = null, state, updateState }) {
   const { t } = useTranslation()
   const configured = isGeminiConfigured()
   const [showTemplates, setShowTemplates] = useState(false)
 
-  const showAi = setupMethod === null || setupMethod === 'ai' || setupMethod === 'manual'
+  const showAi       = setupMethod === null || setupMethod === 'ai'       || setupMethod === 'manual'
   const showTemplate = setupMethod === null || setupMethod === 'template' || setupMethod === 'manual'
-  const showManual = setupMethod === null || setupMethod === 'manual'
+  const showManual   = setupMethod === null || setupMethod === 'manual'
 
   return (
     <Card className="border-primary/30 bg-primary/5">
@@ -121,7 +138,6 @@ export function NewUserGetStartedCard({ aiLoading, onAiGenerate, setupMethod = n
           )}
         </div>
 
-        {/* Inline template browser */}
         {showTemplates && showTemplate && state && updateState && (
           <div className="pt-1 border-t border-border/60">
             <PresetTemplatesSection state={state} updateState={updateState} />

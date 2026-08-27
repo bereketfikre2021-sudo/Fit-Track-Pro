@@ -104,6 +104,25 @@ export function AuthProvider({ children }) {
       setSession(session)
       if (session?.user?.id) {
         loadRoles(session.user.id)
+
+        // Log device info to audit_logs on every new sign-in event.
+        // Best-effort — never blocks the auth flow.
+        if (event === 'SIGNED_IN') {
+          try {
+            supabase.from('audit_logs').insert({
+              user_id:    session.user.id,
+              action:     'login',
+              table_name: null,
+              user_agent: navigator.userAgent,
+              ip_address: null,  // IP is not available in the browser
+              metadata:   {
+                provider: session.user.app_metadata?.provider ?? 'email',
+                email:    session.user.email ?? null,
+              },
+              severity: 'info',
+            }).then(() => {}).catch(() => {})
+          } catch { /* ignore */ }
+        }
       } else {
         setRoles([])
         rolesLoadedFor.current = null

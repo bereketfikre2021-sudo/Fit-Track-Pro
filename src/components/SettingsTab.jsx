@@ -39,7 +39,7 @@ import { Input } from './ui/input'
 import { toast } from 'sonner'
 import CopyrightBadge from './CopyrightBadge'
 import JsonFileActions from './JsonFileActions'
-import { isGeminiConfigured } from '@/lib/gemini'
+import { isGeminiConfigured, hasUserOwnApiKey } from '@/lib/gemini'
 import { NotificationSettings } from './NotificationSettings'
 import { useAuth } from '@/lib/useAuth'
 
@@ -670,7 +670,11 @@ function SettingsTab({ state, updateState, exportData, importData, clearAllData,
                   </a>
                 </p>
                 {isGeminiConfigured() ? (
-                  <p className="text-xs text-primary font-medium">{t('settings.ai.configured')}</p>
+                  <p className="text-xs text-primary font-medium">
+                    {hasUserOwnApiKey()
+                      ? '✓ Using your own API key — AI features are enabled regardless of subscription'
+                      : t('settings.ai.configured')}
+                  </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">{t('settings.ai.notConfigured')}</p>
                 )}

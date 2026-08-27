@@ -27,6 +27,7 @@ import ExercisePickerRow from './ExercisePickerRow'
 import { FULLSCREEN_DIALOG_CONTENT_CLASS } from './dialogStyles'
 import ExerciseDetailSheet from './ExerciseDetailSheet'
 import { useLocalizedName } from '@/lib/localizedField'
+import { useExerciseImageMap } from '@/lib/usePresets'
 
 const selectClassName =
   'flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
@@ -51,6 +52,7 @@ function defaultFields(ex) {
 function AddExerciseToDayDialog({ day, customExercises, onClose, onAdd }) {
   const { t } = useTranslation()
   const getLocalizedName = useLocalizedName()
+  const exerciseImageMap = useExerciseImageMap()
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [phaseFilter, setPhaseFilter] = useState('all')
@@ -241,7 +243,12 @@ function AddExerciseToDayDialog({ day, customExercises, onClose, onAdd }) {
                         subtitle={subtitle}
                         badges={[getExercisePhaseLabel(phase)]}
                         selected={!!selections[ex.id]}
-                        imageUrl={ex.imageUrl || null}
+                        imageUrl={
+                          ex.imageUrl ||
+                          exerciseImageMap[ex.id] ||
+                          exerciseImageMap[`name:${String(ex.name ?? '').toLowerCase().replace(/\s+/g, '-')}`] ||
+                          null
+                        }
                         onClick={() => toggleExercise(ex)}
                         trailing={
                           <button

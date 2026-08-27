@@ -29,6 +29,15 @@ export function getGeminiModel() {
 }
 
 /**
+ * Returns true if the user has entered their own Gemini API key in Settings.
+ * When true, AI features should be available regardless of subscription status —
+ * the user is using their own quota, not ours.
+ */
+export function hasUserOwnApiKey() {
+  return settingsApiKey.length > 0
+}
+
+/**
  * In production the server holds the key — always configured.
  * In dev mode we need either a real VITE_GEMINI_API_KEY or a user-supplied key in Settings.
  */

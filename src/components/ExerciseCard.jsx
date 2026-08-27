@@ -42,12 +42,25 @@ import { todayDateString, completionKey } from '@/lib/workoutSession'
 import { getSkipReasonLabel, isSkippedEntry } from '@/lib/exerciseSkip'
 import { useRef } from 'react'
 import { useLocalizedName } from '@/lib/localizedField'
+import { useExerciseImageMap } from '@/lib/usePresets'
 
 const sharedRadius = 'rounded-md'
 
 function ExerciseThumbnail({ exercise, isCompleted, className, onClick }) {
   const { t } = useTranslation()
   const getLocalizedName = useLocalizedName()
+
+  // Resolve the display image:
+  //   1. Use the imageUrl already stored on the exercise (user-uploaded or previously resolved)
+  //   2. Fall back to the admin-uploaded image map, looked up by name
+  //   (This covers exercises added via onboarding/AI before the image was uploaded to admin)
+  const exerciseImageMap = useExerciseImageMap()
+  const resolvedImageUrl = (() => {
+    if (exercise.imageUrl) return exercise.imageUrl
+    if (!exercise.name) return ''
+    const nameKey = `name:${String(exercise.name).toLowerCase().replace(/\s+/g, '-')}`
+    return exerciseImageMap[exercise.id] ?? exerciseImageMap[nameKey] ?? ''
+  })()
   return (
     <div
       className={cn(
@@ -68,14 +81,14 @@ function ExerciseThumbnail({ exercise, isCompleted, className, onClick }) {
       }
       aria-label={onClick ? t('exerciseCard.editImage') : undefined}
     >
-      {exercise.imageUrl ? (
+      {resolvedImageUrl ? (
         <img
-          src={exercise.imageUrl}
+          src={resolvedImageUrl}
           alt={getLocalizedName(exercise)}
           className={cn(
             'w-full h-full',
             // GIFs: contain so animation isn't cropped; static images: cover
-            exercise.imageUrl.includes('.gif') || exercise.imageUrl.startsWith('data:image/gif')
+            resolvedImageUrl.includes('.gif') || resolvedImageUrl.startsWith('data:image/gif')
               ? 'object-contain'
               : 'object-cover',
             sharedRadius

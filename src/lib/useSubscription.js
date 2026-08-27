@@ -24,6 +24,9 @@ const FREE_FEATURES = {
   planName: 'Free',
   isActive: false,
   isFree: true,
+  isTrial: false,
+  isTrialProvider: false,
+  expiresAt: null,
 }
 
 const CACHE_KEY = 'fittrack_sub_cache'
@@ -57,7 +60,7 @@ export function useSubscription() {
     try {
       const { data } = await supabase
         .from('user_subscriptions')
-        .select('status, current_period_end, plan:subscription_plans(name, tier, features, max_ai_calls_day, max_devices)')
+        .select('status, provider, current_period_end, plan:subscription_plans(name, tier, features, max_ai_calls_day, max_devices)')
         .eq('user_id', uid)
         .in('status', ['active', 'trialing'])
         .order('created_at', { ascending: false })
@@ -74,7 +77,7 @@ export function useSubscription() {
       const f = plan.features ?? {}
       const result = {
         ai:               f.ai               === true,
-        ads:              f.ads              !== false,  // default to showing ads unless explicitly false
+        ads:              f.ads              !== false,
         export:           f.export           === true,
         priority_support: f.priority_support === true,
         max_ai_calls_day: plan.max_ai_calls_day ?? 5,
@@ -83,6 +86,8 @@ export function useSubscription() {
         planName:         plan.name           ?? 'Free',
         isActive:         data.status === 'active' || data.status === 'trialing',
         isFree:           plan.tier === 'free',
+        isTrial:          data.status === 'trialing',
+        isTrialProvider:  data.provider === 'trial',
         expiresAt:        data.current_period_end ?? null,
       }
       setFeatures(result)

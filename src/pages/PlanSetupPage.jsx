@@ -9,7 +9,7 @@ import GymFloatingPattern from '../components/GymFloatingPattern'
 import { Card, CardContent } from '../components/ui/card'
 import { BACKGROUND_HOME } from '../lib/backgrounds'
 import { cn } from '../lib/utils'
-import { isGeminiConfigured } from '@/lib/gemini'
+import { isGeminiConfigured, hasUserOwnApiKey } from '@/lib/gemini'
 import { getAiToastKey } from '@/lib/aiErrors'
 import { showImportWarnings } from '@/lib/importWarnings'
 import { applyAiPlanSetup, applyTemplatePlanSetup } from '@/lib/planSetup'
@@ -44,14 +44,16 @@ function PlanSetupPage({ state, updateState }) {
     (p) => p.id === resolveMealPresetId(bmiCategory, goal)
   )
   const configured = isGeminiConfigured()
+  // Own key bypasses subscription gate
+  const aiAllowed = hasUserOwnApiKey() || features.ai
 
   const finishSetup = (path = '/') => {
     navigate(path)
   }
 
   const handleAi = async () => {
-    if (!features.ai) {
-      toast.error('AI plan generation requires a Pro subscription or higher. Upgrade in Settings → Subscription.')
+    if (!aiAllowed) {
+      toast.error('AI plan generation requires a Pro subscription or your own Gemini API key in Settings → Advanced.')
       return
     }
     if (!configured) {
@@ -149,16 +151,16 @@ function PlanSetupPage({ state, updateState }) {
                   onClick={handleAi}
                   className={cn(
                     'flex flex-col items-center gap-2 rounded-xl border-2 px-4 py-5 text-center transition-all',
-                    features.ai
+                    aiAllowed
                       ? 'border-primary/40 bg-primary/5 hover:border-primary hover:bg-primary/10'
                       : 'border-border bg-muted/20 hover:border-primary/40',
                     (aiLoading || templateLoading) && 'opacity-60 cursor-not-allowed'
                   )}
-                  title={!features.ai ? 'Upgrade to Pro to use AI plan generation' : (!configured ? t('ai.notConfigured') : undefined)}
+                  title={!aiAllowed ? 'Upgrade to Pro or add your own Gemini API key in Settings → Advanced' : (!configured ? t('ai.notConfigured') : undefined)}
                 >
                   {aiLoading ? (
                     <Loader2 className="h-7 w-7 text-primary animate-spin" />
-                  ) : !features.ai ? (
+                  ) : !aiAllowed ? (
                     <Lock className="h-7 w-7 text-muted-foreground" />
                   ) : (
                     <Sparkles className="h-7 w-7 text-primary" />
@@ -167,7 +169,7 @@ function PlanSetupPage({ state, updateState }) {
                     {aiLoading ? aiPhaseLabel || t('ai.generating') : t('setup.aiTitle')}
                   </span>
                   <span className="text-xs text-muted-foreground leading-snug">
-                    {!features.ai ? 'Requires Pro plan' : t('setup.aiDesc')}
+                    {!aiAllowed ? 'Requires Pro plan or own API key' : t('setup.aiDesc')}
                   </span>
                 </button>
 

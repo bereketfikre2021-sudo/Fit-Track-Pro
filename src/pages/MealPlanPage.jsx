@@ -175,6 +175,7 @@ import { searchFoods } from '../lib/ethiopianFoods'
 import { mergeMealsIntoShoppingList } from '../lib/shoppingFromMeals'
 import JsonFileActions from '../components/JsonFileActions'
 import { useSubscription } from '../lib/useSubscription'
+import { hasUserOwnApiKey } from '@/lib/gemini'
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -367,8 +368,8 @@ function MealPlanPage({ state, updateState }) {
   }
 
   const handleAiMealRecommend = async () => {
-    if (!features.ai) {
-      toast.error('AI meal planning requires a Pro subscription or higher. Upgrade in Settings → Subscription.')
+    if (!features.ai && !hasUserOwnApiKey()) {
+      toast.error('AI meal planning requires a Pro subscription or your own Gemini API key in Settings → Advanced.')
       return
     }
     if (!hasAnyExercises(state)) {
@@ -413,8 +414,8 @@ function MealPlanPage({ state, updateState }) {
   }
 
   const handleAiShoppingRecommend = async () => {
-    if (!features.ai) {
-      toast.error('AI shopping list requires a Pro subscription or higher. Upgrade in Settings → Subscription.')
+    if (!features.ai && !hasUserOwnApiKey()) {
+      toast.error('AI shopping list requires a Pro subscription or your own Gemini API key in Settings → Advanced.')
       return
     }
     if (isMealPlanEmpty(mealPlan)) {
