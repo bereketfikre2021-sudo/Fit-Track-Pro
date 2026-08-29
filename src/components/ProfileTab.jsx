@@ -34,6 +34,7 @@ import { Badge } from './ui/badge'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { readAvatarFromFile } from '@/lib/avatarUpload'
+import { useAuth } from '@/lib/useAuth'
 import { calculateAgeFromBirthDate, calculateBmi, formatMemberSinceDate, resolveEffectiveFitnessLevel } from '@/lib/profileUtils'
 import {
   translateFitnessLevel,
@@ -112,6 +113,7 @@ function MetricRow({ icon: Icon, label, value }) {
 
 function ProfileTab({ state, updateState }) {
   const { t, i18n } = useTranslation()
+  const { user } = useAuth()
   const profile = state.profile
   const { features: subFeatures } = useSubscription()
   const planTier = subFeatures?.tier ?? 'free'
@@ -135,9 +137,11 @@ function ProfileTab({ state, updateState }) {
   const handleAvatarFileChange = async (e) => {
     const file = e.target.files[0]
     if (!file) return
-    const dataUrl = await readAvatarFromFile(file)
-    if (!dataUrl) return
-    updateState({ profile: { ...profile, avatarUrl: dataUrl } })
+    // Pass userId so the upload function can store to Supabase Storage
+    // and return a stable https:// URL instead of a base64 string
+    const avatarUrl = await readAvatarFromFile(file, user?.id ?? null)
+    if (!avatarUrl) return
+    updateState({ profile: { ...profile, avatarUrl } })
     toast.success(t('profile.toastAvatar'))
     e.target.value = ''
   }

@@ -88,16 +88,38 @@ function AppRoutes() {
         setState((prev) => {
           const merged = { ...prev, ...patch }
           merged.appSettings = prev.appSettings // device-specific, keep local
-          if (!patch.workoutSchedule) merged.workoutSchedule = prev.workoutSchedule
-          if (!patch.customExercises) merged.customExercises = prev.customExercises
+
+          // Workout schedule + custom exercises: cloud wins only when local is empty
+          // This prevents a cloud-load from wiping a schedule the user just built
+          if (!patch.workoutSchedule || Object.keys(prev.workoutSchedule || {}).length > 0) {
+            merged.workoutSchedule = prev.workoutSchedule
+          }
+          if (!patch.customExercises || (prev.customExercises || []).length > 0) {
+            merged.customExercises = prev.customExercises
+          }
+
+          // completedExercises: merge — cloud fills in past entries, local
+          // wins for any key already present (may be more recent than cloud)
+          if (patch.completedExercises) {
+            merged.completedExercises = {
+              ...patch.completedExercises,
+              ...prev.completedExercises, // local entries override cloud
+            }
+          }
+
           // If cloud says onboarded, also infer planSetupComplete so no /setup flash
           if (patch.onboarded) {
             merged.planSetupComplete = true
           }
 
+          // Fix avatar: if local has an empty/stripped avatarUrl but cloud has
+          // a real URL, restore it. This covers the "refresh strips base64" bug.
+          if (patch.profile?.avatarUrl && !prev.profile?.avatarUrl) {
+            merged.profile = { ...merged.profile, avatarUrl: patch.profile.avatarUrl }
+          }
+
           // Preserve local imageUrl on meal plan foods — the DB schema
           // doesn't store imageUrl so cloud data always comes back without it.
-          // We re-attach images from local state by matching day+slot+name.
           if (patch.mealPlan && prev.mealPlan) {
             const DAYS  = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
             const SLOTS = ['breakfast','morningSnack','lunch','afternoonSnack','dinner','beforeBed']
@@ -107,7 +129,6 @@ function AppRoutes() {
               for (const slot of SLOTS) {
                 const cloudFoods = patch.mealPlan?.[day]?.[slot] ?? []
                 const localFoods = prev.mealPlan?.[day]?.[slot] ?? []
-                // Build a name→imageUrl map from local state
                 const localImageMap = {}
                 for (const f of localFoods) {
                   if (f.imageUrl && f.name) {

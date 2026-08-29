@@ -21,6 +21,7 @@ import {
   syncMealSlot,
   syncWaterLog,
   syncWorkoutSession,
+  syncWorkoutData,
 } from './supabaseDb'
 
 const QUEUE_KEY = 'fittrack_offline_queue'
@@ -89,6 +90,7 @@ function getDedupKey(type, payload) {
     case 'mealSlot':       return `${payload?.day}__${payload?.slot}`
     case 'waterLog':       return payload?.date
     case 'workoutSession': return `${payload?.session?.day}__${payload?.session?.date}`
+    case 'workoutData':    return 'workoutData'
     default:               return null
   }
 }
@@ -153,6 +155,9 @@ async function executeEntry(entry) {
         break
       case 'workoutSession':
         await syncWorkoutSession(userId, payload.session, payload.completedEx)
+        break
+      case 'workoutData':
+        await syncWorkoutData(userId, payload.workoutSchedule, payload.customExercises)
         break
       default:
         console.warn('[offlineQueue] Unknown entry type:', type)

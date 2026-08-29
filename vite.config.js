@@ -125,29 +125,27 @@ export default defineConfig({
               },
             },
           },
-          // Supabase REST API — NetworkFirst, fallback to cache when offline
+          // Supabase REST API — NetworkOnly: always fetch fresh data.
+          // We previously used NetworkFirst with a 3-second timeout that fell back
+          // to a 24-hour cached response on slow networks. This caused completedExercises,
+          // workoutSchedule, and avatar to silently serve yesterday's data.
+          // NetworkOnly ensures every API call hits Supabase directly.
+          // The app's own 5-second safety timeout in App.jsx handles offline gracefully.
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'fittrack-supabase-api',
-              networkTimeoutSeconds: 3,
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24,
-              },
-              cacheableResponse: { statuses: [0, 200] },
-            },
+            handler: 'NetworkOnly',
           },
-          // Supabase Storage (images) — CacheFirst
+          // Supabase Storage (images) — StaleWhileRevalidate so avatars and progress
+          // photos always update in the background. CacheFirst was holding onto
+          // deleted/replaced images for 7 days with no revalidation.
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/.*/i,
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'fittrack-supabase-storage',
               expiration: {
-                maxEntries: 60,
-                maxAgeSeconds: 60 * 60 * 24 * 7,
+                maxEntries: 80,
+                maxAgeSeconds: 60 * 60 * 24,  // 1 day max-age, but always revalidated
               },
               cacheableResponse: { statuses: [0, 200] },
             },

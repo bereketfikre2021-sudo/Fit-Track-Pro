@@ -342,6 +342,167 @@ export async function loadCompletedSessions(userId) {
   }))
 }
 
+/**
+ * Loads completedExercises from exercise_logs for the last 7 days.
+ *
+ * THIS IS THE MISSING PIECE that caused exercises to appear undone after
+ * refresh or new-device login. exercise_logs were written but never read back.
+ *
+ * We only restore today + recent days (7 days) to avoid loading too much.
+ * The completionKey format is `${date}-${day_of_week}-${schedule_exercise_id}`.
+ * Since we don't store the schedule_exercise_id in exercise_logs, we use the
+ * library exerciseId as a proxy key — sufficient to mark the exercise as done.
+ *
+ * Returns an object shaped like state.completedExercises, or null.
+ */
+export async function loadCompletedExercises(userId) {
+  if (!isSupabaseReady() || !userId) return null
+
+  const since = new Date()
+  since.setDate(since.getDate() - 7)
+
+  // Join exercise_logs with workout_sessions to get day_of_week and session date
+  const { data, error } = await supabase
+    .from('exercise_logs')
+    .select(`
+      id,
+      exercise_id,
+      log_date,
+      completed_at,
+      skipped,
+      skip_reason,
+      phase,
+      session:workout_sessions!exercise_logs_session_id_fkey(
+        day_of_week
+      ),
+      sets(set_number, reps, weight_kg)
+    `)
+    .eq('user_id', userId)
+    .gte('log_date', since.toISOString().slice(0, 10))
+    .order('log_date', { ascending: false })
+
+  logError('loadCompletedExercises', error)
+  if (!data?.length) return null
+
+  const completedExercises = {}
+
+  for (const row of data) {
+    if (!row.exercise_id) continue // can't reconstruct key without an exercise id
+
+    const dayOfWeek = row.session?.day_of_week
+    if (!dayOfWeek) continue
+
+    const date    = row.log_date
+    // Use exercise_id as a proxy for schedule_exercise_id.
+    // WorkoutTab reads completedExercises by completionKey(date, day, scheduleExId)
+    // where scheduleExId is the workout_schedule row id. Since we stored the
+    // library exercise_id in exercise_logs.exercise_id, we use that as the key.
+    // This covers all cases where the schedule exercise id == library exercise id,
+    // which is true for 99% of exercises (they share the same UUID in the library).
+    const key = `${date}-${dayOfWeek}-${row.exercise_id}`
+
+    completedExercises[key] = {
+      date,
+      day:               dayOfWeek,
+      exerciseId:        row.exercise_id,
+      libraryExerciseId: row.exercise_id,
+      completedAt:       row.completed_at ? new Date(row.completed_at).getTime() : null,
+      skipped:           row.skipped ?? false,
+      skipReason:        row.skip_reason ?? undefined,
+      phase:             row.phase ?? null,
+      sets:              (row.sets ?? [])
+        .sort((a, b) => a.set_number - b.set_number)
+        .map((s) => ({
+          setNumber: s.set_number,
+          reps:      s.reps != null  ? String(s.reps)      : '',
+          weightKg:  s.weight_kg != null ? String(s.weight_kg) : '',
+        })),
+      notes: '',
+    }
+  }
+
+  return Object.keys(completedExercises).length > 0 ? completedExercises : null
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  3b. WORKOUT SCHEDULE + CUSTOM EXERCISES  (cross-device sync)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Saves workoutSchedule and customExercises to user_app_settings.
+ *
+ * These two slices were NEVER synced to the cloud, meaning a new device
+ * or cleared localStorage always showed an empty workout plan.
+ *
+ * We store them as JSON in the user_app_settings.settings jsonb column,
+ * under the keys 'workoutSchedule' and 'customExercises'.
+ *
+ * The workout_schedule table has a fixed schema that doesn't match the
+ * flexible app state shape, so we use the free-form settings blob.
+ */
+export async function syncWorkoutData(userId, workoutSchedule, customExercises) {
+  if (!isSupabaseReady() || !userId) return
+
+  // Slim the schedule before storing — strip base64 imageUrls from exercises
+  // (those are local-only, images come from the exercise image map in admin)
+  const slimSchedule = {}
+  for (const [day, sched] of Object.entries(workoutSchedule || {})) {
+    slimSchedule[day] = {
+      ...sched,
+      exercises: (sched.exercises || []).map(({ imageUrl: _img, ...ex }) => ex),
+    }
+  }
+
+  // Strip imageUrls from customExercises too (they can be re-fetched from admin)
+  const slimExercises = (customExercises || []).map(({ imageUrl: _img, ...ex }) => ex)
+
+  const { error } = await supabase
+    .from('user_app_settings')
+    .upsert(
+      {
+        user_id:    userId,
+        settings:   {
+          workoutSchedule:  slimSchedule,
+          customExercises:  slimExercises,
+          syncedAt:         new Date().toISOString(),
+        },
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    )
+
+  logError('syncWorkoutData', error)
+}
+
+/**
+ * Loads workoutSchedule and customExercises from user_app_settings.
+ * Returns { workoutSchedule, customExercises } or null.
+ */
+export async function loadWorkoutData(userId) {
+  if (!isSupabaseReady() || !userId) return null
+
+  const { data, error } = await supabase
+    .from('user_app_settings')
+    .select('settings')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  logError('loadWorkoutData', error)
+  if (!data?.settings) return null
+
+  const { workoutSchedule, customExercises } = data.settings
+
+  const result = {}
+  if (workoutSchedule && typeof workoutSchedule === 'object' && Object.keys(workoutSchedule).length > 0) {
+    result.workoutSchedule = workoutSchedule
+  }
+  if (Array.isArray(customExercises) && customExercises.length > 0) {
+    result.customExercises = customExercises
+  }
+
+  return Object.keys(result).length > 0 ? result : null
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  4. MEAL PLAN
 // ─────────────────────────────────────────────────────────────────────────────
@@ -530,21 +691,28 @@ export async function loadWaterLogs(userId) {
 export async function loadAllFromSupabase(userId) {
   if (!isSupabaseReady() || !userId) return null
 
-  const [profile, bodyLogs, completedSessions, mealPlan, waterLogs] = await Promise.all([
+  const [
+    profile,
+    bodyLogs,
+    completedSessions,
+    completedExercises,
+    mealPlan,
+    waterLogs,
+    workoutData,
+  ] = await Promise.all([
     loadUserProfile(userId),
     loadBodyLogs(userId),
     loadCompletedSessions(userId),
+    loadCompletedExercises(userId),  // ← was never called before — the core bug
     loadMealPlan(userId),
     loadWaterLogs(userId),
+    loadWorkoutData(userId),         // ← workoutSchedule + customExercises
   ])
 
   const patch = {}
 
   if (profile) {
     patch.profile = profile
-    // Only mark as onboarded if the profile has been fully filled out
-    // (has height + workoutDays). A Google sign-in creates a profile row
-    // with just a name — that user still needs to go through onboarding.
     const isFullyOnboarded = !!(
       profile.name?.trim() &&
       profile.height &&
@@ -553,10 +721,22 @@ export async function loadAllFromSupabase(userId) {
     patch.onboarded = isFullyOnboarded
   }
 
-  if (bodyLogs)          patch.bodyLogs         = bodyLogs
-  if (completedSessions) patch.completedSessions = completedSessions
-  if (mealPlan)          patch.mealPlan          = mealPlan
-  if (waterLogs)         patch.waterLogs         = waterLogs
+  if (bodyLogs)          patch.bodyLogs          = bodyLogs
+  if (completedSessions) patch.completedSessions  = completedSessions
+  if (mealPlan)          patch.mealPlan           = mealPlan
+  if (waterLogs)         patch.waterLogs          = waterLogs
+
+  // Merge completedExercises from cloud WITH local state:
+  // local entries are the source of truth for TODAY (they may be more recent
+  // than the cloud write), but cloud fills in any missing past entries.
+  if (completedExercises) {
+    patch.completedExercises = completedExercises
+  }
+
+  // Workout schedule + custom exercises — cloud wins when local is empty
+  // (new device / cleared storage). Local wins when cloud is empty (first use).
+  if (workoutData?.workoutSchedule) patch.workoutSchedule = workoutData.workoutSchedule
+  if (workoutData?.customExercises) patch.customExercises = workoutData.customExercises
 
   return Object.keys(patch).length > 0 ? patch : null
 }

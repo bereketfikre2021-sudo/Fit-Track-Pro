@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { FileUp } from 'lucide-react'
+import { FileUp, AlertTriangle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   Dialog,
@@ -10,81 +9,48 @@ import {
   DialogTitle,
 } from './ui/dialog'
 import { Button } from './ui/button'
-import { cn } from '@/lib/utils'
 import { IMPORT_MODE } from '@/lib/exerciseImport'
-
-const IMPORT_MODE_KEYS = {
-  [IMPORT_MODE.APPEND]: 'append',
-  [IMPORT_MODE.REPLACE_SCHEDULE]: 'replaceSchedule',
-  [IMPORT_MODE.REPLACE_LIBRARY]: 'replaceLibrary',
-}
 
 function ImportExerciseDialog({ open, onOpenChange, file, onConfirm }) {
   const { t } = useTranslation()
-  const [mode, setMode] = useState(IMPORT_MODE.APPEND)
-
-  const importModeOptions = Object.entries(IMPORT_MODE_KEYS).map(([value, key]) => ({
-    value,
-    label: t(`importModes.${key}.label`),
-    description: t(`importModes.${key}.description`),
-  }))
-
-  const handleOpenChange = (next) => {
-    if (!next) setMode(IMPORT_MODE.APPEND)
-    onOpenChange(next)
-  }
 
   const handleConfirm = () => {
     if (!file) return
-    onConfirm(file, mode)
-    handleOpenChange(false)
+    // Always replace — no mode picker needed
+    onConfirm(file, IMPORT_MODE.REPLACE_LIBRARY)
+    onOpenChange(false)
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{t('dialogs.importExercises.title')}</DialogTitle>
-          <DialogDescription>
-            {file ? (
-              <>
-                <span className="font-medium text-foreground">{file.name}</span>
-                <span className="block mt-1">{t('dialogs.importExercises.chooseMerge')}</span>
-              </>
-            ) : (
-              t('dialogs.importExercises.selectFile')
-            )}
-          </DialogDescription>
+          {file && (
+            <DialogDescription>
+              <span className="font-medium text-foreground">{file.name}</span>
+            </DialogDescription>
+          )}
         </DialogHeader>
 
-        {file && (
-          <div className="space-y-2">
-            {importModeOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setMode(option.value)}
-                className={cn(
-                  'w-full text-left rounded-lg border p-3 transition-colors',
-                  mode === option.value
-                    ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                    : 'border-border hover:border-primary/50'
-                )}
-              >
-                <p className="text-sm font-medium">{option.label}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{option.description}</p>
-              </button>
-            ))}
+        {/* Warning banner */}
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5 flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-400 leading-snug">
+            <p className="font-semibold">This will replace your entire exercise library.</p>
+            <p className="text-amber-400/80 mt-0.5 text-xs">
+              All current exercises and schedule assignments will be removed and replaced with the ones in the file. This cannot be undone.
+            </p>
           </div>
-        )}
+        </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="outline" className="flex-1" onClick={() => handleOpenChange(false)}>
+          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
             {t('common.cancel')}
           </Button>
           <Button className="flex-1" onClick={handleConfirm} disabled={!file}>
             <FileUp className="h-4 w-4 mr-2" />
-            {t('dialogs.importExercises.import')}
+            Replace &amp; Import
           </Button>
         </DialogFooter>
       </DialogContent>

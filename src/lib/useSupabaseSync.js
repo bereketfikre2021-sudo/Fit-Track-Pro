@@ -21,14 +21,20 @@ import {
   syncMealSlot,
   syncWaterLog,
   syncWorkoutSession,
+  syncWorkoutData,
 } from './supabaseDb'
 
 const SYNC_DELAY_MS = 1500
 
-// ─── tiny helper: call fn directly if online, otherwise enqueue ──────────────
+// ─── syncOrQueue: always enqueue on any failure, not just offline ─────────────
+// Previously only queued when isOnline=false. If the network was "online" but
+// the Supabase write failed (timeout, RLS, DB error), the write was silently lost.
 function syncOrQueue(isOnline, type, userId, payload, directFn) {
   if (isOnline) {
-    directFn().catch(() => enqueue(type, userId, payload))
+    directFn().catch((err) => {
+      console.warn(`[useSupabaseSync] write failed (${type}), queuing for retry:`, err?.message)
+      enqueue(type, userId, payload)
+    })
   } else {
     enqueue(type, userId, payload)
   }
@@ -50,6 +56,8 @@ export function useSupabaseSync(state) {
   const prevMealPlan          = useRef(null)
   const prevWaterLogs         = useRef(null)
   const prevCompletedSessions = useRef(null)
+  const prevWorkoutSchedule   = useRef(null)
+  const prevCustomExercises   = useRef(null)
 
   // Seed refs with the current state snapshot on the very first render so
   // any initial cloud-load write is NOT treated as a local change to push back.
@@ -206,6 +214,31 @@ export function useSupabaseSync(state) {
     }, SYNC_DELAY_MS)
     return () => clearTimeout(timer)
   }, [userId, isReady, isOnline, state.completedSessions, state.completedExercises])
+
+  // ── Workout schedule + custom exercises ──────────────────────────────────
+  // These were NEVER synced before — new device always got an empty plan.
+  useEffect(() => {
+    if (!isReady) return
+    const curSchedule  = JSON.stringify(state.workoutSchedule)
+    const curExercises = JSON.stringify(state.customExercises)
+    const scheduleChanged  = curSchedule  !== prevWorkoutSchedule.current
+    const exercisesChanged = curExercises !== prevCustomExercises.current
+    if (!scheduleChanged && !exercisesChanged) return
+
+    prevWorkoutSchedule.current  = curSchedule
+    prevCustomExercises.current  = curExercises
+
+    const timer = setTimeout(() => {
+      const payload = {
+        workoutSchedule: state.workoutSchedule,
+        customExercises: state.customExercises,
+      }
+      syncOrQueue(isOnline, 'workoutData', userId, payload, () =>
+        syncWorkoutData(userId, state.workoutSchedule, state.customExercises)
+      )
+    }, SYNC_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [userId, isReady, isOnline, state.workoutSchedule, state.customExercises])
 
   return { suppressNextMealSync: suppressNextMealSyncFn }
 }

@@ -567,6 +567,25 @@ function mergeWorkoutDays(existingDays, parsed, scheduleDays) {
   return WEEKDAY_ORDER.filter((d) => set.has(d))
 }
 
+/**
+ * In REPLACE_LIBRARY mode: use only the days declared in the file.
+ * Existing days that are not in the file are discarded entirely.
+ */
+function replaceWorkoutDays(parsed, scheduleDays) {
+  const set = new Set()
+
+  if (Array.isArray(parsed?.workoutDays)) {
+    parsed.workoutDays.forEach((d) => {
+      const day = normalizeDayName(d)
+      if (day) set.add(day)
+    })
+  }
+
+  scheduleDays.forEach((d) => set.add(d))
+
+  return WEEKDAY_ORDER.filter((d) => set.has(d))
+}
+
 function registerLibrary(exerciseDefs, existingExercises, { replace = false } = {}) {
   const byName = new Map()
   let customExercises = replace ? [] : [...(existingExercises || [])]
@@ -765,7 +784,11 @@ export function applyExerciseImport(state, parsed, mode = IMPORT_MODE.APPEND) {
   workoutSchedule = nextSchedule
 
   const existingDays = state.profile?.workoutDays || []
-  const workoutDays = mergeWorkoutDays(existingDays, parsed, scheduleDays)
+  // In REPLACE_LIBRARY mode use only the days from the file — do not carry over old days.
+  // In other modes merge with existing days.
+  const workoutDays = replaceLibrary
+    ? replaceWorkoutDays(parsed, scheduleDays)
+    : mergeWorkoutDays(existingDays, parsed, scheduleDays)
 
   const daysAdded = workoutDays.filter((d) => !existingDays.includes(d)).length
 
